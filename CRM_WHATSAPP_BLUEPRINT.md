@@ -22,7 +22,7 @@ Is system ka maqsad ek centralized **Multi-Number WhatsApp CRM** software banana
 ┌────────────────────────┐  ┌────────────────────────┐  ┌────────────────────────┐
 │  🇦🇪 Dubai WhatsApp     │  │  🇸🇦 Saudi WhatsApp     │  │  🇵🇰 Pakistan WhatsApp  │
 │  (+971 50 XXXXXXX)     │  │  (+966 50 XXXXXXX)     │  │  (+92 300 XXXXXXX)     │
-└───────────┬────────────┘  └───────────┬────────────┘  └───────────┬────────────┘
+└───────────┬────────────┘  └───────────┬────────────┘  └───────────┬──────────
             │                           │                           │
             │ (Webhook or QR Socket)    │ (Webhook or QR Socket)    │ (Webhook or QR Socket)
             ▼                           ▼                           ▼
@@ -351,5 +351,23 @@ Phase 5: Analytics, SLA & Production Deployment
 
 ---
 
+## 🔒 9. Security, Environment Variables & Compliance Guidelines
+
+Yeh CRM international multi-country leads (UAE, Saudi, Pakistan) aur Meta WhatsApp Cloud API credentials handle karta hai, isliye security standards mandatory hain:
+
+1. **Environment Variables (.env) Security**:
+   - Private secrets (jaise `META_APP_SECRET`, `META_SYSTEM_USER_ACCESS_TOKEN`, `DATABASE_URL`, `JWT_SECRET`) kabhi bhi frontend client code (`src/`) ya `VITE_` prefix ke sath expose nahi hone chahiye.
+   - Mukammal template aur security rules ke liye **[`.env.example`](file:///d:/Downloads/crm-whatsapp/.env.example)** aur **[`SECURITY.md`](file:///d:/Downloads/crm-whatsapp/SECURITY.md)** refer karein.
+2. **Meta Webhook Signature Verification**:
+   - Har inbound WhatsApp message ko Meta ke `X-Hub-Signature-256` HMAC header ke zariye verify kiya jata hai taake koi fake/spoofed payload inject na kar sake.
+3. **Regional Lead Isolation (RBAC)**:
+   - Server-side check lazmi hai: Dubai agent Saudi ya Pak leads nahi dekh sakta. Sirf authorized channels hi query hote hain.
+4. **Outbound Channel Guard**:
+   - Outbound reply dispatch karte waqt system ensure karta hai ke customer ko usi country number se jawab jaye jis par usne rabta kiya tha.
+5. **Private Notes Secrecy**:
+   - Internal team notes (`InternalNote`) hamesha server-side strip hoti hain aur kabhi bhi customer ke WhatsApp par nahi bhejti.
+
+---
+
 ## 🚀 Ready for Implementation
-Aap is file ko standard reference ke taur par use kar sakte hain. Agla step yeh hai ke hum **Phase 1 & Phase 2: Complete Multi-Number CRM Dashboard & Live Chat UI** build karna shuru karein.
+Aap is file aur **[`SECURITY.md`](file:///d:/Downloads/crm-whatsapp/SECURITY.md)** ko standard reference ke taur par use kar sakte hain. Agla step hamara step-by-step backend architecture setup hai.

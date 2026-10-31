@@ -1,14 +1,18 @@
 import React from 'react';
 import { Search, Download, Plus, Globe, Bell, Filter } from 'lucide-react';
-import { CHANNELS } from '../data/mockData';
+import { formatChannelDisplayName } from '../utils/leadFilters';
 
 export default function Header({ 
   selectedChannel, 
   setSelectedChannel, 
+  channels = [],
   searchQuery, 
   setSearchQuery,
   onOpenNewLead,
-  activeTab
+  activeTab,
+  waStatus = 'disconnected',
+  waUser = null,
+  onNavigateToChannels
 }) {
   return (
     <header className="bg-white border-b border-[#EEF2F6] px-6 py-3.5 sticky top-0 z-20 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -45,9 +49,10 @@ export default function Header({
         </div>
 
         {/* WhatsApp Channel Switcher Pill */}
-        <div className="flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/60">
-          {CHANNELS.map((ch) => {
+        <div className="flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/60 flex-wrap gap-0.5">
+          {channels.length > 0 ? channels.map((ch) => {
             const isSelected = selectedChannel === ch.id;
+            const displayName = formatChannelDisplayName(ch);
             return (
               <button
                 key={ch.id}
@@ -57,14 +62,56 @@ export default function Header({
                     ? 'bg-white text-orange-600 shadow-xs border border-orange-100'
                     : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                 }`}
-                title={ch.number}
+                title={ch.number || displayName}
               >
                 <span>{ch.flag}</span>
-                <span className="hidden sm:inline">{ch.id === 'all' ? 'Saare Numbers' : ch.id.toUpperCase()}</span>
+                <span className="hidden sm:inline">
+                  {displayName}
+                </span>
               </button>
             );
-          })}
+          }) : (
+            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-orange-600 shadow-xs border border-orange-100">
+              <span>🌐</span>
+              <span className="hidden sm:inline">Saare Numbers</span>
+            </button>
+          )}
         </div>
+
+        {/* Real-time WhatsApp Device Status Badge */}
+        {waStatus === 'connected' ? (
+          <button 
+            onClick={onNavigateToChannels}
+            title="Click to view connected WhatsApp device details"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold hover:bg-emerald-100 transition-all shadow-xs"
+          >
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span>WhatsApp Live</span>
+              {waUser?.phone && (
+                <span className="text-[11px] font-mono text-emerald-950 bg-emerald-200/80 px-1.5 py-0.5 rounded font-bold">
+                  {waUser.phone}
+                </span>
+              )}
+            </span>
+          </button>
+        ) : (
+          <button
+            onClick={onNavigateToChannels}
+            title="Click to scan QR code and connect WhatsApp"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+              waStatus === 'connecting'
+                ? 'bg-amber-50 border-amber-300 text-amber-900 hover:bg-amber-100'
+                : 'bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100'
+            }`}
+          >
+            <span className={`w-2 h-2 rounded-full ${waStatus === 'connecting' ? 'bg-amber-500 animate-pulse' : 'bg-rose-500'}`} />
+            <span>{waStatus === 'connecting' ? 'Scan WhatsApp QR' : 'Connect WhatsApp'}</span>
+          </button>
+        )}
 
         {/* Export CSV Button */}
         <button 

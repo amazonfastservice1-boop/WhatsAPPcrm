@@ -7,9 +7,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Dependencies & Build Output
+node_modules/
+dist/
+dist-ssr/
 *.local
 
 # Editor directories and files
@@ -22,3 +23,33 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment & Secrets (CRITICAL SECURITY)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+test_payload.json
+
+# Local Binaries & Tunneling Tools
+*.exe
+cloudflared*
+ngrok*
+
+# WhatsApp Auth Sessions, Storage & Media Caches
+sessions/
+*session*
+auth_info_baileys/
+whatsapp-sessions/
+storage/
+server/storage/
+*.ogg
+*.opus
+
+# Agent & Temp metadata
+.agent/
+.agents/
+.gemini/
+.gsd/

@@ -1,0 +1,191 @@
+// Prisma Schema for AmazFast WhatsApp CRM
+// Multi-Country, Multi-Number & Multi-Agent Architecture
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// -----------------------------------------------------------------------------
+// WhatsApp Channels (e.g. Dubai +971, Saudi +966, Pakistan +92)
+// -----------------------------------------------------------------------------
+model WhatsAppChannel {
+  id             String              @id @default(uuid())
+  name           String              // "Dubai Branch", "Saudi Sales", "Pakistan Inbound"
+  countryCode    String              // "AE", "SA", "PK"
+  countryName    String              // "United Arab Emirates", "Saudi Arabia", "Pakistan"
+  phoneNumber    String              @unique // "+971501234567"
+  currency       String              @default("AED") // "AED", "SAR", "PKR"
+  timezone       String              @default("Asia/Dubai")
+  provider       ChannelType         @default(META_API)
+  phoneIdMeta    String?             // Meta Phone Number ID
+  sessionKey     String?             // Encrypted session key if QR based
+  isActive       Boolean             @default(true)
+  welcomeMessage String?
+  leads          Lead[]
+  assignedAgents UserChannelAccess[]
+  messages       Message[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+}
+
+enum ChannelType {
+  META_API
+  QR_BAILEYS
+}
+
+// -----------------------------------------------------------------------------
+// System Users & Agents
+// -----------------------------------------------------------------------------
+model User {
+  id              String              @id @default(uuid())
+  name            String
+  email           String              @unique
+  passwordHash    String
+  role            Role                @default(AGENT)
+  isOnline        Boolean             @default(false)
+  allowedChannels UserChannelAccess[] // Strict regional isolation
+  assignedLeads   Lead[]
+  messagesSent    Message[]
+  notes           InternalNote[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  AGENT
+}
+
+// -----------------------------------------------------------------------------
+// Regional Access Control (User ⇄ Channel Permissions)
+// -----------------------------------------------------------------------------
+model UserChannelAccess {
+  userId    String
+  channelId String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel   WhatsAppChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@id([userId, channelId])
+}
+
+// -----------------------------------------------------------------------------
+// Leads & Customers
+// -----------------------------------------------------------------------------
+model Lead {
+  id            String          @id @default(uuid())
+  phoneNumber   String          // Customer WhatsApp number e.g. "+97155..."
+  fullName      String?
+  avatarUrl     String?
+  channelId     String
+  channel       WhatsAppChannel @relation(fields: [channelId], references: [id], onDelete: Restrict)
+  stage         LeadStage       @default(NEW_LEAD)
+  dealValue     Float?          // Value in channel's currency (AED, SAR, PKR)
+  assignedToId  String?
+  assignedTo    User?           @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  tags          TagOnLead[]
+  notes         InternalNote[]
+  messages      Message[]
+  unreadCount   Int             @default(0)
+  lastMessageAt DateTime        @default(now())
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@unique([phoneNumber, channelId]) // Same customer can interact with different country numbers
+  @@index([channelId, stage])
+  @@index([phoneNumber])
+}
+
+enum LeadStage {
+  NEW_LEAD
+  CONTACTED
+  QUALIFIED
+  PROPOSAL_SENT
+  WON
+  LOST
+}
+
+// -----------------------------------------------------------------------------
+// WhatsApp Messages (Inbound & Outbound)
+// -----------------------------------------------------------------------------
+model Message {
+  id            String          @id @default(uuid())
+  leadId        String
+  lead          Lead            @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  channelId     String
+  channel       WhatsAppChannel @relation(fields: [channelId], references: [id], onDelete: Restrict)
+  senderType    SenderType      // CUSTOMER, AGENT, SYSTEM
+  senderUserId  String?
+  senderUser    User?           @relation(fields: [senderUserId], references: [id], onDelete: SetNull)
+  content       String          @db.Text
+  mediaType     MediaType       @default(TEXT)
+  mediaUrl      String?
+  status        MessageStatus   @default(SENT)
+  whatsappMsgId String?         @unique // Meta message ID for status tracking
+  createdAt     DateTime        @default(now())
+
+  @@index([leadId, createdAt])
+  @@index([channelId])
+}
+
+enum SenderType {
+  CUSTOMER
+  AGENT
+  SYSTEM
+}
+
+enum MediaType {
+  TEXT
+  IMAGE
+  DOCUMENT
+  AUDIO
+  VIDEO
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+// -----------------------------------------------------------------------------
+// Private Internal Team Notes (Never sent to WhatsApp)
+// -----------------------------------------------------------------------------
+model InternalNote {
+  id        String   @id @default(uuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([leadId])
+}
+
+// -----------------------------------------------------------------------------
+// Tags & Classification
+// -----------------------------------------------------------------------------
+model Tag {
+  id        String      @id @default(uuid())
+  name      String      @unique
+  color     String      @default("#3B82F6")
+  leads     TagOnLead[]
+  createdAt DateTime    @default(now())
+}
+
+model TagOnLead {
+  leadId String
+  tagId  String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([leadId, tagId])
+}

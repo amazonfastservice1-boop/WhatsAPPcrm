@@ -34,10 +34,10 @@ export const CHANNELS = [
   },
   {
     id: 'pakistan',
-    name: 'Pakistan Branch',
+    name: 'Meta Cloud API (+92 332 2568950)',
     flag: '🇵🇰',
     country: 'Pakistan',
-    number: '+92 300 847 2190',
+    number: '+92 332 2568950',
     currency: 'PKR',
     activeChats: 84,
     todayLeads: 21,

@@ -16,7 +16,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
-export default function Sidebar({ activeTab, setActiveTab, unreadTotal = 4 }) {
+export default function Sidebar({ activeTab, setActiveTab, unreadTotal = 4, waStatus = 'disconnected' }) {
   const mainNav = [
     { id: 'dashboard', label: 'Main Overview', icon: LayoutDashboard },
     { id: 'chat', label: 'Customer Chats', icon: MessageSquare, badge: unreadTotal },
@@ -26,7 +26,13 @@ export default function Sidebar({ activeTab, setActiveTab, unreadTotal = 4 }) {
   ];
 
   const manageNav = [
-    { id: 'channels', label: 'WhatsApp Numbers', icon: Smartphone, highlight: '3 Active' },
+    { 
+      id: 'channels', 
+      label: 'WhatsApp Numbers', 
+      icon: Smartphone, 
+      highlight: waStatus === 'connected' ? '● Live' : waStatus === 'connecting' ? '● QR Ready' : '● Offline',
+      isLive: waStatus === 'connected'
+    },
     { id: 'team', label: 'Staff & Agents', icon: Users },
     { id: 'replies', label: 'Quick Saved Replies', icon: Zap },
     { id: 'analytics', label: 'Sales Reports', icon: BarChart3 },
@@ -108,7 +114,13 @@ export default function Sidebar({ activeTab, setActiveTab, unreadTotal = 4 }) {
                       <span>{item.label}</span>
                     </div>
                     {item.highlight ? (
-                      <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-emerald-50 text-emerald-600 border border-emerald-200">
+                      <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded border ${
+                        item.isLive 
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-300 font-extrabold'
+                          : waStatus === 'connecting'
+                          ? 'bg-amber-50 text-amber-700 border-amber-300'
+                          : 'bg-slate-100 text-slate-500 border-slate-200'
+                      }`}>
                         {item.highlight}
                       </span>
                     ) : null}

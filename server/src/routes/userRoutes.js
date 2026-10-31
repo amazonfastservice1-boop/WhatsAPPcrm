@@ -1,6 +1,6 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
-import prisma from '../config/db.js';
+import { prisma } from '../config/db.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -182,3 +182,4 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 });
 
 export default router;
+

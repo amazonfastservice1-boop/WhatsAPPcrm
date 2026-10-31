@@ -262,6 +262,13 @@ export default function LiveChatView({
   };
 
   // Sync across tabs and ScheduleView
+  const [realStaffList, setRealStaffList] = useState([]);
+  React.useEffect(() => {
+    api.getStaff().then((res) => {
+      if (res?.users) setRealStaffList(res.users);
+    }).catch(() => {});
+  }, []);
+
   React.useEffect(() => {
     const handleSync = () => {
       try {
@@ -2045,19 +2052,34 @@ export default function LiveChatView({
         <div className="space-y-1.5">
           <label className="text-xs font-extrabold text-slate-700 flex items-center justify-between">
             <span>Kaunsa Staff Handle Karega</span>
-            <span className="text-[10px] text-orange-600 font-bold">Auto / Change</span>
+            <span className="text-[10px] text-orange-600 font-bold">Live DB Sync</span>
           </label>
           <select
-            value={activeLead.assignedTo}
-            onChange={(e) => onUpdateLead(activeLead.id, { assignedTo: e.target.value })}
-            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-orange-500"
+            value={activeLead.assignedToId || ''}
+            onChange={(e) => {
+              const selectedId = e.target.value;
+              const selectedAgent = realStaffList.find((s) => s.id === selectedId);
+              onUpdateLead(activeLead.id, {
+                assignedToId: selectedId ? selectedId : null,
+                assignedTo: selectedAgent ? selectedAgent.name : 'Unassigned',
+              });
+            }}
+            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-orange-500 cursor-pointer"
           >
-            <option value="Unassigned">-- Kisi Ko Assign Nahi (Khali) --</option>
-            {AGENTS.map((a) => (
-              <option key={a.id} value={a.name}>
-                {a.name} ({a.country})
-              </option>
-            ))}
+            <option value="">-- Kisi Ko Assign Nahi (Unassigned) --</option>
+            {realStaffList.length > 0 ? (
+              realStaffList.map((agent) => (
+                <option key={agent.id} value={agent.id}>
+                  {agent.name} ({agent.role}) - {agent.isOnline ? '🟢 Online' : '⚪ Offline'}
+                </option>
+              ))
+            ) : (
+              AGENTS.map((a) => (
+                <option key={a.id} value={a.name}>
+                  {a.name} ({a.country})
+                </option>
+              ))
+            )}
           </select>
         </div>
 

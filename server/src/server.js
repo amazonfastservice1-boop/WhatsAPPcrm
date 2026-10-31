@@ -12,6 +12,7 @@ import channelRoutes from './routes/channelRoutes.js';
 import leadRoutes from './routes/leadRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 import { setupSocketEvents } from './sockets/chatSocket.js';
 import { initBaileys, getBaileysStatus, logoutBaileys, resetBaileys } from './services/baileysManager.js';
 
@@ -119,6 +120,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/channels', channelRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/users', userRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

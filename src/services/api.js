@@ -240,4 +240,72 @@ export const api = {
       return null;
     }
   },
+
+  // 9. Staff / Team Management
+  async getStaff() {
+    try {
+      const res = await fetch(`${API_BASE}/users`, { headers: getHeaders() });
+      if (!res.ok) throw new Error('Failed to fetch staff members');
+      return await res.json();
+    } catch (err) {
+      console.error('API error fetching staff:', err);
+      return { success: false, users: [] };
+    }
+  },
+
+  async createStaff(data) {
+    try {
+      const res = await fetch(`${API_BASE}/users`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return await res.json();
+    } catch (err) {
+      console.error('API error creating staff:', err);
+      return { success: false, error: err.message };
+    }
+  },
+
+  async updateStaff(id, data) {
+    try {
+      const res = await fetch(`${API_BASE}/users/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      });
+      return await res.json();
+    } catch (err) {
+      console.error('API error updating staff:', err);
+      return { success: false, error: err.message };
+    }
+  },
+
+  async deleteStaff(id) {
+    try {
+      const res = await fetch(`${API_BASE}/users/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders(),
+      });
+      return await res.json();
+    } catch (err) {
+      console.error('API error deleting staff:', err);
+      return { success: false, error: err.message };
+    }
+  },
+
+  // 10. Lead Assignment
+  async assignLead(leadId, assignedToId) {
+    try {
+      const res = await fetch(`${API_BASE}/leads/${leadId}`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ assignedToId }),
+      });
+      return await res.json();
+    } catch (err) {
+      console.error('API error assigning lead:', err);
+      return null;
+    }
+  },
 };

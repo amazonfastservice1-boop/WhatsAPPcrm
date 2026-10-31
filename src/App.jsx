@@ -78,6 +78,7 @@ export default function App() {
       currency: l.channel?.currency || 'PKR',
       dealValue: l.dealValue ? l.dealValue.toLocaleString() : '0',
       stage: stageMap[l.stage] || l.stage || 'New Lead',
+      assignedToId: l.assignedToId || null,
       assignedTo: l.assignedTo?.name || 'Unassigned',
       assignedAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
       avatar: l.avatarUrl || generatedAvatar,
@@ -369,6 +370,7 @@ export default function App() {
       if (updates.name !== undefined) apiUpdates.fullName = updates.name;
       if (updates.fullName !== undefined) apiUpdates.fullName = updates.fullName;
       if (updates.dealValue !== undefined) apiUpdates.dealValue = updates.dealValue;
+      if (updates.assignedToId !== undefined) apiUpdates.assignedToId = updates.assignedToId;
       if (updates.stage !== undefined) {
         const reverseStageMap = {
           'New Lead': 'NEW_LEAD',

@@ -100,6 +100,7 @@ export default function App() {
       unreadCount: l.unreadCount || 0,
       createdAt: l.createdAt ? new Date(l.createdAt).toISOString() : new Date().toISOString(),
       updatedAt: l.updatedAt ? new Date(l.updatedAt).toISOString() : new Date().toISOString(),
+      firstMessageAt: l.firstMessageAt ? new Date(l.firstMessageAt).toISOString() : (l.createdAt ? new Date(l.createdAt).toISOString() : new Date().toISOString()),
       rawLastMessageAt: l.lastMessageAt || l.messages?.[0]?.createdAt || 0,
       lastMessage: l.lastMessage || l.messages?.[0]?.content || 'WhatsApp conversation',
       lastTime: l.lastMessageAt ? formatSafeTime(l.lastMessageAt) : 'Just now',

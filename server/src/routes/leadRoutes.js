@@ -79,7 +79,31 @@ router.get('/', authenticateToken, async (req, res) => {
       orderBy: { lastMessageAt: 'desc' },
     });
 
-    res.json({ leads });
+    // Strict First Customer Message Resolution:
+    // Only leads whose FIRST EVER message arrived after 12:00 AM count as today's new lead!
+    const missingLeadIds = leads.map(l => l.id).filter(id => !firstCustomerMsgCache.has(id));
+    if (missingLeadIds.length > 0) {
+      const newMins = await prisma.message.groupBy({
+        by: ['leadId'],
+        where: {
+          leadId: { in: missingLeadIds },
+          senderType: 'CUSTOMER'
+        },
+        _min: { createdAt: true }
+      });
+      newMins.forEach(item => {
+        if (item.leadId && item._min.createdAt) {
+          firstCustomerMsgCache.set(item.leadId, item._min.createdAt);
+        }
+      });
+    }
+
+    const enrichedLeads = leads.map(l => ({
+      ...l,
+      firstMessageAt: firstCustomerMsgCache.get(l.id) || l.createdAt,
+    }));
+
+    res.json({ leads: enrichedLeads });
   } catch (error) {
     console.error('Error fetching leads:', error);
     res.status(500).json({ error: 'Failed to retrieve leads.' });

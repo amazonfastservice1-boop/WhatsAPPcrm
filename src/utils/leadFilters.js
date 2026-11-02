@@ -94,7 +94,8 @@ export function formatChannelDisplayName(channel) {
 
 export function isLeadToday(lead) {
   if (!lead) return false;
-  const rawDate = lead.createdAt || lead.rawLastMessageAt;
+  // Strictly check lead creation date (when customer first contacted)
+  const rawDate = lead.createdAt;
   if (!rawDate) return false;
   
   const d = new Date(rawDate);
@@ -110,7 +111,7 @@ export function isLeadToday(lead) {
 
 export function isLeadYesterday(lead) {
   if (!lead) return false;
-  const rawDate = lead.createdAt || lead.rawLastMessageAt;
+  const rawDate = lead.createdAt;
   if (!rawDate) return false;
   
   const d = new Date(rawDate);
@@ -127,7 +128,7 @@ export function isLeadYesterday(lead) {
 
 export function isLeadWithinDays(lead, days = 7) {
   if (!lead) return false;
-  const rawDate = lead.createdAt || lead.rawLastMessageAt;
+  const rawDate = lead.createdAt;
   if (!rawDate) return false;
   
   const d = new Date(rawDate);

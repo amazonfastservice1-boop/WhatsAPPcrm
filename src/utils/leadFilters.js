@@ -118,15 +118,14 @@ export function parseLeadDate(raw) {
 
 export function getLeadDate(lead) {
   if (!lead) return null;
-  // A lead's true date is when the customer actually messaged or when the lead was created
-  // We NEVER use updatedAt because editing a lead's stage/notes/staff must not change its lead date!
-  const dMsg = parseLeadDate(lead.rawLastMessageAt || lead.lastMessageAt);
-  const dCreated = parseLeadDate(lead.createdAt);
+  // STRICT: A lead's true date is the actual WhatsApp customer message timestamp!
+  // If a customer messaged yesterday at 10:05 PM, but the database row was inserted
+  // at 12:15 AM during background sync, the lead belongs to YESTERDAY (not Today)!
+  const dMsg = parseLeadDate(lead.rawLastMessageAt) || parseLeadDate(lead.lastMessageAt);
+  if (dMsg) return dMsg;
 
-  if (dMsg && dCreated) {
-    return dMsg > dCreated ? dMsg : dCreated;
-  }
-  return dMsg || dCreated || null;
+  // Only fall back to createdAt if no message date exists at all (e.g. manual lead created by agent)
+  return parseLeadDate(lead.createdAt);
 }
 
 export function getLeadLocalDateString(lead) {
@@ -143,12 +142,11 @@ export function isLeadToday(lead) {
   const d = getLeadDate(lead);
   if (!d) return false;
   
+  // Raat 12:00 AM se agle 12:00 AM (24 ghante) = Aaj Ka Din
   const now = new Date();
-  return (
-    d.getDate() === now.getDate() &&
-    d.getMonth() === now.getMonth() &&
-    d.getFullYear() === now.getFullYear()
-  );
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  return d >= startOfToday && d <= endOfToday;
 }
 
 export function isLeadYesterday(lead) {
@@ -156,13 +154,11 @@ export function isLeadYesterday(lead) {
   const d = getLeadDate(lead);
   if (!d) return false;
   
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  return (
-    d.getDate() === yesterday.getDate() &&
-    d.getMonth() === yesterday.getMonth() &&
-    d.getFullYear() === yesterday.getFullYear()
-  );
+  // Kal Ka Din: Pichli raat 12:00 AM se raat 11:59:59 PM tak
+  const now = new Date();
+  const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+  const endOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+  return d >= startOfYesterday && d <= endOfYesterday;
 }
 
 export function isLeadWithinDays(lead, days = 7) {

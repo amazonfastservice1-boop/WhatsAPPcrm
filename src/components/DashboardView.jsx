@@ -1743,7 +1743,13 @@ export default function DashboardView({
                             <span className="text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded font-black">{lead.phone}</span> • <span className="text-slate-500 font-normal">{lead.channelName}</span> • <span className="font-bold text-slate-700">Deal: {lead.dealValue ? `${lead.dealValue} PKR` : 'Pending'}</span>
                           </p>
                           <p className="text-[10px] text-slate-400 font-medium">
-                            📅 Added: {new Date(lead.createdAt || lead.rawLastMessageAt).toLocaleDateString('en-GB')} {lead.lastTime}
+                            📅 {(() => {
+                              const d = getLeadDate(lead);
+                              if (!d) return 'Date unavailable';
+                              const dayStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                              const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                              return `${dayStr} • ${timeStr}`;
+                            })()}
                           </p>
                           <p className="text-[11px] text-slate-600 truncate max-w-sm mt-0.5">
                             "{lead.lastMessage || 'No conversation yet'}"

@@ -452,7 +452,7 @@ export default function App() {
     };
 
     const handleStageUpdate = ({ leadId, stage, dealValue, serviceInterest }) => {
-      const displayStage = stageMap[stage] || stage;
+      const displayStage = STAGE_MAP[stage] || stage;
       setLeads((prev) =>
         prev.map((l) => {
           if (l.id !== leadId) return l;
@@ -472,23 +472,21 @@ export default function App() {
 
     const handleLeadUpdated = (updatedLead) => {
       if (!updatedLead || !updatedLead.id) return;
-      const displayStage = stageMap[updatedLead.stage] || updatedLead.stage;
+      const displayStage = STAGE_MAP[updatedLead.stage] || updatedLead.stage;
+      const updatedTags = Array.isArray(updatedLead.tags) 
+        ? updatedLead.tags.map((t) => t.tag?.name || t.name || t) 
+        : undefined;
+
       setLeads((prev) =>
         prev.map((l) => {
           if (l.id !== updatedLead.id) return l;
-          if (
-            l.stage === displayStage &&
-            l.name === (updatedLead.fullName || l.name) &&
-            (updatedLead.serviceInterest === undefined || l.serviceInterest === updatedLead.serviceInterest)
-          ) {
-            return l;
-          }
           return {
             ...l,
             name: updatedLead.fullName || l.name,
             stage: displayStage,
             serviceInterest: updatedLead.serviceInterest !== undefined ? updatedLead.serviceInterest : l.serviceInterest,
             dealValue: updatedLead.dealValue !== undefined ? updatedLead.dealValue : l.dealValue,
+            tags: updatedTags !== undefined ? updatedTags : l.tags,
             updatedAt: new Date().toISOString()
           };
         })
@@ -555,6 +553,7 @@ export default function App() {
       if (updates.dealValue !== undefined) apiUpdates.dealValue = updates.dealValue;
       if (updates.serviceInterest !== undefined) apiUpdates.serviceInterest = updates.serviceInterest;
       if (updates.assignedToId !== undefined) apiUpdates.assignedToId = updates.assignedToId;
+      if (updates.tags !== undefined) apiUpdates.tags = updates.tags;
       if (updates.stage !== undefined) {
         const s = String(updates.stage).toLowerCase();
         let targetStage = 'NEW_LEAD';

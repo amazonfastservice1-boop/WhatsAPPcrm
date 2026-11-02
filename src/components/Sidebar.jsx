@@ -25,16 +25,20 @@ export default function Sidebar({ activeTab, setActiveTab, unreadTotal = 4, waSt
   ];
 
   const manageNav = [
-    { 
-      id: 'channels', 
-      label: 'WhatsApp Numbers', 
-      icon: Smartphone, 
-      highlight: waStatus === 'connected' ? '● Live' : waStatus === 'connecting' ? '● QR Ready' : '● Offline',
-      isLive: waStatus === 'connected'
-    },
-    { id: 'team', label: 'Staff & Agents', icon: Users },
+    ...(currentUser?.role === 'ADMIN' ? [
+      { 
+        id: 'channels', 
+        label: 'WhatsApp Numbers', 
+        icon: Smartphone, 
+        highlight: waStatus === 'connected' ? '● Live' : waStatus === 'connecting' ? '● QR Ready' : '● Offline',
+        isLive: waStatus === 'connected'
+      },
+      { id: 'team', label: 'Staff & Agents', icon: Users }
+    ] : []),
     { id: 'replies', label: 'Quick Saved Replies', icon: Zap },
-    { id: 'settings', label: 'System Settings', icon: Settings },
+    ...(currentUser?.role === 'ADMIN' ? [
+      { id: 'settings', label: 'System Settings', icon: Settings }
+    ] : []),
   ];
 
   return (

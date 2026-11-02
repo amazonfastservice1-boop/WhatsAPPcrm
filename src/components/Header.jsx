@@ -77,8 +77,8 @@ export default function Header({
             );
           }) : (
             <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-orange-600 shadow-xs border border-orange-100">
-              <span>🌐</span>
-              <span className="hidden sm:inline">Saare Numbers</span>
+              <span>📱</span>
+              <span className="hidden sm:inline">WhatsApp Line</span>
             </button>
           )}
         </div>

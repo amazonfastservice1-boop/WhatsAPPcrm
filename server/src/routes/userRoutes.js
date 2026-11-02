@@ -58,9 +58,11 @@ router.get('/', authenticateToken, async (req, res) => {
 
         if (baseChannelWhere) {
           channelLeadsCount = await prisma.lead.count({ where: baseChannelWhere });
+          // Only count NEW inbound leads with fresh message today (prevent double counting qualified/lost)
           todayLeadsCount = await prisma.lead.count({
             where: {
               ...baseChannelWhere,
+              stage: 'NEW_LEAD',
               lastMessageAt: { gte: startOfToday },
             },
           });

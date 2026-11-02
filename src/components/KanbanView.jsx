@@ -27,6 +27,17 @@ import {
 } from '../utils/leadFilters';
 import { AMAZFAST_SERVICES } from '../data/servicesList';
 
+// Stage-wise card colors so staff can identify status at a glance
+const STAGE_CARD_STYLES = {
+  'New Lead':      { card: 'border-l-4 border-l-amber-400 bg-amber-50/60',     badge: 'bg-amber-100 text-amber-800 border-amber-300',       label: '🟡 Naya Customer' },
+  'Contacted':     { card: 'border-l-4 border-l-blue-500 bg-blue-50/60',       badge: 'bg-blue-100 text-blue-800 border-blue-300',          label: '🔵 Rabta Hua' },
+  'Qualified':     { card: 'border-l-4 border-l-purple-500 bg-purple-50/60',   badge: 'bg-purple-100 text-purple-800 border-purple-300',    label: '🟣 Qualified Buyer' },
+  'Proposal Sent': { card: 'border-l-4 border-l-orange-500 bg-orange-50/60',   badge: 'bg-orange-100 text-orange-800 border-orange-300',    label: '🟠 Offer Bheji' },
+  'Deal Won':      { card: 'border-l-4 border-l-emerald-500 bg-emerald-50/60', badge: 'bg-emerald-100 text-emerald-800 border-emerald-300', label: '🟢 Deal Won' },
+  'Lost':          { card: 'border-l-4 border-l-rose-500 bg-rose-50/70',       badge: 'bg-rose-100 text-rose-800 border-rose-300',          label: '🔴 Unqualified' },
+};
+const getStageCardStyle = (stage) => STAGE_CARD_STYLES[stage] || STAGE_CARD_STYLES['New Lead'];
+
 export default function KanbanView({ 
   leads = [], 
   onUpdateLead, 
@@ -34,7 +45,8 @@ export default function KanbanView({
   onOpenNewLead, 
   selectedChannel = 'all',
   setSelectedChannel,
-  channels = []
+  channels = [],
+  currentUser
 }) {
   const [viewMode, setViewMode] = useState('board'); // 'board' (Kanban) or 'table' (List)
   const [dateFilter, setDateFilter] = useState('today'); // Default: 'today' (Aaj ki leads)
@@ -287,23 +299,25 @@ export default function KanbanView({
               <Filter className="w-3.5 h-3.5" /> WhatsApp Line:
             </span>
 
-            {/* All Numbers Pill */}
-            <button
-              onClick={() => setSelectedChannel && setSelectedChannel('all')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 ${
-                selectedChannel === 'all'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              <span>🌐</span>
-              <span>Saare Numbers</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
-                selectedChannel === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-              }`}>
-                {leads.length}
-              </span>
-            </button>
+            {/* All Numbers Pill (Admin Only) */}
+            {channels.some(c => c.id === 'all') && (!currentUser || currentUser.role === 'ADMIN') && (
+              <button
+                onClick={() => setSelectedChannel && setSelectedChannel('all')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 ${
+                  selectedChannel === 'all'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                <span>🌐</span>
+                <span>Saare Numbers</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                  selectedChannel === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {leads.length}
+                </span>
+              </button>
+            )}
 
             {/* Individual Channels */}
             {channels && channels.filter(c => c.id !== 'all').map((ch) => {
@@ -510,6 +524,7 @@ export default function KanbanView({
                     stageLeads.map((lead) => {
                       const isBeingDragged = draggedLeadId === lead.id;
                       const isToday = isLeadToday(lead);
+                      const stageStyle = getStageCardStyle(lead.stage);
 
                       return (
                         <div 
@@ -517,10 +532,24 @@ export default function KanbanView({
                           draggable={true}
                           onDragStart={(e) => handleDragStart(e, lead.id)}
                           onDragEnd={handleDragEnd}
-                          className={`card-soft p-4 bg-white border border-slate-200/90 hover:border-orange-300 hover:shadow-card-hover transition-all cursor-grab active:cursor-grabbing group relative ${
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setDragOverStageId(stage.id);
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDrop(e, stage.id);
+                          }}
+                          className={`card-soft p-4 border border-slate-200/90 hover:shadow-card-hover transition-all cursor-grab active:cursor-grabbing group relative ${stageStyle.card} ${
                             isBeingDragged ? 'opacity-40 ring-2 ring-orange-500 scale-95' : ''
                           }`}
                         >
+                          {/* Stage Color Badge */}
+                          <span className={`inline-block mb-2 text-[10px] font-black px-2 py-0.5 rounded-md border ${stageStyle.badge}`}>
+                            {stageStyle.label}
+                          </span>
                           {/* Channel Badge & Time */}
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 flex items-center gap-1">
@@ -624,7 +653,7 @@ export default function KanbanView({
                               <select
                                 value={lead.stage}
                                 onChange={(e) => moveStage(lead.id, e.target.value)}
-                                className="text-[10px] font-bold bg-slate-100 hover:bg-slate-200 border-none rounded-lg p-1 text-slate-700 cursor-pointer"
+                                className={`text-[10px] font-bold border rounded-lg p-1 cursor-pointer ${stageStyle.badge}`}
                                 title="Stage badlein"
                               >
                                 {PIPELINE_STAGES.map(s => (

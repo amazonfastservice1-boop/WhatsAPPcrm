@@ -54,7 +54,8 @@ export default function DashboardView({
   setSelectedChannel,
   onOpenChat, 
   onOpenNewLead,
-  onRefreshLeads
+  onRefreshLeads,
+  currentUser
 }) {
   const [timeRange, setTimeRange] = useState('today'); // Default: 'today' (Aaj ki leads by default)
   const [customSelectedDate, setCustomSelectedDate] = useState(() => {
@@ -657,17 +658,19 @@ export default function DashboardView({
           <span className="font-bold text-slate-500 mr-1 flex items-center gap-1 shrink-0">
             <Filter className="w-3.5 h-3.5" /> WhatsApp Line:
           </span>
-          <button
-            onClick={() => setSelectedChannel && setSelectedChannel('all')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 ${
-              selectedChannel === 'all'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            <span>🌐</span>
-            <span>Saare Numbers ({leads.length})</span>
-          </button>
+          {channels.some(c => c.id === 'all') && (!currentUser || currentUser.role === 'ADMIN') && (
+            <button
+              onClick={() => setSelectedChannel && setSelectedChannel('all')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 ${
+                selectedChannel === 'all'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <span>🌐</span>
+              <span>Saare Numbers ({leads.length})</span>
+            </button>
+          )}
 
           {activeChannelsList.map((ch) => {
             const isSelected = selectedChannel === ch.id;

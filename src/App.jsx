@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import DashboardView from './components/DashboardView';
@@ -45,6 +46,7 @@ export default function App() {
   const [waStatus, setWaStatus] = useState('disconnected');
   const [waUser, setWaUser] = useState(null);
   const [connectionToast, setConnectionToast] = useState(null);
+  const [isAppLoading, setIsAppLoading] = useState(false);
 
   const selectedLeadIdRef = React.useRef(selectedLeadId);
   useEffect(() => {
@@ -115,13 +117,13 @@ export default function App() {
   };
 
   // Reusable leads fetcher from PostgreSQL (Intelligent Merge — Never wipes open conversation)
-  const fetchRealLeads = React.useCallback(async () => {
+  const fetchRealLeads = React.useCallback(async (overrideReset = false) => {
     try {
       const res = await api.getLeads();
-      if (res?.leads && res.leads.length > 0) {
+      if (res?.leads) {
         const realLeads = res.leads.map(formatApiLead);
         setLeads((prev) => {
-          if (prev.length === 0) return realLeads;
+          if (overrideReset || prev.length === 0) return realLeads;
           // Preserve full message thread for whichever lead is currently open
           return realLeads.map((newLead) => {
             const existing = prev.find((p) => p.id === newLead.id);
@@ -136,7 +138,7 @@ export default function App() {
             return newLead;
           });
         });
-        if (!selectedLeadIdRef.current) {
+        if (realLeads.length > 0 && (!selectedLeadIdRef.current || overrideReset)) {
           setSelectedLeadId(realLeads[0].id);
         }
       }
@@ -145,77 +147,92 @@ export default function App() {
     }
   }, []);
 
+  // Strict User Profile & Channel Data Initializer (With Full Safety Loader)
+  const initUserData = React.useCallback(async (userObj) => {
+    if (!userObj) return;
+    setIsAppLoading(true);
+    // Instant Wipe to ensure no data from previous user leaks
+    setLeads([]);
+    setChannels([]);
+    setSelectedLeadId(null);
+
+    try {
+      // 1. Fetch assigned channels for this specific authenticated user
+      const chRes = await api.getChannels();
+      const rawChannels = chRes?.channels || [];
+      const dbChannels = rawChannels.map((ch) => {
+        const code = (ch.countryCode || 'PK').toLowerCase();
+        const { flag } = getChannelMeta(code);
+        return {
+          id: ch.id,
+          name: formatChannelDisplayName(ch),
+          flag,
+          number: ch.phoneNumber || '',
+        };
+      });
+
+      if (userObj.role === 'ADMIN') {
+        // Admin gets "Saare Numbers" pill + all active channels
+        const adminChannels = [
+          { id: 'all', name: 'Saare Numbers', flag: '🌐', number: 'All Channels' },
+          ...dbChannels,
+        ];
+        setChannels(adminChannels);
+        // Default to Line 1 (+92 332 2568950) if present, else 'all'
+        const line1 = dbChannels.find((c) => c.number?.includes('3322568950') || c.id === '25f254f7-edc2-42de-b782-fff737c75999');
+        setSelectedChannel(line1 ? line1.id : 'all');
+      } else {
+        // Staff / Agent sees ONLY their assigned number! No 'all' option!
+        setChannels(dbChannels);
+        if (dbChannels.length > 0) {
+          setSelectedChannel(dbChannels[0].id);
+        } else {
+          setSelectedChannel(null);
+        }
+      }
+
+      // 2. Fetch leads strictly isolated for this user (hard reset)
+      await fetchRealLeads(true);
+
+      // 3. Status check
+      const statusRes = await api.getWhatsAppStatus();
+      if (statusRes?.status) {
+        setWaStatus(statusRes.status);
+        if (statusRes.user) setWaUser(statusRes.user);
+      }
+    } catch (err) {
+      console.error('Failed to init user data:', err);
+    } finally {
+      // Small graceful delay to ensure seamless transition without flicker
+      setTimeout(() => {
+        setIsAppLoading(false);
+      }, 500);
+    }
+  }, [fetchRealLeads]);
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setIsAuthenticated(false);
     setCurrentUser(null);
+    setLeads([]);
+    setChannels([]);
+    setSelectedChannel(null);
+    setSelectedLeadId(null);
   };
 
-  const handleLoginSuccess = (user) => {
+  const handleLoginSuccess = async (user) => {
     setCurrentUser(user);
     setIsAuthenticated(true);
+    await initUserData(user);
   };
 
-  // Load 100% REAL leads from database on startup (ZERO mock data)
+  // Run on mount if authenticated user already exists in storage
   useEffect(() => {
-    if (!isAuthenticated) return;
-
-    async function initRealData() {
-      try {
-
-        // Load real channels from database and build dynamic switcher
-        const chRes = await api.getChannels();
-        if (chRes?.channels && chRes.channels.length > 0) {
-          const dbChannels = chRes.channels.map((ch) => {
-            const code = (ch.countryCode || 'PK').toLowerCase();
-            const { flag } = getChannelMeta(code);
-            return {
-              id: ch.id,           // real UUID — used for filtering
-              name: formatChannelDisplayName(ch),
-              flag,
-              number: ch.phoneNumber || '',
-            };
-          });
-
-          // If user is ADMIN, show "Saare Numbers" pill + all channels.
-          // If user is STAFF/AGENT, only show their specific allowed channels!
-          if (currentUser?.role === 'ADMIN') {
-            setChannels([
-              { id: 'all', name: 'Saare Numbers', flag: '🌐', number: 'All Channels' },
-              ...dbChannels,
-            ]);
-            // Automatically default to Line 1 (+92 332 2568950)
-            const realMetaChannel = dbChannels.find(
-              (c) => c.number?.includes('3322568950') || c.id === '25f254f7-edc2-42de-b782-fff737c75999'
-            );
-            if (realMetaChannel) {
-              setSelectedChannel(realMetaChannel.id);
-            }
-          } else {
-            // Staff sees only their assigned numbers
-            setChannels(dbChannels);
-            if (dbChannels.length > 0) {
-              setSelectedChannel(dbChannels[0].id);
-            }
-          }
-        }
-
-        await fetchRealLeads();
-
-        // Also get initial WhatsApp connection status
-        const statusRes = await api.getWhatsAppStatus();
-        if (statusRes?.status) {
-          setWaStatus(statusRes.status);
-          if (statusRes.user) setWaUser(statusRes.user);
-        }
-      } catch (err) {
-        console.warn('⚠️ Backend/DB unavailable on startup:', err.message);
-        // App stays functional — user will see empty state instead of white screen
-      }
+    if (isAuthenticated && currentUser) {
+      initUserData(currentUser);
     }
-    initRealData();
-  }, [fetchRealLeads]);
+  }, []);
 
   // Fetch full conversation history when active lead changes
   useEffect(() => {
@@ -567,6 +584,7 @@ export default function App() {
               onOpenChat={handleOpenChat}
               onOpenNewLead={() => setIsNewLeadModalOpen(true)}
               onRefreshLeads={fetchRealLeads}
+              currentUser={currentUser}
             />
           )}
 
@@ -581,6 +599,7 @@ export default function App() {
               onUpdateLead={handleUpdateLead}
               onRefreshLeads={fetchRealLeads}
               onOpenNewLead={() => setIsNewLeadModalOpen(true)}
+              currentUser={currentUser}
             />
           )}
 
@@ -593,6 +612,7 @@ export default function App() {
               onUpdateLead={handleUpdateLead}
               onOpenChat={handleOpenChat}
               onOpenNewLead={() => setIsNewLeadModalOpen(true)}
+              currentUser={currentUser}
             />
           )}
 
@@ -735,7 +755,27 @@ export default function App() {
         onOpenChat={handleOpenChat}
       />
 
-      {/* 4. Secure Authentication Modal */}
+      {/* 4. Full-Screen Data Isolation & Login Loader */}
+      {isAppLoading && (
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-md text-white animate-fade-in select-none">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl text-center border border-slate-100 animate-scale-in">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
+              <Loader2 className="w-8 h-8 animate-spin" />
+            </div>
+            <h3 className="text-lg font-black text-slate-900 tracking-tight">
+              Data Sync Ho Raha Hai...
+            </h3>
+            <p className="text-xs text-slate-500 font-semibold mt-1.5 leading-relaxed">
+              {currentUser?.name ? `${currentUser.name} (${currentUser.role})` : 'Account'} ka assigned WhatsApp number aur leads database se load ho rahi hain...
+            </p>
+            <div className="mt-5 w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+              <div className="bg-gradient-to-r from-orange-500 to-amber-400 h-full rounded-full animate-pulse w-4/5"></div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Secure Authentication Modal */}
       {!isAuthenticated && (
         <LoginModal onLoginSuccess={handleLoginSuccess} />
       )}

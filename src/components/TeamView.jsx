@@ -310,11 +310,11 @@ export default function TeamView() {
                     </div>
                   </div>
 
-                  {/* Right: Metrics & Actions (Aaj Ki Leads + Messages Sent) */}
+                  {/* Right: Metrics & Actions (Aaj Ki Nayi Leads + Messages Sent) */}
                   <div className="flex flex-wrap items-center gap-4 text-xs font-semibold shrink-0">
                     <div>
-                      <span className="text-slate-500 block text-[10px] uppercase font-bold">
-                        Assigned Leads
+                      <span className="text-slate-500 block text-[10px] uppercase font-bold" title="Aaj ke naye incoming customer messages (New Leads)">
+                        Nayi Leads (Naya Msg)
                       </span>
                       <div className="flex items-baseline gap-1 mt-0.5">
                         <span className="font-extrabold text-orange-600 text-sm">

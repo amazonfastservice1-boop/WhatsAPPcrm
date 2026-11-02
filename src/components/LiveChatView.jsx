@@ -1628,16 +1628,13 @@ export default function LiveChatView({
               <span>Unqualified</span>
             </button>
 
-            {/* Deal Closed / Won Button */}
+            {/* Deal Closed / Won Button (Direct One-Click Deal Won) */}
             <button
               type="button"
               onClick={() => {
-                const amt = prompt('Deal Closed! Final Amount likhein (PKR / USD):', activeLead.dealValue || '0');
-                if (amt !== null) {
-                  onUpdateLead(activeLead.id, { stage: 'Deal Won', dealValue: amt.trim() || '0' });
-                  setSmartBarToast(`🟢 Mubarak! Deal Won (PKR ${amt})! Dashboard update ✓`);
-                  setTimeout(() => setSmartBarToast(null), 3500);
-                }
+                onUpdateLead(activeLead.id, { stage: 'Deal Won' });
+                setSmartBarToast(`🟢 Mubarak! Deal Won ho gayi! Dashboard update ✓`);
+                setTimeout(() => setSmartBarToast(null), 3000);
               }}
               className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 shadow-2xs ${
                 activeLead.stage === 'Deal Won'

@@ -158,13 +158,14 @@ export default function App() {
             };
           });
 
-          // Shallow equality check: if nothing meaningful changed, DO NOT update state (stops constant flickering!)
+          // Map-based equality check: if no lead changed content or timestamp, DO NOT update state (stops list fluctuating!)
           if (prev.length === merged.length) {
             let hasChanged = false;
-            for (let i = 0; i < prev.length; i++) {
-              const p = prev[i];
+            const prevMap = new Map(prev.map((p) => [p.id, p]));
+            for (let i = 0; i < merged.length; i++) {
               const m = merged[i];
-              if (!m || p.id !== m.id || p.stage !== m.stage || p.serviceInterest !== m.serviceInterest || p.unreadCount !== m.unreadCount) {
+              const p = prevMap.get(m.id);
+              if (!p || p.stage !== m.stage || p.serviceInterest !== m.serviceInterest || p.unreadCount !== m.unreadCount || p.lastMessage !== m.lastMessage) {
                 hasChanged = true;
                 break;
               }

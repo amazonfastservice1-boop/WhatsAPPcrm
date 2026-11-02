@@ -116,16 +116,18 @@ export function parseLeadDate(raw) {
   return null;
 }
 
+export function getLeadFirstDate(lead) {
+  if (!lead) return null;
+  // STRICT: Customer ka PEHLA EVER message timestamp!
+  // Agar customer ka pehla message 12:00 AM ke baad aaya hai to hi wo Aaj Ki Nayi Lead hai!
+  const dFirst = parseLeadDate(lead.firstMessageAt);
+  if (dFirst) return dFirst;
+  return parseLeadDate(lead.createdAt);
+}
+
 export function getLeadDate(lead) {
   if (!lead) return null;
-  // STRICT: A lead's true date is the actual WhatsApp customer message timestamp!
-  // If a customer messaged yesterday at 10:05 PM, but the database row was inserted
-  // at 12:15 AM during background sync, the lead belongs to YESTERDAY (not Today)!
-  const dMsg = parseLeadDate(lead.rawLastMessageAt) || parseLeadDate(lead.lastMessageAt);
-  if (dMsg) return dMsg;
-
-  // Only fall back to createdAt if no message date exists at all (e.g. manual lead created by agent)
-  return parseLeadDate(lead.createdAt);
+  return getLeadFirstDate(lead);
 }
 
 export function getLeadLocalDateString(lead) {
@@ -139,7 +141,9 @@ export function getLeadLocalDateString(lead) {
 
 export function isLeadToday(lead) {
   if (!lead) return false;
-  const d = getLeadDate(lead);
+  // STRICT: Only leads whose FIRST message arrived after 12:00 AM midnight belong to "Aaj Ki Leads"!
+  // Jinhone pehle se rabta kiya hua tha, wo purani leads hain, Aaj ki nahi!
+  const d = getLeadFirstDate(lead);
   if (!d) return false;
   
   // Raat 12:00 AM se agle 12:00 AM (24 ghante) = Aaj Ka Din
@@ -151,7 +155,7 @@ export function isLeadToday(lead) {
 
 export function isLeadYesterday(lead) {
   if (!lead) return false;
-  const d = getLeadDate(lead);
+  const d = getLeadFirstDate(lead);
   if (!d) return false;
   
   // Kal Ka Din: Pichli raat 12:00 AM se raat 11:59:59 PM tak

@@ -95,6 +95,7 @@ export default function App() {
       avatar: l.avatarUrl || generatedAvatar,
       unreadCount: l.unreadCount || 0,
       createdAt: l.createdAt ? new Date(l.createdAt).toISOString() : new Date().toISOString(),
+      updatedAt: l.updatedAt ? new Date(l.updatedAt).toISOString() : new Date().toISOString(),
       rawLastMessageAt: l.lastMessageAt || l.messages?.[0]?.createdAt || 0,
       lastMessage: l.lastMessage || l.messages?.[0]?.content || 'WhatsApp conversation',
       lastTime: l.lastMessageAt ? formatSafeTime(l.lastMessageAt) : 'Just now',
@@ -345,9 +346,31 @@ export default function App() {
       });
     };
 
-    const handleStageUpdate = ({ leadId, stage, dealValue }) => {
+    const handleStageUpdate = ({ leadId, stage, dealValue, serviceInterest }) => {
+      const displayStage = stageMap[stage] || stage;
       setLeads((prev) =>
-        prev.map((l) => (l.id === leadId ? { ...l, stage, ...(dealValue !== undefined ? { dealValue } : {}) } : l))
+        prev.map((l) => (l.id === leadId ? {
+          ...l,
+          stage: displayStage,
+          ...(serviceInterest !== undefined ? { serviceInterest } : {}),
+          ...(dealValue !== undefined ? { dealValue } : {}),
+          updatedAt: new Date().toISOString()
+        } : l))
+      );
+    };
+
+    const handleLeadUpdated = (updatedLead) => {
+      if (!updatedLead || !updatedLead.id) return;
+      const displayStage = stageMap[updatedLead.stage] || updatedLead.stage;
+      setLeads((prev) =>
+        prev.map((l) => (l.id === updatedLead.id ? {
+          ...l,
+          name: updatedLead.fullName || l.name,
+          stage: displayStage,
+          serviceInterest: updatedLead.serviceInterest !== undefined ? updatedLead.serviceInterest : l.serviceInterest,
+          dealValue: updatedLead.dealValue !== undefined ? updatedLead.dealValue : l.dealValue,
+          updatedAt: new Date().toISOString()
+        } : l))
       );
     };
 
@@ -375,6 +398,7 @@ export default function App() {
     socket.on('lead:new', handleNewLead);
     socket.on('lead:new_global', handleNewLead);
     socket.on('lead:stage_updated', handleStageUpdate);
+    socket.on('lead:updated', handleLeadUpdated);
     socket.on('whatsapp:status', handleWaStatus);
 
     return () => {
@@ -383,16 +407,18 @@ export default function App() {
       socket.off('lead:new', handleNewLead);
       socket.off('lead:new_global', handleNewLead);
       socket.off('lead:stage_updated', handleStageUpdate);
+      socket.off('lead:updated', handleLeadUpdated);
       socket.off('whatsapp:status', handleWaStatus);
     };
   }, []);
 
   // Update lead helper - persists to PostgreSQL database
   const handleUpdateLead = (leadId, updates) => {
+    const nowIso = new Date().toISOString();
     setLeads((prev) =>
       prev.map((lead) => {
         if (lead.id === leadId) {
-          return { ...lead, ...updates };
+          return { ...lead, ...updates, updatedAt: nowIso };
         }
         return lead;
       })

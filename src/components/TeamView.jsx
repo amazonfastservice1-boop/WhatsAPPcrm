@@ -310,24 +310,40 @@ export default function TeamView() {
                     </div>
                   </div>
 
-                  {/* Right: Metrics & Actions */}
+                  {/* Right: Metrics & Actions (Aaj Ki Leads + Messages Sent) */}
                   <div className="flex flex-wrap items-center gap-4 text-xs font-semibold shrink-0">
                     <div>
                       <span className="text-slate-500 block text-[10px] uppercase font-bold">
                         Assigned Leads
                       </span>
-                      <span className="font-extrabold text-orange-600 text-sm">
-                        {user.channelLeadsCount !== undefined ? user.channelLeadsCount : assignedCount}
-                      </span>
+                      <div className="flex items-baseline gap-1 mt-0.5">
+                        <span className="font-extrabold text-orange-600 text-sm">
+                          {user.todayLeadsCount ?? 0}
+                        </span>
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200">
+                          Aaj
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-bold ml-1">
+                          ({user.channelLeadsCount !== undefined ? user.channelLeadsCount : assignedCount} total)
+                        </span>
+                      </div>
                     </div>
 
                     <div>
                       <span className="text-slate-500 block text-[10px] uppercase font-bold">
                         Messages Sent
                       </span>
-                      <span className="font-extrabold text-slate-700 text-sm">
-                        {messagesCount}
-                      </span>
+                      <div className="flex items-baseline gap-1 mt-0.5">
+                        <span className="font-extrabold text-slate-900 text-sm">
+                          {user.todayMessagesCount ?? 0}
+                        </span>
+                        <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-1 py-0.2 rounded border border-blue-200">
+                          Aaj
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-bold ml-1">
+                          ({messagesCount} total)
+                        </span>
+                      </div>
                     </div>
 
                     {/* Status Toggle */}

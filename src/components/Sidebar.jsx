@@ -22,7 +22,6 @@ export default function Sidebar({ activeTab, setActiveTab, unreadTotal = 4, waSt
     { id: 'chat', label: 'Customer Chats', icon: MessageSquare, badge: unreadTotal },
     { id: 'kanban', label: 'Leads & Deals', icon: Kanban },
     { id: 'schedule', label: 'Call Reminders', icon: Calendar },
-    { id: 'broadcast', label: 'Send Bulk SMS/WA', icon: Send },
   ];
 
   const manageNav = [
@@ -35,7 +34,6 @@ export default function Sidebar({ activeTab, setActiveTab, unreadTotal = 4, waSt
     },
     { id: 'team', label: 'Staff & Agents', icon: Users },
     { id: 'replies', label: 'Quick Saved Replies', icon: Zap },
-    { id: 'analytics', label: 'Sales Reports', icon: BarChart3 },
     { id: 'settings', label: 'System Settings', icon: Settings },
   ];
 

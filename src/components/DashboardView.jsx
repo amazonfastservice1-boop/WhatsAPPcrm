@@ -40,8 +40,12 @@ import {
   isLeadToday, 
   isLeadYesterday, 
   isLeadWithinDays, 
+  isLeadOnDate,
+  getLeadLocalDateString,
+  getLeadDate,
   getLeadStats 
 } from '../utils/leadFilters';
+import { AMAZFAST_SERVICES } from '../data/servicesList';
 
 export default function DashboardView({ 
   leads = [], 
@@ -53,6 +57,14 @@ export default function DashboardView({
   onRefreshLeads
 }) {
   const [timeRange, setTimeRange] = useState('today'); // Default: 'today' (Aaj ki leads by default)
+  const [customSelectedDate, setCustomSelectedDate] = useState(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  });
+  const [selectedServiceFilter, setSelectedServiceFilter] = useState('all'); // Filter by AmazFast service
   const [activeGraphTab, setActiveGraphTab] = useState('pipeline'); // 'pipeline' (Stages & Proposals) or 'trend' (7-day Volume)
   const [pipelineViewMode, setPipelineViewMode] = useState('pillars'); // 'pillars' (3D animated bars) or 'funnel' (step pipeline)
   const [hoveredStageKey, setHoveredStageKey] = useState(null);
@@ -145,6 +157,38 @@ export default function DashboardView({
     return channelLeads.filter(l => isLeadYesterday(l)).length;
   }, [channelLeads]);
 
+  // Day name formatter (e.g. "Sunday, 1 Nov 2026")
+  const customDayDisplay = useMemo(() => {
+    if (!customSelectedDate) return '';
+    try {
+      const parts = customSelectedDate.split('-').map(Number);
+      if (parts.length === 3) {
+        const d = new Date(parts[0], parts[1] - 1, parts[2]);
+        return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+      }
+    } catch (e) {}
+    return customSelectedDate;
+  }, [customSelectedDate]);
+
+  // Count of leads on custom selected date
+  const customDateLeadCount = useMemo(() => {
+    return channelLeads.filter(l => isLeadOnDate(l, customSelectedDate)).length;
+  }, [channelLeads, customSelectedDate]);
+
+  // Fast Day shifter (-1 day or +1 day)
+  const handleShiftDate = (offsetDays) => {
+    try {
+      const parts = customSelectedDate.split('-').map(Number);
+      const d = new Date(parts[0], parts[1] - 1, parts[2]);
+      d.setDate(d.getDate() + offsetDays);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      setCustomSelectedDate(`${y}-${m}-${day}`);
+      setTimeRange('custom');
+    } catch (e) {}
+  };
+
   // Filter leads based on selected channel & time range
   const filteredLeads = useMemo(() => {
     return leads.filter((l) => {
@@ -159,15 +203,32 @@ export default function DashboardView({
       if (timeRange === 'yesterday' && !isLeadYesterday(l)) {
         return false;
       }
+      if (timeRange === 'custom' && !isLeadOnDate(l, customSelectedDate)) {
+        return false;
+      }
       if (timeRange === '7days' && !isLeadWithinDays(l, 7)) {
         return false;
       }
       if (timeRange === '30days' && !isLeadWithinDays(l, 30)) {
         return false;
       }
+      if (timeRange === '6months' && !isLeadWithinDays(l, 180)) {
+        return false;
+      }
+      if (timeRange === 'year' && !isLeadWithinDays(l, 365)) {
+        return false;
+      }
+
+      // Service Filter
+      if (selectedServiceFilter !== 'all') {
+        const s = l.serviceInterest || '';
+        if (!s.toLowerCase().includes(selectedServiceFilter.toLowerCase())) {
+          return false;
+        }
+      }
       return true;
     });
-  }, [leads, selectedChannel, timeRange]);
+  }, [leads, selectedChannel, timeRange, selectedServiceFilter]);
 
   // --- Real Analytical Metrics ---
   const totalLeadsCount = filteredLeads.length;
@@ -257,6 +318,7 @@ export default function DashboardView({
   // Normalization helper for pipeline stages
   const getStageCategory = (stage) => {
     const s = String(stage || '').toLowerCase();
+    if (s.includes('lost') || s.includes('unqualif') || s.includes('reject')) return 'Lost';
     if (s.includes('propos')) return 'Proposal Sent';
     if (s.includes('qualif')) return 'Qualified';
     if (s.includes('won') || s.includes('closed')) return 'Deal Won';
@@ -273,6 +335,22 @@ export default function DashboardView({
   }, [filteredLeads]);
 
   const wonCount = wonLeads.length;
+
+  const qualifiedCount = useMemo(() => {
+    return filteredLeads.filter(l => getStageCategory(l.stage) === 'Qualified').length;
+  }, [filteredLeads]);
+
+  const contactedCount = useMemo(() => {
+    return filteredLeads.filter(l => getStageCategory(l.stage) === 'Contacted').length;
+  }, [filteredLeads]);
+
+  const newLeadsCount = useMemo(() => {
+    return filteredLeads.filter(l => getStageCategory(l.stage) === 'New Lead').length;
+  }, [filteredLeads]);
+
+  const unqualifiedCount = useMemo(() => {
+    return filteredLeads.filter(l => getStageCategory(l.stage) === 'Lost' || /unqualif/i.test(l.stage || '')).length;
+  }, [filteredLeads]);
   const totalRevenue = useMemo(() => {
     return wonLeads.reduce((acc, l) => {
       const val = typeof l.dealValue === 'string' ? parseFloat(l.dealValue.replace(/[^0-9.]/g, '')) : Number(l.dealValue);
@@ -288,6 +366,7 @@ export default function DashboardView({
       'Qualified': 0,
       'Proposal Sent': 0,
       'Deal Won': 0,
+      'Lost': 0,
     };
     const values = {
       'New Lead': 0,
@@ -295,6 +374,7 @@ export default function DashboardView({
       'Qualified': 0,
       'Proposal Sent': 0,
       'Deal Won': 0,
+      'Lost': 0,
     };
 
     filteredLeads.forEach(l => {
@@ -387,6 +467,22 @@ export default function DashboardView({
         value: values['Deal Won'],
         description: 'Deal successfully closed and order confirmed!'
       },
+      { 
+        name: 'Lost', 
+        label: 'Unqualified Leads', 
+        stageKey: 'stage_Lost',
+        icon: '🔴',
+        count: counts['Lost'] || 0, 
+        pct: Math.round(((counts['Lost'] || 0) / totalLeads) * 100),
+        heightPct: Math.max(16, Math.round(((counts['Lost'] || 0) / max) * 100)),
+        gradient: 'from-rose-500 via-red-500 to-pink-500',
+        glowColor: 'rgba(244, 63, 94, 0.5)',
+        badgeBg: 'bg-rose-100 text-rose-950 border-rose-300',
+        textColor: 'text-rose-700',
+        isLost: true,
+        value: values['Lost'] || 0,
+        description: 'Timepass, spam ya disqualified inquiries'
+      },
     ];
 
     // Compute conversion from preceding stage
@@ -398,6 +494,25 @@ export default function DashboardView({
       }
       return { ...st, conversionFromPrev };
     });
+  }, [filteredLeads]);
+
+  // Top Requested AmazFast Services Breakdown
+  const serviceStats = useMemo(() => {
+    const map = {};
+    filteredLeads.forEach(l => {
+      const s = l.serviceInterest?.trim();
+      if (s) {
+        map[s] = (map[s] || 0) + 1;
+      }
+    });
+    return Object.entries(map)
+      .map(([name, count]) => ({ 
+        name, 
+        count, 
+        pct: Math.round((count / (filteredLeads.length || 1)) * 100) 
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
   }, [filteredLeads]);
 
   // Daily Trends for past 7 days (Bar chart data)
@@ -452,6 +567,8 @@ export default function DashboardView({
         ? 'Aaj Ki WhatsApp Leads' 
         : timeRange === 'yesterday' 
         ? 'Kal Ki WhatsApp Leads' 
+        : timeRange === 'custom'
+        ? `${customDayDisplay} Ki Leads`
         : timeRange === '7days'
         ? 'Pichle 7 Din Ki Leads'
         : (selectedChannel === 'all' ? 'Kul WhatsApp Leads (Saare Numbers)' : 'Is Line Ki Kul Leads');
@@ -512,6 +629,11 @@ export default function DashboardView({
       description = 'Jin customers ko quotation, price plan ya proposal deliver ho chuki hai.';
       badgeColor = 'bg-orange-100 text-orange-800';
       list = filteredLeads.filter(l => getStageCategory(l.stage) === 'Proposal Sent');
+    } else if (drilldownCategory === 'stage_Lost' || drilldownCategory === 'unqualified') {
+      title = 'Unqualified Leads (Not Interested / Rejected)';
+      description = 'Wo inquiries jo timepass, spam ya reject hui hain.';
+      badgeColor = 'bg-rose-100 text-rose-800';
+      list = filteredLeads.filter(l => getStageCategory(l.stage) === 'Lost' || /unqualif|lost/i.test(l.stage || ''));
     }
 
     if (drilldownSearch) {
@@ -590,18 +712,69 @@ export default function DashboardView({
             <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
           </button>
 
+          {/* AmazFast Service Filter Dropdown */}
+          <span className="text-xs font-bold text-slate-500">Service:</span>
+          <select
+            value={selectedServiceFilter}
+            onChange={(e) => setSelectedServiceFilter(e.target.value)}
+            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-orange-500 cursor-pointer max-w-[190px] truncate"
+          >
+            <option value="all">💼 Saari Services</option>
+            {AMAZFAST_SERVICES.map(s => (
+              <option key={s.id} value={s.shortLabel}>{s.label}</option>
+            ))}
+          </select>
+
           <span className="text-xs font-bold text-slate-500">Waqt:</span>
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}
-            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-orange-500"
+            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-orange-500 cursor-pointer"
           >
             <option value="today">📅 Aaj Ki Leads ({channelTodayCount})</option>
-            <option value="all">🌐 Saara Data / Kul Leads ({channelLeads.length})</option>
             <option value="yesterday">⏪ Kal Ki Leads ({channelYesterdayCount})</option>
-            <option value="7days">🗓️ Pichle 7 Din</option>
-            <option value="30days">📊 Pichle 30 Din</option>
+            <option value="custom">📆 Taareekh Chunein (Specific Day)</option>
+            <option value="7days">🗓️ Is Hafte (7 Din)</option>
+            <option value="30days">📊 Is Mahine (30 Din)</option>
+            <option value="all">🌐 Saara Data / Kul Leads ({channelLeads.length})</option>
           </select>
+
+          {/* Specific Date Picker with Day Name & Fast Prev/Next Navigation */}
+          <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl p-1 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => handleShiftDate(-1)}
+              className="p-1 hover:bg-slate-200 rounded-lg text-slate-600 transition-colors"
+              title="Pichla Din (Previous Day)"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <input
+              type="date"
+              value={customSelectedDate}
+              onChange={(e) => {
+                setCustomSelectedDate(e.target.value);
+                setTimeRange('custom');
+              }}
+              className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer px-1"
+              title="Koi bhi date chunein"
+            />
+            <button
+              type="button"
+              onClick={() => handleShiftDate(1)}
+              className="p-1 hover:bg-slate-200 rounded-lg text-slate-600 transition-colors"
+              title="Agla Din (Next Day)"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+            <span className={`text-[11px] font-black px-2 py-0.5 rounded-lg shrink-0 transition-all ${
+              timeRange === 'custom'
+                ? 'bg-orange-500 text-white shadow-xs'
+                : 'bg-slate-200/80 text-slate-700'
+            }`}>
+              {customDayDisplay} ({customDateLeadCount})
+            </span>
+          </div>
         </div>
       </div>
 
@@ -649,154 +822,170 @@ export default function DashboardView({
         </div>
       )}
 
-      {/* 2. Top Interactive Metric Cards (Clickable Drilldown) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Card 1: Leads for Selected Time Range & Line (Clickable) */}
+      {/* 2. Top Interactive Pipeline KPI Cards (Clickable Drilldown) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Card 1: Naye Customers (New Leads) */}
         <div 
-          onClick={() => { setDrilldownCategory('main_leads'); setDrilldownSearch(''); }}
-          className="card-soft p-5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-orange-400 transition-all border border-slate-200/80 cursor-pointer"
-          title="Click to view leads list"
+          onClick={() => { setDrilldownCategory('stage_New Lead'); setDrilldownSearch(''); }}
+          className="card-soft p-4.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-amber-400 transition-all border border-slate-200/80 cursor-pointer"
+          title="Click to view new leads list"
         >
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
-              <Users className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+              <Users className="w-4.5 h-4.5" />
             </div>
-            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 flex items-center gap-1">
-              <Eye className="w-3 h-3" /> Click Details
+            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 flex items-center gap-1">
+              <Eye className="w-3 h-3" /> Naye
             </span>
           </div>
 
-          <div className="mt-4 flex items-baseline gap-2">
-            <h3 className="text-3xl font-black text-slate-900 tracking-tight">
-              {filteredLeads.length}
+          <div className="mt-3.5 flex items-baseline gap-2">
+            <h3 className="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">
+              {newLeadsCount}
             </h3>
-            <span className="inline-flex items-center text-xs font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100">
-              <ArrowUpRight className="w-3 h-3 mr-0.5" />
-              {timeRange === 'today' ? 'Aaj Ki Leads' : timeRange === 'yesterday' ? 'Kal Ki Leads' : timeRange === '7days' ? 'Pichle 7 Din' : 'Kul Leads'}
+            <span className="inline-flex items-center text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
+              🟡 New Leads
             </span>
           </div>
           <p className="text-xs text-slate-500 font-semibold mt-1">
-            {timeRange === 'today'
-              ? (selectedChannel === 'all' ? 'Aaj Aane Wali Kul WhatsApp Leads' : `Is Line Par Aaj Aane Wali Leads (${filteredLeads.length})`)
-              : timeRange === 'yesterday'
-              ? (selectedChannel === 'all' ? 'Kal Aane Wali Kul WhatsApp Leads' : `Is Line Par Kal Aane Wali Leads (${filteredLeads.length})`)
-              : (selectedChannel === 'all' ? 'Kul WhatsApp Leads (All-Time Total)' : `Is Line Ki Kul Leads (${filteredLeads.length})`)}
+            Naye Customers (Pehla Message)
           </p>
 
-          <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
-            <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-              ⚡ Aaj: {channelTodayCount}
-            </span>
-            <span className="text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">
-              ⏪ Kal: {channelYesterdayCount}
-            </span>
-            <span className="text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
-              Total: {channelLeads.length}
-            </span>
+          <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
+            <span className="text-amber-700">Reply Dena Hai</span>
+            <span className="text-slate-400 font-medium">Click Details →</span>
           </div>
         </div>
 
-        {/* Card 2: Kitno Ko Message Send Kar Diya (Clickable) */}
+        {/* Card 2: Contacted (Rabta Hua) */}
         <div 
-          onClick={() => { setDrilldownCategory('replied'); setDrilldownSearch(''); }}
-          className="card-soft p-5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-emerald-400 transition-all border border-slate-200/80 cursor-pointer"
-          title="Click to view all replied customers"
+          onClick={() => { setDrilldownCategory('stage_Contacted'); setDrilldownSearch(''); }}
+          className="card-soft p-4.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-blue-400 transition-all border border-slate-200/80 cursor-pointer"
+          title="Click to view contacted customers"
         >
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
-              <CheckCircle2 className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+              <MessageSquare className="w-4.5 h-4.5" />
+            </div>
+            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 flex items-center gap-1">
+              <Eye className="w-3 h-3" /> Active
+            </span>
+          </div>
+
+          <div className="mt-3.5 flex items-baseline gap-2">
+            <h3 className="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">
+              {contactedCount}
+            </h3>
+            <span className="inline-flex items-center text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+              🔵 Contacted
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 font-semibold mt-1">
+            Rabta Hua (Conversation Active)
+          </p>
+
+          <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-600">
+            <span className="text-blue-700">Baat Chal Rahi Hai</span>
+            <span className="text-slate-400 font-medium">Click List →</span>
+          </div>
+        </div>
+
+        {/* Card 3: Qualified (Quality Leads) */}
+        <div 
+          onClick={() => { setDrilldownCategory('stage_Qualified'); setDrilldownSearch(''); }}
+          className="card-soft p-4.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-purple-400 transition-all border border-slate-200/80 cursor-pointer"
+          title="Click to view qualified leads list"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+              <CheckCircle2 className="w-4.5 h-4.5" />
+            </div>
+            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 flex items-center gap-1">
+              <Eye className="w-3 h-3" /> Genuine
+            </span>
+          </div>
+
+          <div className="mt-3.5 flex items-baseline gap-2">
+            <h3 className="text-2xl lg:text-3xl font-black text-purple-900 tracking-tight">
+              {qualifiedCount}
+            </h3>
+            <span className="inline-flex items-center text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+              🟣 Qualified
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 font-semibold mt-1">
+            Genuine Quality Buyers
+          </p>
+
+          <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
+            <span className="text-purple-700">Khareedar Tayyar</span>
+            <span className="text-slate-400 font-medium">Click List →</span>
+          </div>
+        </div>
+
+        {/* Card 4: Deals Won & Revenue */}
+        <div 
+          onClick={() => { setDrilldownCategory('won'); setDrilldownSearch(''); }}
+          className="card-soft p-4.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-emerald-400 transition-all border border-slate-200/80 cursor-pointer"
+          title="Click to view won deals"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+              <TrendingUp className="w-4.5 h-4.5" />
             </div>
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1">
-              <Eye className="w-3 h-3" /> {messageStats.replyRate}% Rate
+              <Eye className="w-3 h-3" /> Sales
             </span>
           </div>
 
-          <div className="mt-4 flex items-baseline gap-2">
-            <h3 className="text-3xl font-black text-slate-900 tracking-tight">
-              {repliedLeadsList.length}
+          <div className="mt-3.5 flex items-baseline gap-2">
+            <h3 className="text-2xl lg:text-3xl font-black text-emerald-900 tracking-tight">
+              {wonCount}
             </h3>
-            <span className="inline-flex items-center text-xs font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100">
-              ✓ Replied
+            <span className="inline-flex items-center text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+              🟢 Deal Won
             </span>
           </div>
-          <p className="text-xs text-slate-500 font-semibold mt-1">
-            Jin Customers Ko Reply Send Kar Diya
+          <p className="text-xs text-slate-500 font-semibold mt-1 truncate">
+            {totalRevenue > 0 ? `PKR ${totalRevenue.toLocaleString()}` : 'Closed Deals'}
           </p>
 
-          <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-600">
-            <span className="text-emerald-700">✓ Rabta Ho Chuka</span>
-            <span className="text-slate-500 font-medium">Click for list →</span>
+          <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
+            <span className="text-emerald-700">Kamai / Revenue</span>
+            <span className="text-slate-400 font-medium">Click List →</span>
           </div>
         </div>
 
-        {/* Card 3: Kitno Ko Reply Dena Hai (Pending) (Clickable) */}
+        {/* Card 5: Unqualified / Rejected (Red Card) */}
         <div 
-          onClick={() => { setDrilldownCategory('pending'); setDrilldownSearch(''); }}
-          className={`card-soft p-5 bg-white relative overflow-hidden group hover:shadow-card-hover transition-all border cursor-pointer ${
-            pendingLeadsList.length > 0 ? 'border-amber-300 hover:border-amber-500' : 'border-slate-200/80'
-          }`}
-          title="Click to view pending customers"
+          onClick={() => { setDrilldownCategory('stage_Lost'); setDrilldownSearch(''); }}
+          className="card-soft p-4.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-rose-400 transition-all border border-slate-200/80 cursor-pointer"
+          title="Click to view unqualified inquiries"
         >
           <div className="flex items-center justify-between">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold group-hover:scale-110 transition-transform ${
-              pendingLeadsList.length > 0 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'
-            }`}>
-              <Clock className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+              <AlertCircle className="w-4.5 h-4.5" />
             </div>
-            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-1 ${
-              pendingLeadsList.length > 0 ? 'bg-amber-100 text-amber-800 animate-pulse' : 'bg-slate-100 text-slate-600'
-            }`}>
-              {pendingLeadsList.length > 0 ? '⚠️ Action Required' : '✓ All Answered'}
+            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 flex items-center gap-1">
+              <Eye className="w-3 h-3" /> Rejected
             </span>
           </div>
 
-          <div className="mt-4 flex items-baseline gap-2">
-            <h3 className="text-3xl font-black text-slate-900 tracking-tight">
-              {pendingLeadsList.length}
+          <div className="mt-3.5 flex items-baseline gap-2">
+            <h3 className="text-2xl lg:text-3xl font-black text-rose-900 tracking-tight">
+              {unqualifiedCount}
             </h3>
-            <span className="inline-flex items-center text-xs font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
-              Pending Reply
+            <span className="inline-flex items-center text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200">
+              🔴 Unqualified
             </span>
           </div>
           <p className="text-xs text-slate-500 font-semibold mt-1">
-            Customers Jinko Jawab Dena Hai
+            Timepass Ya Inactive Inquiries
           </p>
 
-          <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
-            <span className="text-amber-700">Abhi Reply Dein</span>
-            <span className="text-slate-500 font-medium">Click to answer →</span>
-          </div>
-        </div>
-
-        {/* Card 4: Response Speed & Top Customer (Clickable) */}
-        <div 
-          onClick={() => { setDrilldownCategory('top'); setDrilldownSearch(''); }}
-          className="card-soft p-5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-purple-400 transition-all border border-slate-200/80 cursor-pointer"
-          title="Click to view top engaged customer details"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
-              <Zap className="w-5 h-5" />
-            </div>
-            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
-              Speed: {avgResponseTime.timeStr}
-            </span>
-          </div>
-
-          <div className="mt-4 flex items-baseline gap-2">
-            <h3 className="text-2xl font-black text-slate-900 tracking-tight truncate max-w-[180px]">
-              {topCustomer ? topCustomer.name : 'Top Active'}
-            </h3>
-          </div>
-          <p className="text-xs text-slate-500 font-semibold mt-1">
-            Sabse Zyada Baat Hui ({topCustomer?.messages?.length || 0} Messages)
-          </p>
-
-          <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-600">
-            <span className="text-purple-700 font-bold truncate max-w-[130px]">
-              {topCustomer?.phone || 'Customer'}
-            </span>
-            <span className="text-slate-500 font-medium">Click Details →</span>
+          <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
+            <span className="text-rose-700">Rejected List</span>
+            <span className="text-slate-400 font-medium">Click List →</span>
           </div>
         </div>
       </div>
@@ -1332,203 +1521,86 @@ export default function DashboardView({
           </div>
         </div>
 
-        {/* Right 1 Col: Spotlight on Top Customer & Quick Stage Funnel */}
+        {/* Right 1 Col: Pipeline Stages Summary & AmazFast Services Breakdown */}
         <div className="card-soft p-5 bg-white border border-slate-200/80 flex flex-col justify-between space-y-4">
           <div>
-            <div className="pb-3 border-b border-slate-100">
-              <span className="text-[10px] font-extrabold uppercase text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
-                Top Engaged Customer
-              </span>
-              <h4 className="text-sm font-extrabold text-slate-900 mt-1">Sabse Zyada Baat Kis Person Se Hui</h4>
-              <p className="text-xs text-slate-500">Most active WhatsApp lead</p>
-            </div>
-
-            {topCustomer ? (
-              <div className="mt-4 p-4 rounded-2xl bg-gradient-to-br from-purple-50/60 to-orange-50/40 border border-purple-100 space-y-3">
-                <div className="flex items-center gap-3">
-                  <img 
-                    src={topCustomer.avatar} 
-                    alt={topCustomer.name} 
-                    className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-xs" 
-                  />
-                  <div className="min-w-0">
-                    <h5 className="text-sm font-extrabold text-slate-900 truncate">{topCustomer.name}</h5>
-                    <p className="text-xs font-mono text-slate-500">{topCustomer.phone}</p>
-                    <span className="text-[10px] font-bold text-orange-600">{topCustomer.channelName}</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-center pt-2 border-t border-purple-100/80 text-xs">
-                  <div className="p-2 bg-white rounded-xl border border-purple-100">
-                    <span className="text-[10px] font-bold text-slate-500 block">Messages</span>
-                    <span className="text-sm font-black text-purple-700">{topCustomer.messages?.length || 0}</span>
-                  </div>
-                  <div className="p-2 bg-white rounded-xl border border-purple-100">
-                    <span className="text-[10px] font-bold text-slate-500 block">Stage</span>
-                    <span className="text-sm font-black text-slate-800">{topCustomer.stage}</span>
-                  </div>
-                </div>
-
-                <p className="text-xs text-slate-600 italic line-clamp-2 bg-white/70 p-2 rounded-xl border border-purple-100/50">
-                  "{topCustomer.lastMessage || 'Recent WhatsApp conversation'}"
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() => onOpenChat && onOpenChat(topCustomer.id)}
-                  className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5"
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Chat Kholein Aur Baat Karein</span>
-                </button>
-              </div>
-            ) : (
-              <p className="text-xs text-slate-400 py-6 text-center">Abhi koi conversation record nahi hui.</p>
-            )}
-
-            {/* Quick Pipeline Stages Preview */}
-            <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
-              <span className="text-xs font-extrabold text-slate-700 block">Pipeline Stages Breakdown:</span>
-              <div className="space-y-1.5">
-                {stageStats.map((st) => (
-                  <div 
-                    key={st.name} 
-                    onClick={() => { setDrilldownCategory(`stage_${st.stageKey}`); setDrilldownSearch(''); }}
-                    className="flex items-center justify-between text-xs p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors group"
-                    title={`Click karein: ${st.name} leads dekhein`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2.5 h-2.5 rounded-full bg-gradient-to-r ${st.gradient}`}></span>
-                      <span className="text-slate-700 font-bold group-hover:text-orange-600 transition-colors">{st.name}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${st.badgeBg}`}>
-                        {st.count}
-                      </span>
-                      <span className="text-[10px] font-bold text-slate-400">{st.pct}%</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <button
-            onClick={onOpenNewLead}
-            className="w-full py-2.5 px-4 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5"
-          >
-            <Plus className="w-3.5 h-3.5" /> + Naya Customer Register Karein
-          </button>
-        </div>
-      </div>
-
-      {/* 4. Bottom Row: 3 WhatsApp Numbers Breakdown + Taza Tareen Leads */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Panel 1: Channels Breakdown */}
-        <div className="card-soft p-5 bg-white border border-slate-200/80 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
               <div>
-                <h4 className="text-sm font-extrabold text-slate-900">Teeno WhatsApp Numbers Ka Hisaab</h4>
-                <p className="text-xs text-slate-500">Har number se kitni leads ayin</p>
+                <span className="text-[10px] font-black uppercase text-orange-700 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200">
+                  Pipeline Health
+                </span>
+                <h4 className="text-sm font-extrabold text-slate-900 mt-1">Pipeline Stages Ka Hisaab</h4>
+                <p className="text-xs text-slate-500">Mukammal conversion & distribution</p>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                {leads.length} Total
+              <span className="text-xs font-black text-slate-800 bg-slate-100 px-2 py-0.5 rounded-lg">
+                {filteredLeads.length} Leads
               </span>
             </div>
 
-            <div className="mt-4 space-y-3">
-              {activeChannelsList.map((ch) => (
+            {/* Complete Pipeline Stages Breakdown */}
+            <div className="mt-3.5 space-y-2">
+              {stageStats.map((st) => (
                 <div 
-                  key={ch.id} 
-                  onClick={() => setSelectedChannel && setSelectedChannel(ch.id)}
-                  className="p-3 rounded-xl border border-slate-100 hover:border-orange-300 hover:bg-orange-50/20 cursor-pointer transition-all space-y-1.5"
+                  key={st.name} 
+                  onClick={() => { setDrilldownCategory(`stage_${st.stageKey}`); setDrilldownSearch(''); }}
+                  className="flex items-center justify-between p-2 rounded-xl border border-slate-100 hover:border-orange-300 hover:bg-orange-50/20 cursor-pointer transition-all group"
+                  title={`Click karein: ${st.name} leads ki list dekhein`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5">
-                      <span>{ch.flag}</span>
-                      <span>{ch.name}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-sm">{st.icon}</span>
+                    <div className="truncate">
+                      <span className={`text-xs font-bold transition-colors ${st.isLost ? 'text-rose-700 font-extrabold' : 'text-slate-800 group-hover:text-orange-600'}`}>
+                        {st.name}
+                      </span>
+                      <span className="text-[10px] text-slate-400 block truncate">{st.label}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-[11px] font-black px-2 py-0.5 rounded-md ${st.isLost ? 'bg-rose-100 text-rose-800 border border-rose-300' : st.badgeBg}`}>
+                      {st.count}
                     </span>
-                    <span className="text-xs font-black text-orange-600">{ch.total} Leads</span>
-                  </div>
-
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div style={{ width: `${ch.pct}%` }} className="bg-orange-500 h-full rounded-full"></div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500">
-                    <span className="text-emerald-700 font-bold">⚡ Aaj: {ch.today}</span>
-                    <span className="text-blue-700 font-bold">⏪ Kal: {ch.yesterday}</span>
-                    <span>{ch.pct}% Share</span>
+                    <span className="text-[10px] font-bold text-slate-400 w-7 text-right">{st.pct}%</span>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
 
-        {/* Panel 2 & 3: Recent Inbound Leads List */}
-        <div className="lg:col-span-2 card-soft p-5 bg-white border border-slate-200/80">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <div>
-              <h4 className="text-sm font-extrabold text-slate-900">Taza Tareen WhatsApp Leads</h4>
-              <p className="text-xs text-slate-500">Sub se aakhri aye hue customers</p>
-            </div>
-            <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-100">
-              {filteredLeads.length} Leads
-            </span>
-          </div>
-
-          <div className="mt-3 divide-y divide-slate-100">
-            {filteredLeads.slice(0, 5).map((l) => {
-              const isToday = isLeadToday(l);
-              const isYesterday = isLeadYesterday(l);
-
-              return (
-                <div key={l.id} className="py-3 flex items-center justify-between gap-3 hover:bg-slate-50/80 px-2 rounded-xl transition-colors">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <img 
-                      src={l.avatar} 
-                      alt={l.name} 
-                      className="w-9 h-9 rounded-full bg-slate-200 shrink-0 object-cover" 
-                    />
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h5 className="text-xs font-extrabold text-slate-900 truncate">{l.name}</h5>
-                        {isToday && (
-                          <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-700">
-                            Aaj
-                          </span>
-                        )}
-                        {isYesterday && (
-                          <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-blue-100 text-blue-700">
-                            Kal
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] font-mono text-slate-500">{l.phone}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 hidden sm:inline-block">
-                      {l.channelName}
-                    </span>
-                    <span className="text-xs font-extrabold text-slate-800">
-                      {l.stage}
-                    </span>
-                    <button
-                      onClick={() => onOpenChat && onOpenChat(l.id)}
-                      className="px-3 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 font-bold text-xs transition-colors flex items-center gap-1"
+            {/* Top Requested AmazFast Services */}
+            {serviceStats.length > 0 && (
+              <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
+                <span className="text-[11px] font-extrabold uppercase text-slate-500 tracking-wider block">
+                  💼 Top Services In Demand:
+                </span>
+                <div className="space-y-1.5">
+                  {serviceStats.map((srv) => (
+                    <div 
+                      key={srv.name}
+                      onClick={() => {
+                        setSelectedServiceFilter(srv.name);
+                      }}
+                      className="flex items-center justify-between text-xs p-1.5 rounded-lg bg-slate-50 hover:bg-orange-50/50 cursor-pointer transition-all border border-slate-100"
+                      title="Filter dashboard by this service"
                     >
-                      <MessageSquare className="w-3 h-3" />
-                      <span>Chat</span>
-                    </button>
-                  </div>
+                      <span className="font-bold text-slate-700 truncate pr-2">{srv.name}</span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[10px] font-black px-1.5 py-0.2 bg-white text-orange-700 border border-orange-200 rounded">
+                          {srv.count} leads
+                        </span>
+                        <span className="text-[10px] font-semibold text-slate-400">{srv.pct}%</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              );
-            })}
+              </div>
+            )}
           </div>
+
+          <button
+            onClick={onOpenNewLead}
+            className="w-full py-2.5 px-4 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 shrink-0"
+          >
+            <Plus className="w-3.5 h-3.5" /> + Naya Customer Register Karein
+          </button>
         </div>
       </div>
 
@@ -1595,7 +1667,7 @@ export default function DashboardView({
                           className="w-10 h-10 rounded-full object-cover bg-slate-200 shrink-0" 
                         />
                         <div className="min-w-0">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <h4 className="text-xs font-extrabold text-slate-900 truncate">{lead.name}</h4>
                             {isToday && (
                               <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-700">
@@ -1607,11 +1679,26 @@ export default function DashboardView({
                                 Kal
                               </span>
                             )}
-                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-700">
-                              {lead.stage}
+                            {lead.serviceInterest && (
+                              <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                💼 {lead.serviceInterest}
+                              </span>
+                            )}
+                            <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded border ${
+                              lead.stage === 'Lost' ? 'bg-rose-100 text-rose-800 border-rose-300' :
+                              lead.stage === 'Qualified' ? 'bg-purple-100 text-purple-800 border-purple-200' :
+                              lead.stage === 'Deal Won' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' :
+                              'bg-slate-100 text-slate-700 border-slate-200'
+                            }`}>
+                              {lead.stage === 'Lost' ? '🔴 Unqualified' : lead.stage}
                             </span>
                           </div>
-                          <p className="text-[11px] font-mono text-slate-500">{lead.phone} • {lead.channelName}</p>
+                          <p className="text-[11px] font-mono text-slate-500 mt-0.5">
+                            {lead.phone} • {lead.channelName} • <span className="font-bold text-slate-700">Deal: {lead.dealValue ? `${lead.dealValue} PKR` : 'Pending'}</span>
+                          </p>
+                          <p className="text-[10px] text-slate-400 font-medium">
+                            📅 Added: {new Date(lead.createdAt || lead.rawLastMessageAt).toLocaleDateString('en-GB')} {lead.lastTime}
+                          </p>
                           <p className="text-[11px] text-slate-600 truncate max-w-sm mt-0.5">
                             "{lead.lastMessage || 'No conversation yet'}"
                           </p>

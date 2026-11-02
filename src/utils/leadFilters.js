@@ -92,14 +92,54 @@ export function formatChannelDisplayName(channel) {
   return channel.name || 'WhatsApp Line';
 }
 
+export function parseLeadDate(raw) {
+  if (!raw) return null;
+  if (raw instanceof Date) return isNaN(raw.getTime()) ? null : raw;
+  if (typeof raw === 'number') {
+    const ms = raw < 10000000000 ? raw * 1000 : raw;
+    const d = new Date(ms);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (/^\d{10}$/.test(trimmed)) {
+      const d = new Date(Number(trimmed) * 1000);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    if (/^\d{13}$/.test(trimmed)) {
+      const d = new Date(Number(trimmed));
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const d = new Date(trimmed);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
+
+export function getLeadDate(lead) {
+  if (!lead) return null;
+  // Primary date is the WhatsApp customer activity timestamp
+  return (
+    parseLeadDate(lead.rawLastMessageAt) ||
+    parseLeadDate(lead.lastMessageAt) ||
+    parseLeadDate(lead.createdAt) ||
+    parseLeadDate(lead.updatedAt)
+  );
+}
+
+export function getLeadLocalDateString(lead) {
+  const d = getLeadDate(lead);
+  if (!d) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export function isLeadToday(lead) {
   if (!lead) return false;
-  // Strictly check lead creation date (when customer first contacted)
-  const rawDate = lead.createdAt;
-  if (!rawDate) return false;
-  
-  const d = new Date(rawDate);
-  if (isNaN(d.getTime())) return false;
+  const d = getLeadDate(lead);
+  if (!d) return false;
   
   const now = new Date();
   return (
@@ -111,11 +151,8 @@ export function isLeadToday(lead) {
 
 export function isLeadYesterday(lead) {
   if (!lead) return false;
-  const rawDate = lead.createdAt;
-  if (!rawDate) return false;
-  
-  const d = new Date(rawDate);
-  if (isNaN(d.getTime())) return false;
+  const d = getLeadDate(lead);
+  if (!d) return false;
   
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
@@ -128,16 +165,18 @@ export function isLeadYesterday(lead) {
 
 export function isLeadWithinDays(lead, days = 7) {
   if (!lead) return false;
-  const rawDate = lead.createdAt;
-  if (!rawDate) return false;
-  
-  const d = new Date(rawDate);
-  if (isNaN(d.getTime())) return false;
+  const d = getLeadDate(lead);
+  if (!d) return false;
   
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
   cutoff.setHours(0, 0, 0, 0);
   return d >= cutoff;
+}
+
+export function isLeadOnDate(lead, targetDateStr) {
+  if (!lead || !targetDateStr) return false;
+  return getLeadLocalDateString(lead) === targetDateStr;
 }
 
 export function getLeadStats(leads = [], channels = []) {

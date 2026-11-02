@@ -22,8 +22,10 @@ import {
   isLeadToday, 
   isLeadYesterday, 
   isLeadWithinDays,
+  isLeadOnDate,
   getLeadStats 
 } from '../utils/leadFilters';
+import { AMAZFAST_SERVICES } from '../data/servicesList';
 
 export default function KanbanView({ 
   leads = [], 
@@ -36,6 +38,14 @@ export default function KanbanView({
 }) {
   const [viewMode, setViewMode] = useState('board'); // 'board' (Kanban) or 'table' (List)
   const [dateFilter, setDateFilter] = useState('today'); // Default: 'today' (Aaj ki leads)
+  const [customSelectedDate, setCustomSelectedDate] = useState(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  });
+  const [selectedServiceFilter, setSelectedServiceFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   
   // Drag and Drop States
@@ -60,11 +70,31 @@ export default function KanbanView({
       if (dateFilter === 'yesterday' && !isLeadYesterday(l)) {
         return false;
       }
+      if (dateFilter === 'custom' && !isLeadOnDate(l, customSelectedDate)) {
+        return false;
+      }
       if (dateFilter === '7days' && !isLeadWithinDays(l, 7)) {
         return false;
       }
+      if (dateFilter === '30days' && !isLeadWithinDays(l, 30)) {
+        return false;
+      }
+      if (dateFilter === '6months' && !isLeadWithinDays(l, 180)) {
+        return false;
+      }
+      if (dateFilter === 'year' && !isLeadWithinDays(l, 365)) {
+        return false;
+      }
 
-      // 3. Search Query
+      // 3. Service Filter
+      if (selectedServiceFilter !== 'all') {
+        const s = l.serviceInterest || '';
+        if (!s.toLowerCase().includes(selectedServiceFilter.toLowerCase())) {
+          return false;
+        }
+      }
+
+      // 4. Search Query
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         const matchName = (l.name || '').toLowerCase().includes(q);
@@ -368,6 +398,57 @@ export default function KanbanView({
             >
               🗓️ Pichle 7 Din ({stats.last7DaysCount})
             </button>
+            <button
+              onClick={() => setDateFilter('30days')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                dateFilter === '30days'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              📊 Is Mahine (30 Din)
+            </button>
+            {/* Custom Specific Date Picker */}
+            <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+              <input
+                type="date"
+                value={customSelectedDate}
+                onChange={(e) => {
+                  setCustomSelectedDate(e.target.value);
+                  setDateFilter('custom');
+                }}
+                className="bg-transparent text-xs font-bold text-slate-800 px-1 focus:outline-none cursor-pointer"
+                title="Specific taareekh chunein"
+              />
+              {dateFilter === 'custom' && (
+                <span className="text-[10px] font-black bg-orange-500 text-white px-1.5 py-0.5 rounded">
+                  Active
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Service Dropdown Filter */}
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-xl">
+            <span className="font-bold text-slate-500 text-xs">💼 Service:</span>
+            <select
+              value={selectedServiceFilter}
+              onChange={(e) => setSelectedServiceFilter(e.target.value)}
+              className="text-xs font-bold bg-transparent text-slate-800 focus:outline-none cursor-pointer max-w-[170px] truncate"
+            >
+              <option value="all">🌐 Saari Services</option>
+              {AMAZFAST_SERVICES.map(s => (
+                <option key={s.id} value={s.shortLabel}>{s.label}</option>
+              ))}
+            </select>
+            {selectedServiceFilter !== 'all' && (
+              <button
+                onClick={() => setSelectedServiceFilter('all')}
+                className="text-[10px] text-orange-600 font-bold hover:underline shrink-0"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
           <div className="text-[11px] font-semibold text-slate-500">
@@ -393,13 +474,17 @@ export default function KanbanView({
               >
                 {/* Column Header */}
                 <div className={`p-3.5 bg-white border border-[#EEF2F6] rounded-t-2xl flex items-center justify-between border-b-2 transition-colors ${
-                  isColumnDropTarget ? 'border-b-orange-500 bg-orange-50/30' : 'border-b-orange-500'
+                  isColumnDropTarget 
+                    ? 'border-b-orange-500 bg-orange-50/30' 
+                    : stage.id === 'Lost' 
+                    ? 'border-b-rose-500' 
+                    : 'border-b-orange-500'
                 }`}>
                   <div className="flex items-center gap-2">
                     <span className={`w-2.5 h-2.5 rounded-full ${stage.color}`}></span>
-                    <h3 className="text-xs font-extrabold text-slate-900">{stage.title}</h3>
+                    <h3 className={`text-xs font-extrabold ${stage.id === 'Lost' ? 'text-rose-700' : 'text-slate-900'}`}>{stage.title}</h3>
                   </div>
-                  <span className="text-xs font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                  <span className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${stage.id === 'Lost' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'}`}>
                     {stageLeads.length}
                   </span>
                 </div>
@@ -474,9 +559,24 @@ export default function KanbanView({
                             </span>
                           </div>
 
+                          {/* AmazFast Service Selector Dropdown */}
+                          <div className="mt-2.5" onClick={(e) => e.stopPropagation()}>
+                            <select
+                              value={lead.serviceInterest || ''}
+                              onChange={(e) => onUpdateLead(lead.id, { serviceInterest: e.target.value })}
+                              className="w-full text-[11px] font-extrabold px-2 py-1 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-orange-500 cursor-pointer shadow-2xs"
+                              title="Customer kis service mein interested hai"
+                            >
+                              <option value="">💼 Select Service</option>
+                              {AMAZFAST_SERVICES.map(s => (
+                                <option key={s.id} value={s.shortLabel}>{s.label}</option>
+                              ))}
+                            </select>
+                          </div>
+
                           {/* Tags */}
                           {lead.tags && lead.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2.5">
+                            <div className="flex flex-wrap gap-1 mt-2">
                               {lead.tags.slice(0, 2).map((t) => (
                                 <span key={t} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
                                   {t}
@@ -485,19 +585,32 @@ export default function KanbanView({
                             </div>
                           )}
 
-                          {/* Direct WhatsApp Chat Action Button */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (onOpenChat) onOpenChat(lead.id);
-                            }}
-                            className="w-full mt-2.5 py-1.5 px-2.5 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-600 hover:to-teal-600 text-emerald-800 hover:text-white border border-emerald-200 hover:border-emerald-600 text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs transition-all duration-150"
-                            title={`Open WhatsApp chat with ${lead.name}`}
-                          >
-                            <MessageSquare className="w-3.5 h-3.5 text-emerald-600 group-hover:text-white" />
-                            <span>Direct Chat Kholein</span>
-                          </button>
+                          {/* Direct Chat Buttons */}
+                          <div className="flex items-center gap-1.5 mt-2.5">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (onOpenChat) onOpenChat(lead.id);
+                              }}
+                              className="flex-1 py-1.5 px-2 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-600 hover:to-teal-600 text-emerald-800 hover:text-white border border-emerald-200 hover:border-emerald-600 text-xs font-bold flex items-center justify-center gap-1 shadow-2xs transition-all duration-150"
+                              title={`Open WhatsApp chat with ${lead.name}`}
+                            >
+                              <MessageSquare className="w-3.5 h-3.5 text-emerald-600 group-hover:text-white" />
+                              <span>CRM Chat</span>
+                            </button>
+
+                            <a
+                              href={`https://wa.me/${(lead.phone || '').replace(/[^0-9]/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="py-1.5 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1 shadow-2xs transition-all duration-150 shrink-0"
+                              title="Direct WhatsApp Web par free chat kholein"
+                            >
+                              <span>Free WA</span>
+                            </a>
+                          </div>
 
                           {/* Footer: Assigned Agent & Action */}
                           <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">

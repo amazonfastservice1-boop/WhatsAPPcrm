@@ -39,25 +39,46 @@ router.get('/', authenticateToken, async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Calculate actual active leads belonging to each staff member's assigned channels
+    // Calculate actual active leads and today's activity for each staff member
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
     const enrichedUsers = await Promise.all(
       users.map(async (u) => {
         const allowedChannelIds = u.allowedChannels.map((ac) => ac.channel.id);
         
         let channelLeadsCount = 0;
-        if (u.role === 'ADMIN') {
-          channelLeadsCount = await prisma.lead.count({ where: { channel: { isActive: true } } });
-        } else if (allowedChannelIds.length > 0) {
-          channelLeadsCount = await prisma.lead.count({
+        let todayLeadsCount = 0;
+
+        const baseChannelWhere = u.role === 'ADMIN' 
+          ? { channel: { isActive: true } } 
+          : allowedChannelIds.length > 0 
+          ? { channelId: { in: allowedChannelIds } } 
+          : null;
+
+        if (baseChannelWhere) {
+          channelLeadsCount = await prisma.lead.count({ where: baseChannelWhere });
+          todayLeadsCount = await prisma.lead.count({
             where: {
-              channelId: { in: allowedChannelIds },
+              ...baseChannelWhere,
+              lastMessageAt: { gte: startOfToday },
             },
           });
         }
 
+        // Messages sent today by this specific user
+        const todayMessagesCount = await prisma.message.count({
+          where: {
+            senderUserId: u.id,
+            createdAt: { gte: startOfToday }
+          }
+        });
+
         return {
           ...u,
           channelLeadsCount,
+          todayLeadsCount,
+          todayMessagesCount,
         };
       })
     );

@@ -257,6 +257,13 @@ router.patch('/:id', authenticateToken, async (req, res) => {
     });
 
     req.io?.emit('lead:updated', updatedLead);
+    req.io?.emit('lead:stage_updated', {
+      leadId: updatedLead.id,
+      stage: updatedLead.stage,
+      serviceInterest: updatedLead.serviceInterest,
+      dealValue: updatedLead.dealValue,
+      channelId: updatedLead.channelId,
+    });
     res.json({ lead: updatedLead });
   } catch (error) {
     console.error('Error updating lead:', error);

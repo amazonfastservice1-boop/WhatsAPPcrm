@@ -238,7 +238,7 @@ export const PIPELINE_STAGES = [
   { id: 'Qualified', title: 'Qualified', color: 'bg-indigo-500', count: 1 },
   { id: 'Proposal Sent', title: 'Proposal Sent', color: 'bg-orange-500', count: 1 },
   { id: 'Deal Won', title: 'Deal Won / Closed', color: 'bg-emerald-500', count: 1 },
-  { id: 'Lost', title: 'Lost / Inactive', color: 'bg-slate-400', count: 0 }
+  { id: 'Lost', title: 'Unqualified (Rejected)', color: 'bg-rose-500', count: 0 }
 ];
 
 export const QUICK_REPLIES = [

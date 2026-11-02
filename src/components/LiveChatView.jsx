@@ -182,7 +182,9 @@ export function getStageBadgeStyle(stage) {
     case 'New Lead':
       return 'bg-yellow-100 text-yellow-800 border-yellow-200';
     case 'Lost':
-      return 'bg-slate-100 text-slate-600 border-slate-200';
+    case 'Unqualified':
+    case 'Unqualified (Rejected)':
+      return 'bg-rose-100 text-rose-800 border-rose-300 font-extrabold';
     default:
       return 'bg-slate-100 text-slate-700 border-slate-200';
   }
@@ -328,6 +330,7 @@ export default function LiveChatView({
   const [newRemPriority, setNewRemPriority] = useState('HIGH');
   const [sendingReminderId, setSendingReminderId] = useState(null);
   const [reminderToast, setReminderToast] = useState(null);
+  const [smartBarToast, setSmartBarToast] = useState(null);
 
   const saveRemindersToStorage = (updated) => {
     setLeadReminders(updated);
@@ -1565,7 +1568,14 @@ export default function LiveChatView({
             </span>
             <select
               value={activeLead.serviceInterest || ''}
-              onChange={(e) => onUpdateLead(activeLead.id, { serviceInterest: e.target.value })}
+              onChange={(e) => {
+                const sVal = e.target.value;
+                onUpdateLead(activeLead.id, { serviceInterest: sVal });
+                if (sVal) {
+                  setSmartBarToast(`💼 Service "${sVal}" save ho gayi! Dashboard update ✓`);
+                  setTimeout(() => setSmartBarToast(null), 3000);
+                }
+              }}
               className="flex-1 text-xs font-bold px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-orange-500 cursor-pointer shadow-2xs transition-all hover:bg-orange-50/40"
               title="Customer kis AmazFast service mein interested hai (LLC, Stripe, Amazon, Tax, etc.)"
             >
@@ -1583,7 +1593,11 @@ export default function LiveChatView({
             {/* Qualified Button */}
             <button
               type="button"
-              onClick={() => onUpdateLead(activeLead.id, { stage: 'Qualified' })}
+              onClick={() => {
+                onUpdateLead(activeLead.id, { stage: 'Qualified' });
+                setSmartBarToast('🟣 Lead "Qualified" ho gayi! Dashboard KPI update ✓');
+                setTimeout(() => setSmartBarToast(null), 3500);
+              }}
               className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 shadow-2xs ${
                 activeLead.stage === 'Qualified'
                   ? 'bg-purple-600 text-white ring-2 ring-purple-300'
@@ -1598,7 +1612,11 @@ export default function LiveChatView({
             {/* Unqualified / Lost Button */}
             <button
               type="button"
-              onClick={() => onUpdateLead(activeLead.id, { stage: 'Lost' })}
+              onClick={() => {
+                onUpdateLead(activeLead.id, { stage: 'Lost' });
+                setSmartBarToast('🔴 Lead "Unqualified / Rejected" ho gayi! Dashboard update ✓');
+                setTimeout(() => setSmartBarToast(null), 3500);
+              }}
               className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 shadow-2xs ${
                 activeLead.stage === 'Lost'
                   ? 'bg-rose-600 text-white ring-2 ring-rose-300'
@@ -1617,6 +1635,8 @@ export default function LiveChatView({
                 const amt = prompt('Deal Closed! Final Amount likhein (PKR / USD):', activeLead.dealValue || '0');
                 if (amt !== null) {
                   onUpdateLead(activeLead.id, { stage: 'Deal Won', dealValue: amt.trim() || '0' });
+                  setSmartBarToast(`🟢 Mubarak! Deal Won (PKR ${amt})! Dashboard update ✓`);
+                  setTimeout(() => setSmartBarToast(null), 3500);
                 }
               }}
               className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 shadow-2xs ${
@@ -1654,6 +1674,22 @@ export default function LiveChatView({
             </a>
           </div>
         </div>
+
+        {/* Live Status Toast Banner */}
+        {smartBarToast && (
+          <div className="bg-slate-900 text-white text-xs font-bold px-4 py-1.5 flex items-center justify-between shadow-md animate-in slide-in-from-top-1">
+            <span className="flex items-center gap-1.5">
+              <Check className="w-4 h-4 text-emerald-400" />
+              <span>{smartBarToast}</span>
+            </span>
+            <button 
+              onClick={() => setSmartBarToast(null)}
+              className="text-slate-400 hover:text-white text-xs ml-4"
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         {/* Message Thread */}
         <div 

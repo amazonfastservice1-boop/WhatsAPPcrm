@@ -74,6 +74,16 @@ export default function DashboardView({
   const [drilldownSearch, setDrilldownSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshToast, setRefreshToast] = useState(null);
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+
+  // 1-second live ticker for 24-Hour Business Day Cycle (12:00 AM to 12:00 AM)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const [networkStatus, setNetworkStatus] = useState({
     isOnline: typeof navigator !== 'undefined' ? navigator.onLine !== false : true,
     isSlow: false,
@@ -240,6 +250,38 @@ export default function DashboardView({
     return (selectedChannel === 'all' ? leads : leads.filter(l => l.channel === selectedChannel))
       .filter(l => isLeadToday(l));
   }, [leads, selectedChannel]);
+
+  // 1b. 24-Hour Business Day Cycle Stats (12:00 AM Midnight to 12:00 AM Midnight)
+  const dayCycleStats = useMemo(() => {
+    const now = currentTime;
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+
+    const elapsedMs = Math.max(0, now.getTime() - startOfToday.getTime());
+    const remainingMs = Math.max(0, nextMidnight.getTime() - now.getTime());
+    const totalDayMs = 24 * 60 * 60 * 1000;
+    const progressPct = Math.min(100, Math.max(0, (elapsedMs / totalDayMs) * 100));
+
+    const elapsedHours = Math.floor(elapsedMs / (1000 * 60 * 60));
+    const elapsedMins = Math.floor((elapsedMs % (1000 * 60 * 60)) / (1000 * 60));
+    const elapsedSecs = Math.floor((elapsedMs % (1000 * 60)) / 1000);
+
+    const remHours = Math.floor(remainingMs / (1000 * 60 * 60));
+    const remMins = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+
+    const countToday = todayLeadsList.length;
+    const hoursElapsedDec = Math.max(0.016, elapsedMs / (1000 * 60 * 60));
+    const pace = (countToday / hoursElapsedDec).toFixed(1);
+
+    return {
+      elapsedFormatted: `${String(elapsedHours).padStart(2, '0')}:${String(elapsedMins).padStart(2, '0')}:${String(elapsedSecs).padStart(2, '0')}`,
+      elapsedHuman: elapsedHours > 0 ? `${elapsedHours} ghante ${elapsedMins} minute` : `${elapsedMins} minute ${elapsedSecs} second`,
+      remainingHuman: `${remHours}h ${remMins}m baqi`,
+      progressPct: Number(progressPct.toFixed(1)),
+      countToday,
+      pace,
+    };
+  }, [currentTime, todayLeadsList]);
 
   // 2. Leads that have received an agent reply (Message Sent)
   const repliedLeadsList = useMemo(() => {
@@ -657,7 +699,7 @@ export default function DashboardView({
     }
 
     return { title, description, badgeColor, list };
-  }, [drilldownCategory, drilldownSearch, channelLeads, selectedChannel, todayLeadsList, repliedLeadsList, pendingLeadsList, topEngagedLeads, wonLeads]);
+  }, [drilldownCategory, drilldownSearch, channelLeads, selectedChannel, todayLeadsList, repliedLeadsList, pendingLeadsList, topEngagedLeads, wonLeads, filteredLeads, timeRange, customDayDisplay]);
 
   return (
     <div className="p-6 space-y-6 max-w-[1600px] mx-auto animate-fade-in">
@@ -834,6 +876,99 @@ export default function DashboardView({
           <span>{refreshToast}</span>
         </div>
       )}
+
+      {/* 24-Hour Business Day Live Tracker & Timer Card (12:00 AM Midnight to 12:00 AM Midnight) */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 rounded-2xl p-4 sm:p-5 text-white shadow-xl border border-slate-700/60 relative overflow-hidden animate-in fade-in">
+        {/* Subtle decorative glow */}
+        <div className="absolute -right-16 -top-16 w-56 h-56 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -left-16 -bottom-16 w-56 h-56 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+          {/* Left: Cycle title & Live Ticking Clock */}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+                Live 24h Business Day Cycle
+              </span>
+              <span className="text-xs text-slate-300 font-medium">
+                (Raat 12:00 AM ➔ Agli Raat 12:00 AM)
+              </span>
+            </div>
+            
+            <div className="flex items-baseline gap-3">
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-orange-400 shrink-0" />
+                <span className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-white drop-shadow-sm">
+                  {dayCycleStats.elapsedFormatted}
+                </span>
+              </div>
+              <span className="text-xs font-bold text-slate-300">
+                Guzra Waqt ({dayCycleStats.elapsedHuman})
+              </span>
+            </div>
+            
+            <p className="text-[11px] text-slate-400 font-medium">
+              Raat 12:00 AM par naya din shuru hua. Ticker har second live chal raha hai.
+            </p>
+          </div>
+
+          {/* Middle: Leads Inflow & Current Pace */}
+          <div className="flex items-center gap-4 py-2.5 px-5 bg-white/5 border border-white/10 rounded-xl backdrop-blur-xs">
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                Aaj Ki Aayi Hui Leads
+              </span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-black text-emerald-400">
+                  {dayCycleStats.countToday}
+                </span>
+                <span className="text-xs font-bold text-slate-300">leads</span>
+              </div>
+            </div>
+
+            <div className="h-8 w-px bg-white/15" />
+
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                Average Raftaar
+              </span>
+              <div className="flex items-baseline gap-1">
+                <span className="text-lg sm:text-xl font-extrabold text-amber-400">
+                  ~{dayCycleStats.pace}
+                </span>
+                <span className="text-[11px] font-medium text-slate-300">/ ghanta</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: 24h Progress & Next Reset Notice */}
+          <div className="space-y-2 lg:max-w-xs w-full">
+            <div className="flex items-center justify-between text-xs font-bold">
+              <span className="text-slate-300">24-Ghante Ka Safar</span>
+              <span className="text-orange-400 font-mono font-extrabold">{dayCycleStats.progressPct}%</span>
+            </div>
+
+            {/* Progress bar */}
+            <div className="w-full h-2.5 bg-slate-700/80 rounded-full overflow-hidden p-0.5 border border-slate-600/50">
+              <div 
+                className="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-emerald-400 rounded-full transition-all duration-1000 ease-linear shadow-sm"
+                style={{ width: `${Math.max(2, dayCycleStats.progressPct)}%` }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] text-slate-400">
+              <span className="flex items-center gap-1">
+                <RefreshCw className="w-3 h-3 text-slate-400" />
+                Agla Reset: <strong className="text-slate-200">{dayCycleStats.remainingHuman}</strong>
+              </span>
+              <span className="text-[10px] text-slate-400 font-semibold">
+                12:00 AM par counter 0 hoga
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* 2. Top Interactive Pipeline KPI Cards (Clickable Drilldown) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">

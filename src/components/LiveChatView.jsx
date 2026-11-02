@@ -608,9 +608,21 @@ export default function LiveChatView({
     }
   };
 
+  const leadsRef = React.useRef(leads);
+  React.useEffect(() => {
+    leadsRef.current = leads;
+  }, [leads]);
+
+  const leadRemindersRef = React.useRef(leadReminders);
+  React.useEffect(() => {
+    leadRemindersRef.current = leadReminders;
+  }, [leadReminders]);
+
   // Background Auto-Sender: Automatically sends WhatsApp message when scheduled time arrives
   React.useEffect(() => {
     const checkScheduledReminders = async () => {
+      const currentReminders = leadRemindersRef.current || [];
+      const currentLeads = leadsRef.current || [];
       const now = new Date();
       const currentDate = now.toISOString().slice(0, 10);
       const currentHours = now.getHours();
@@ -618,7 +630,7 @@ export default function LiveChatView({
       const currentTotalMinutes = currentHours * 60 + currentMinutes;
 
       let hasChanged = false;
-      const updatedList = [...leadReminders];
+      const updatedList = [...currentReminders];
 
       for (let i = 0; i < updatedList.length; i++) {
         const r = updatedList[i];
@@ -650,7 +662,7 @@ export default function LiveChatView({
                 });
 
                 if (onUpdateLead && r.leadId) {
-                  const targetLead = leads.find(l => l.id === r.leadId);
+                  const targetLead = currentLeads.find(l => l.id === r.leadId);
                   if (targetLead) {
                     const newMsg = {
                       id: `sched-${Date.now()}`,
@@ -682,10 +694,10 @@ export default function LiveChatView({
       }
     };
 
-    const interval = setInterval(checkScheduledReminders, 8000); // Check every 8s
+    const interval = setInterval(checkScheduledReminders, 10000); // Check every 10s quietly
     checkScheduledReminders();
     return () => clearInterval(interval);
-  }, [leadReminders, leads]);
+  }, []);
 
   // Filtered and sorted leads (latest active chats first, deduplicated by id)
   const uniqueLeads = React.useMemo(() => {
@@ -717,52 +729,62 @@ export default function LiveChatView({
     };
   }, [uniqueLeads, selectedChannel, leadReminders]);
 
-  const displayLeads = uniqueLeads
-    .filter(lead => {
-      // Channel filter
-      if (selectedChannel !== 'all' && lead.channel !== selectedChannel) return false;
-      // Tab filter
-      if (filterTab === 'reminders') {
-        const hasRem = leadReminders.some(r => 
-          !r.completed && !r.reminderSent && (r.leadId === lead.id || (lead.phone && r.leadPhone && r.leadPhone.replace(/\D/g, '') === lead.phone.replace(/\D/g, '')))
-        );
-        if (!hasRem) return false;
-      }
-      if (filterTab === 'unassigned' && lead.assignedTo !== 'Unassigned') return false;
-      if (filterTab === 'mine' && lead.assignedTo !== 'Hamza Tariq' && lead.assignedTo !== 'Ali Husni') return false;
-      if (filterTab === 'unread' && lead.unreadCount === 0) return false;
-      if (filterTab === 'qualified' && !/qualif/i.test(lead.stage || '')) return false;
-      if (filterTab === 'proposal' && !/proposal/i.test(lead.stage || '')) return false;
-      if (filterTab === 'won' && !/won|closed/i.test(lead.stage || '')) return false;
-      if (filterTab === 'contacted' && !/contact/i.test(lead.stage || '')) return false;
-      if (filterTab === 'unqualified' && !/lost|unqualif/i.test(lead.stage || '')) return false;
-      if (filterTab === 'new' && (!/new/i.test(lead.stage || '') || lead.messages?.some(m => m.sender === 'agent'))) return false;
-
-      // Service Filter
-      if (selectedServiceFilter !== 'all') {
-        const sMeta = getServiceMeta(lead.serviceInterest);
-        if (!sMeta || (sMeta.id !== selectedServiceFilter && sMeta.shortLabel !== selectedServiceFilter && sMeta.label !== selectedServiceFilter)) {
-          return false;
+  // Memoized, 100% deterministic sorted display leads (NO flickering, NO order jumping)
+  const displayLeads = React.useMemo(() => {
+    return uniqueLeads
+      .filter((lead) => {
+        // Channel filter
+        if (selectedChannel !== 'all' && lead.channel !== selectedChannel) return false;
+        // Tab filter
+        if (filterTab === 'reminders') {
+          const hasRem = leadReminders.some((r) => 
+            !r.completed && !r.reminderSent && (r.leadId === lead.id || (lead.phone && r.leadPhone && r.leadPhone.replace(/\D/g, '') === lead.phone.replace(/\D/g, '')))
+          );
+          if (!hasRem) return false;
         }
-      }
-      // Search
-      if (searchLeadTerm) {
-        const term = searchLeadTerm.toLowerCase();
-        return (lead.name || '').toLowerCase().includes(term) || (lead.phone || '').includes(term);
-      }
-      return true;
-    })
-    .sort((a, b) => new Date(b.rawLastMessageAt || 0) - new Date(a.rawLastMessageAt || 0));
+        if (filterTab === 'unassigned' && lead.assignedTo !== 'Unassigned') return false;
+        if (filterTab === 'mine' && lead.assignedTo !== 'Hamza Tariq' && lead.assignedTo !== 'Ali Husni') return false;
+        if (filterTab === 'unread' && lead.unreadCount === 0) return false;
+        if (filterTab === 'qualified' && !/qualif/i.test(lead.stage || '')) return false;
+        if (filterTab === 'proposal' && !/proposal/i.test(lead.stage || '')) return false;
+        if (filterTab === 'won' && !/won|closed/i.test(lead.stage || '')) return false;
+        if (filterTab === 'contacted' && !/contact/i.test(lead.stage || '')) return false;
+        if (filterTab === 'unqualified' && !/lost|unqualif/i.test(lead.stage || '')) return false;
+        if (filterTab === 'new' && (!/new/i.test(lead.stage || '') || lead.messages?.some((m) => m.sender === 'agent'))) return false;
+
+        // Service Filter
+        if (selectedServiceFilter !== 'all') {
+          const sMeta = getServiceMeta(lead.serviceInterest);
+          if (!sMeta || (sMeta.id !== selectedServiceFilter && sMeta.shortLabel !== selectedServiceFilter && sMeta.label !== selectedServiceFilter)) {
+            return false;
+          }
+        }
+        // Search
+        if (searchLeadTerm) {
+          const term = searchLeadTerm.toLowerCase();
+          return (lead.name || '').toLowerCase().includes(term) || (lead.phone || '').includes(term);
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        const timeA = new Date(a.rawLastMessageAt || a.createdAt || 0).getTime() || 0;
+        const timeB = new Date(b.rawLastMessageAt || b.createdAt || 0).getTime() || 0;
+        if (timeB !== timeA) return timeB - timeA;
+        return String(a.id || '').localeCompare(String(b.id || ''));
+      });
+  }, [uniqueLeads, selectedChannel, filterTab, leadReminders, selectedServiceFilter, searchLeadTerm]);
 
   // Selected active lead (Locked to uniqueLeads by selectedLeadId so active chat NEVER jumps to another customer)
-  const activeLead = uniqueLeads.find(l => l.id === selectedLeadId) || (displayLeads.length > 0 ? displayLeads[0] : null);
+  const activeLead = React.useMemo(() => {
+    return uniqueLeads.find((l) => l.id === selectedLeadId) || (displayLeads.length > 0 ? displayLeads[0] : null);
+  }, [uniqueLeads, selectedLeadId, displayLeads]);
 
-  // Keep selectedLeadId firmly locked to activeLead
+  // Set initial selectedLeadId only if none selected
   React.useEffect(() => {
-    if (activeLead && activeLead.id !== selectedLeadId) {
+    if (!selectedLeadId && activeLead?.id) {
       setSelectedLeadId(activeLead.id);
     }
-  }, [activeLead?.id, selectedLeadId, setSelectedLeadId]);
+  }, [selectedLeadId, activeLead?.id, setSelectedLeadId]);
 
   // Reminders for currently active lead
   const activeLeadReminders = React.useMemo(() => {
@@ -1301,7 +1323,7 @@ export default function LiveChatView({
                       onUpdateLead(lead.id, { unreadCount: 0 });
                     }
                   }}
-                  className={`p-3.5 cursor-pointer transition-all flex items-start gap-3 select-none relative ${
+                  className={`p-3.5 cursor-pointer transition-colors duration-150 flex items-start gap-3 select-none relative ${
                     isSelected 
                       ? 'bg-orange-50/70 border-l-4 border-orange-500' 
                       : pendingRem

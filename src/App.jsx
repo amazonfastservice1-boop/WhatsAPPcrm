@@ -329,8 +329,19 @@ export default function App() {
       try {
         const data = await api.getMessages(selectedLeadId);
         if (data?.messages) {
-          setLeads((prev) =>
-            prev.map((l) => {
+          setLeads((prev) => {
+            const currentLead = prev.find((l) => l.id === selectedLeadId);
+            if (!currentLead) return prev;
+            const existingMsgs = currentLead.messages || [];
+            if (existingMsgs.length === data.messages.length && currentLead.unreadCount === 0) {
+              const lastExisting = existingMsgs[existingMsgs.length - 1];
+              const lastIncoming = data.messages[data.messages.length - 1];
+              if (lastExisting?.id === lastIncoming?.id && lastExisting?.text === lastIncoming?.content) {
+                return prev; // Zero changes -> preserve reference to prevent re-render!
+              }
+            }
+
+            return prev.map((l) => {
               if (l.id === selectedLeadId) {
                 return {
                   ...l,
@@ -348,8 +359,8 @@ export default function App() {
                 };
               }
               return l;
-            })
-          );
+            });
+          });
         }
       } catch (err) {
         console.warn('⚠️ Could not load chat messages:', err.message);

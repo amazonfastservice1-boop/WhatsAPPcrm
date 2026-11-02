@@ -118,13 +118,15 @@ export function parseLeadDate(raw) {
 
 export function getLeadDate(lead) {
   if (!lead) return null;
-  // Primary date is the WhatsApp customer activity timestamp
-  return (
-    parseLeadDate(lead.rawLastMessageAt) ||
-    parseLeadDate(lead.lastMessageAt) ||
-    parseLeadDate(lead.createdAt) ||
-    parseLeadDate(lead.updatedAt)
-  );
+  // A lead's true date is when the customer actually messaged or when the lead was created
+  // We NEVER use updatedAt because editing a lead's stage/notes/staff must not change its lead date!
+  const dMsg = parseLeadDate(lead.rawLastMessageAt || lead.lastMessageAt);
+  const dCreated = parseLeadDate(lead.createdAt);
+
+  if (dMsg && dCreated) {
+    return dMsg > dCreated ? dMsg : dCreated;
+  }
+  return dMsg || dCreated || null;
 }
 
 export function getLeadLocalDateString(lead) {

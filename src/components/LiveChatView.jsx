@@ -699,15 +699,29 @@ export default function LiveChatView({
     return () => clearInterval(interval);
   }, []);
 
-  // Filtered and sorted leads (latest active chats first, deduplicated by id)
+  // Filtered and sorted leads (latest active chats first, deduplicated by phone & channel)
   const uniqueLeads = React.useMemo(() => {
-    const seen = new Set();
-    return leads.filter((l) => {
-      if (!l.id || seen.has(l.id)) return false;
-      seen.add(l.id);
-      return true;
+    // High-volume phone deduplication: Keep ONE master lead per phone number (the one with latest activity)
+    const phoneMap = new Map();
+    leads.forEach((l) => {
+      if (!l.id) return;
+      const key = selectedChannel === 'all' 
+        ? (l.phone ? String(l.phone).replace(/\D/g, '') : l.id) 
+        : `${l.id}`;
+      
+      const existing = phoneMap.get(key);
+      if (!existing) {
+        phoneMap.set(key, l);
+      } else {
+        const existingTime = new Date(existing.rawLastMessageAt || existing.createdAt || 0).getTime();
+        const incomingTime = new Date(l.rawLastMessageAt || l.createdAt || 0).getTime();
+        if (incomingTime > existingTime) {
+          phoneMap.set(key, l); // Keep newer record with latest active chat!
+        }
+      }
     });
-  }, [leads]);
+    return Array.from(phoneMap.values());
+  }, [leads, selectedChannel]);
 
   const stageCounts = React.useMemo(() => {
     const list = selectedChannel === 'all' ? uniqueLeads : uniqueLeads.filter(l => l.channel === selectedChannel);

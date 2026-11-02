@@ -356,7 +356,7 @@ export default function ScheduleView({
             <span className="text-xs font-bold text-slate-500 mr-2 flex items-center gap-1">
               <Filter className="w-3.5 h-3.5" /> WhatsApp Line:
             </span>
-            {channels.map((ch) => {
+            {Array.isArray(channels) && channels.map((ch) => {
               const isSelected = selectedChannel === ch.id;
               const chLabel = formatChannelDisplayName(ch);
               const countForCh = ch.id === 'all' 

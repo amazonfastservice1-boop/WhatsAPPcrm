@@ -1021,7 +1021,7 @@ export default function LiveChatView({
           </div>
 
           {/* Quick Channel Filter inside Inbox */}
-          {channels && channels.length > 0 && (
+          {Array.isArray(channels) && channels.length > 0 && (
             <div className="flex items-center gap-1 overflow-x-auto pb-1 text-xs">
               {channels.map(ch => {
                 const displayName = formatChannelDisplayName(ch);

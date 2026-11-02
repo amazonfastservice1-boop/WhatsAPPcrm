@@ -50,7 +50,7 @@ export default function Header({
 
         {/* WhatsApp Channel Switcher Pill */}
         <div className="flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/60 flex-wrap gap-0.5">
-          {channels.length > 0 ? channels.map((ch) => {
+          {Array.isArray(channels) && channels.length > 0 ? channels.map((ch) => {
             const isSelected = selectedChannel === ch.id;
             const displayName = formatChannelDisplayName(ch);
             return (

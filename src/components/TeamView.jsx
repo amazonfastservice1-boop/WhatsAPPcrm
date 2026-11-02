@@ -35,7 +35,9 @@ export default function TeamView() {
       if (staffRes?.users) {
         setUsers(staffRes.users);
       }
-      if (channelsRes) {
+      if (channelsRes?.channels) {
+        setChannels(channelsRes.channels);
+      } else if (Array.isArray(channelsRes)) {
         setChannels(channelsRes);
       }
     } catch (err) {
@@ -422,9 +424,7 @@ export default function TeamView() {
                     Allowed Regional WhatsApp Channels
                   </label>
                   <div className="space-y-2 border border-slate-100 rounded-xl p-3 bg-slate-50/50 max-h-36 overflow-y-auto">
-                    {channels.length === 0 ? (
-                      <p className="text-xs text-slate-400">No channels found</p>
-                    ) : (
+                    {Array.isArray(channels) && channels.length > 0 ? (
                       channels.map((ch) => {
                         const checked = formData.channelIds.includes(ch.id);
                         return (
@@ -449,6 +449,8 @@ export default function TeamView() {
                           </label>
                         );
                       })
+                    ) : (
+                      <p className="text-xs text-slate-400">No channels found</p>
                     )}
                   </div>
                 </div>

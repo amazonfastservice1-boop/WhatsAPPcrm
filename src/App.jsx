@@ -157,13 +157,19 @@ export default function App() {
             };
           });
 
-          // Shallow equality check: if nothing meaningful changed, DO NOT update state (stops 4s flickering!)
+          // Shallow equality check: if nothing meaningful changed, DO NOT update state (stops constant flickering!)
           if (prev.length === merged.length) {
             let hasChanged = false;
             for (let i = 0; i < prev.length; i++) {
               const p = prev[i];
               const m = merged[i];
-              if (!m || p.id !== m.id || p.stage !== m.stage || p.serviceInterest !== m.serviceInterest || p.unreadCount !== m.unreadCount || p.rawLastMessageAt !== m.rawLastMessageAt) {
+              if (!m || p.id !== m.id || p.stage !== m.stage || p.serviceInterest !== m.serviceInterest || p.unreadCount !== m.unreadCount) {
+                hasChanged = true;
+                break;
+              }
+              const pTime = new Date(p.rawLastMessageAt || 0).getTime();
+              const mTime = new Date(m.rawLastMessageAt || 0).getTime();
+              if (Math.abs(pTime - mTime) > 3000) {
                 hasChanged = true;
                 break;
               }
@@ -310,7 +316,7 @@ export default function App() {
           }
         } catch {}
       }
-    }, 4000);
+    }, 30000); // 30s calm background sync (WebSocket handles 0ms instant updates)
 
     return () => clearInterval(interval);
   }, [isAuthenticated, isAppLoading, fetchRealLeads]);

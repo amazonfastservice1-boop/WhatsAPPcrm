@@ -719,9 +719,6 @@ export default function LiveChatView({
 
   const displayLeads = uniqueLeads
     .filter(lead => {
-      // 1. ALWAYS keep currently open/selected chat so sending a reply or stage change NEVER kicks the user out!
-      if (lead.id === selectedLeadId) return true;
-
       // Channel filter
       if (selectedChannel !== 'all' && lead.channel !== selectedChannel) return false;
       // Tab filter

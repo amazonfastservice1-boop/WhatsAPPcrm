@@ -23,6 +23,16 @@ function getChannelMeta(countryCode) {
   return { flag: '🇵🇰', key: 'pakistan', currency: 'PKR' };
 }
 
+// Module-level stage mapping ensuring global availability across socket listeners and formatters
+const STAGE_MAP = {
+  NEW_LEAD: 'New Lead',
+  CONTACTED: 'Contacted',
+  QUALIFIED: 'Qualified',
+  PROPOSAL_SENT: 'Proposal Sent',
+  WON: 'Deal Won',
+  LOST: 'Lost',
+};
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState(() => {
     try {
@@ -61,15 +71,6 @@ export default function App() {
     // Use the real DB channel UUID as the channel key for filtering
     const channelKey = l.channel?.id || l.channelId || 'unknown';
     
-    const stageMap = {
-      NEW_LEAD: 'New Lead',
-      CONTACTED: 'Contacted',
-      QUALIFIED: 'Qualified',
-      PROPOSAL_SENT: 'Proposal Sent',
-      WON: 'Deal Won',
-      LOST: 'Lost',
-    };
-
     // Clean name: if fullName is masked or raw phone, format phone nicely
     let displayName = l.fullName || l.phoneNumber;
     if (!displayName || displayName.includes('∙') || displayName.startsWith('+92')) {
@@ -91,7 +92,7 @@ export default function App() {
       currency: l.channel?.currency || 'PKR',
       dealValue: l.dealValue ? l.dealValue.toLocaleString() : '0',
       serviceInterest: l.serviceInterest || '',
-      stage: stageMap[l.stage] || l.stage || 'New Lead',
+      stage: STAGE_MAP[l.stage] || l.stage || 'New Lead',
       assignedToId: l.assignedToId || null,
       assignedTo: l.assignedTo?.name || 'Unassigned',
       assignedAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',

@@ -237,7 +237,7 @@ router.post('/', authenticateToken, async (req, res) => {
  */
 router.patch('/:id', authenticateToken, async (req, res) => {
   try {
-    const { fullName, stage, dealValue, assignedToId, serviceInterest } = req.body;
+    const { fullName, stage, dealValue, assignedToId, serviceInterest, tags } = req.body;
     const leadId = req.params.id;
 
     const data = {};
@@ -256,12 +256,34 @@ router.patch('/:id', authenticateToken, async (req, res) => {
     if (dealValue !== undefined) data.dealValue = dealValue === '' ? null : parseFloat(dealValue);
     if (assignedToId !== undefined) data.assignedToId = assignedToId === '' ? null : assignedToId;
 
+    // Handle Tags update in PostgreSQL
+    if (Array.isArray(tags)) {
+      await prisma.tagOnLead.deleteMany({ where: { leadId } });
+      for (const tagName of tags) {
+        if (typeof tagName === 'string' && tagName.trim()) {
+          const cleanName = tagName.trim();
+          const tagRecord = await prisma.tag.upsert({
+            where: { name: cleanName },
+            create: { name: cleanName },
+            update: {},
+          });
+          await prisma.tagOnLead.create({
+            data: {
+              leadId,
+              tagId: tagRecord.id,
+            },
+          }).catch(() => {});
+        }
+      }
+    }
+
     const updatedLead = await prisma.lead.update({
       where: { id: leadId },
       data,
       include: {
         channel: true,
         assignedTo: { select: { id: true, name: true, email: true } },
+        tags: { include: { tag: true } },
       },
     });
 

@@ -47,6 +47,7 @@ model User {
   name            String
   email           String              @unique
   passwordHash    String
+  plainPassword   String?             // Visible only to Admin in Staff management
   role            Role                @default(AGENT)
   isOnline        Boolean             @default(false)
   allowedChannels UserChannelAccess[] // Strict regional isolation

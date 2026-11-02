@@ -2,13 +2,14 @@ import { PrismaClient } from '../server/node_modules/@prisma/client/index.js';
 const prisma = new PrismaClient();
 
 async function main() {
-  const arif = await prisma.lead.findMany({
-    where: { fullName: { contains: 'Arif Khan' } },
-    include: { channel: true }
+  const names = ['Arif Khan', 'God Is Big', 'BELIEVE ON YOUR SELF', 'baijidsarkermd', 'huzaifa', 'FARIS QURESHI', 'Farmanullah', 'Muhammad Usman'];
+  const leads = await prisma.lead.findMany({
+    where: { fullName: { in: names } },
+    select: { id: true, fullName: true, lastMessageAt: true, createdAt: true }
   });
-  console.log('Arif Khan rows in DB:');
-  arif.forEach(a => {
-    console.log(a.id, a.fullName, a.phoneNumber, 'channel:', a.channel?.name, 'channelId:', a.channelId, 'lastMsg:', a.lastMessageAt, 'created:', a.createdAt);
+  console.log('Exact DB values:');
+  leads.forEach(l => {
+    console.log(l.fullName, 'lastMsg:', l.lastMessageAt, 'created:', l.createdAt);
   });
 }
 

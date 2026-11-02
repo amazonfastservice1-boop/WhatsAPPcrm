@@ -234,6 +234,52 @@ export default function App() {
     }
   }, []);
 
+  // High-reliability live background synchronization watchdog
+  // Ensures messages appear within seconds even if Socket drops or has high latency in production
+  useEffect(() => {
+    if (!isAuthenticated || isAppLoading) return;
+
+    const interval = setInterval(async () => {
+      // 1. Silently sync leads list (for new incoming leads or updated timestamps)
+      await fetchRealLeads();
+
+      // 2. If a lead conversation is currently active, fetch latest messages
+      if (selectedLeadIdRef.current) {
+        try {
+          const data = await api.getMessages(selectedLeadIdRef.current);
+          if (data?.messages) {
+            setLeads((prev) =>
+              prev.map((l) => {
+                if (l.id === selectedLeadIdRef.current) {
+                  const incomingCount = data.messages.length;
+                  const currentCount = l.messages?.length || 0;
+                  if (incomingCount !== currentCount) {
+                    return {
+                      ...l,
+                      messages: data.messages.map((m) => ({
+                        id: m.id,
+                        sender: m.senderType === 'AGENT' ? 'agent' : 'customer',
+                        agentName: m.senderUser?.name || 'Agent',
+                        text: m.content,
+                        mediaType: m.mediaType || (m.content === 'Voice Note' ? 'AUDIO' : 'TEXT'),
+                        mediaUrl: m.mediaUrl || null,
+                        time: formatSafeTime(m.createdAt),
+                        status: (m.status || 'delivered').toLowerCase(),
+                      })),
+                    };
+                  }
+                }
+                return l;
+              })
+            );
+          }
+        } catch {}
+      }
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, isAppLoading, fetchRealLeads]);
+
   // Fetch full conversation history when active lead changes
   useEffect(() => {
     if (!selectedLeadId) return;

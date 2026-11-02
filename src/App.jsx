@@ -87,6 +87,7 @@ export default function App() {
       flag: flag,
       currency: l.channel?.currency || 'PKR',
       dealValue: l.dealValue ? l.dealValue.toLocaleString() : '0',
+      serviceInterest: l.serviceInterest || '',
       stage: stageMap[l.stage] || l.stage || 'New Lead',
       assignedToId: l.assignedToId || null,
       assignedTo: l.assignedTo?.name || 'Unassigned',
@@ -403,6 +404,7 @@ export default function App() {
       if (updates.name !== undefined) apiUpdates.fullName = updates.name;
       if (updates.fullName !== undefined) apiUpdates.fullName = updates.fullName;
       if (updates.dealValue !== undefined) apiUpdates.dealValue = updates.dealValue;
+      if (updates.serviceInterest !== undefined) apiUpdates.serviceInterest = updates.serviceInterest;
       if (updates.assignedToId !== undefined) apiUpdates.assignedToId = updates.assignedToId;
       if (updates.stage !== undefined) {
         const reverseStageMap = {
@@ -435,6 +437,7 @@ export default function App() {
         phoneNumber: cleanPhone,
         channelId: targetChannelId,
         dealValue: leadData.dealValue,
+        serviceInterest: leadData.serviceInterest,
         stage: 'NEW_LEAD',
       });
 

@@ -40,6 +40,7 @@ import {
   Plus
 } from 'lucide-react';
 import { AGENTS, PIPELINE_STAGES, QUICK_REPLIES } from '../data/mockData';
+import { AMAZFAST_SERVICES, getServiceMeta } from '../data/servicesList';
 import { api } from '../services/api';
 import { formatChannelDisplayName, formatSafeTime } from '../utils/leadFilters';
 import { convertBlobToMp3 } from '../utils/audioEncoder';
@@ -187,6 +188,82 @@ export function getStageBadgeStyle(stage) {
   }
 }
 
+function LiveSyncLoader() {
+  const [percent, setPercent] = React.useState(15);
+  const [stepText, setStepText] = React.useState('Render Cloud Server Se Connect Ho Raha Hai...');
+
+  React.useEffect(() => {
+    const t1 = setTimeout(() => {
+      setPercent(38);
+      setStepText('WhatsApp Lines & Database Channels Sync Ho Rahe Hain...');
+    }, 900);
+    const t2 = setTimeout(() => {
+      setPercent(64);
+      setStepText('Customer WhatsApp Chats & Messages Decrypt Ho Rahe Hain...');
+    }, 2200);
+    const t3 = setTimeout(() => {
+      setPercent(86);
+      setStepText('AmazFast Sales Pipelines & Stages Finalize Ho Rahi Hain...');
+    }, 4500);
+    const t4 = setTimeout(() => {
+      setPercent(98);
+      setStepText('Final Sync... Live Conversations Tayyar Hain');
+    }, 7500);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+    };
+  }, []);
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[#F4F5F8]">
+      <div className="max-w-md w-full bg-white p-7 rounded-3xl border border-slate-200/80 shadow-xl space-y-5 animate-fade-in">
+        <div className="relative mx-auto w-16 h-16 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-2xl bg-orange-500/20 animate-ping" />
+          <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/30">
+            <MessageSquare className="w-8 h-8" />
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-black uppercase tracking-wider text-orange-600 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+              Live Database Synchronization
+            </span>
+            <span className="text-sm font-black font-mono text-slate-900 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200">
+              {percent}%
+            </span>
+          </div>
+
+          <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200">
+            <div 
+              className="h-full bg-gradient-to-r from-orange-500 via-amber-500 to-emerald-500 rounded-full transition-all duration-700 ease-out shadow-xs"
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <p className="text-xs font-extrabold text-slate-800 transition-all">
+            {stepText}
+          </p>
+          <p className="text-[11px] text-slate-500">
+            Database se 450+ customers aur real WhatsApp messages sync ho rahe hain.
+          </p>
+        </div>
+
+        <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+          <span>Cloud Gateway: Active</span>
+          <span className="text-emerald-600 font-bold">24/7 Background Connected</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LiveChatView({ 
   leads = [], 
   selectedLeadId, 
@@ -199,6 +276,7 @@ export default function LiveChatView({
   onOpenNewLead
 }) {
   const [filterTab, setFilterTab] = useState('all'); // all, unassigned, mine, unread
+  const [selectedServiceFilter, setSelectedServiceFilter] = useState('all'); // 'all' or service id
   const [inputText, setInputText] = useState('');
   const [isInternalNote, setIsInternalNote] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
@@ -630,7 +708,8 @@ export default function LiveChatView({
       proposal: list.filter(l => /proposal/i.test(l.stage || '')).length,
       won: list.filter(l => /won|closed/i.test(l.stage || '')).length,
       contacted: list.filter(l => /contact/i.test(l.stage || '')).length,
-      new: list.filter(l => /new/i.test(l.stage || '')).length,
+      unqualified: list.filter(l => /lost|unqualif/i.test(l.stage || '')).length,
+      new: list.filter(l => /new/i.test(l.stage || '') && !l.messages?.some(m => m.sender === 'agent')).length,
       unassigned: list.filter(l => !l.assignedTo || l.assignedTo === 'Unassigned').length,
     };
   }, [uniqueLeads, selectedChannel, leadReminders]);
@@ -656,7 +735,16 @@ export default function LiveChatView({
       if (filterTab === 'proposal' && !/proposal/i.test(lead.stage || '')) return false;
       if (filterTab === 'won' && !/won|closed/i.test(lead.stage || '')) return false;
       if (filterTab === 'contacted' && !/contact/i.test(lead.stage || '')) return false;
-      if (filterTab === 'new' && !/new/i.test(lead.stage || '')) return false;
+      if (filterTab === 'unqualified' && !/lost|unqualif/i.test(lead.stage || '')) return false;
+      if (filterTab === 'new' && (!/new/i.test(lead.stage || '') || lead.messages?.some(m => m.sender === 'agent'))) return false;
+
+      // Service Filter
+      if (selectedServiceFilter !== 'all') {
+        const sMeta = getServiceMeta(lead.serviceInterest);
+        if (!sMeta || (sMeta.id !== selectedServiceFilter && sMeta.shortLabel !== selectedServiceFilter && sMeta.label !== selectedServiceFilter)) {
+          return false;
+        }
+      }
       // Search
       if (searchLeadTerm) {
         const term = searchLeadTerm.toLowerCase();
@@ -966,28 +1054,20 @@ export default function LiveChatView({
           <div className="p-3.5 border-b border-[#F1F5F9] space-y-2.5">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-extrabold text-slate-900 tracking-tight">Customer WhatsApp Chats</h2>
-              <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">
-                0 Customers
+              <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100 animate-pulse">
+                Syncing...
               </span>
             </div>
             <p className="text-xs text-slate-500">Live WhatsApp Chat</p>
           </div>
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-400">
             <Loader2 className="w-6 h-6 animate-spin text-orange-500 mb-2" />
-            <p className="text-xs font-semibold">Real chats database se load ho rahi hain...</p>
+            <p className="text-xs font-semibold">Database connect ho rahi hai...</p>
           </div>
         </div>
 
-        {/* Middle Placeholder */}
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-500 bg-[#F4F5F8]">
-          <div className="w-16 h-16 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mb-3 shadow-xs">
-            <MessageSquare className="w-8 h-8" />
-          </div>
-          <h3 className="text-base font-extrabold text-slate-800">No Chat Selected</h3>
-          <p className="text-xs text-slate-500 max-w-sm mt-1">
-            Loading real WhatsApp conversations...
-          </p>
-        </div>
+        {/* Interactive Percentage Loading Screen */}
+        <LiveSyncLoader />
       </div>
     );
   }
@@ -1053,6 +1133,31 @@ export default function LiveChatView({
               placeholder="Customer ka naam ya phone likhein..."
               className="w-full pl-9 pr-3 py-1.5 bg-slate-50 text-xs font-medium text-slate-800 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500"
             />
+          </div>
+
+          {/* AmazFast Service Filter Dropdown */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 border border-slate-200/80 rounded-xl">
+            <span className="text-[10px] font-black uppercase text-slate-500 shrink-0">💼 Service:</span>
+            <select
+              value={selectedServiceFilter}
+              onChange={(e) => setSelectedServiceFilter(e.target.value)}
+              className="flex-1 text-[11px] font-bold bg-transparent text-slate-800 focus:outline-none cursor-pointer truncate"
+            >
+              <option value="all">🌐 Saari Services (All)</option>
+              {AMAZFAST_SERVICES.map(s => (
+                <option key={s.id} value={s.shortLabel}>{s.label}</option>
+              ))}
+            </select>
+            {selectedServiceFilter !== 'all' && (
+              <button
+                type="button"
+                onClick={() => setSelectedServiceFilter('all')}
+                className="text-[10px] text-orange-600 font-black hover:underline shrink-0"
+                title="Reset service filter"
+              >
+                ✕ Clear
+              </button>
+            )}
           </div>
 
           {/* Filter Tabs / Stage Sections */}
@@ -1136,6 +1241,15 @@ export default function LiveChatView({
               }`}
             >
               🟡 Naye ({stageCounts.new})
+            </button>
+            <button 
+              type="button"
+              onClick={() => setFilterTab('unqualified')}
+              className={`pb-1 px-2 border-b-2 font-bold whitespace-nowrap transition-colors ${
+                filterTab === 'unqualified' ? 'border-rose-600 text-rose-700 bg-rose-50/50 rounded-t' : 'border-transparent text-slate-500 hover:text-rose-700'
+              }`}
+            >
+              🔴 Unqualified ({stageCounts.unqualified})
             </button>
             <button 
               type="button"
@@ -1233,6 +1347,11 @@ export default function LiveChatView({
                         <span className={`text-[9px] font-black px-1.5 py-0.2 rounded border shrink-0 ${getStageBadgeStyle(lead.stage)}`}>
                           {lead.stage}
                         </span>
+                        {lead.serviceInterest && (
+                          <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0" title={`Service: ${lead.serviceInterest}`}>
+                            💼 {lead.serviceInterest}
+                          </span>
+                        )}
                       </div>
                       <span className="text-[10px] font-semibold text-slate-600 shrink-0">
                         {lead.lastTime}
@@ -1433,6 +1552,106 @@ export default function LiveChatView({
             >
               <Phone className="w-4 h-4" />
             </button>
+          </div>
+        </div>
+
+        {/* ⚡ AmazFast Smart Qualification & Service Bar (Paper-Pencil Replacement) */}
+        <div className="bg-white border-b border-slate-200 px-3.5 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-2xs">
+          {/* Service Dropdown */}
+          <div className="flex items-center gap-1.5 min-w-[220px]">
+            <span className="text-[11px] font-black uppercase text-slate-500 flex items-center gap-1">
+              <span>💼</span>
+              <span>Service:</span>
+            </span>
+            <select
+              value={activeLead.serviceInterest || ''}
+              onChange={(e) => onUpdateLead(activeLead.id, { serviceInterest: e.target.value })}
+              className="flex-1 text-xs font-bold px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-orange-500 cursor-pointer shadow-2xs transition-all hover:bg-orange-50/40"
+              title="Customer kis AmazFast service mein interested hai (LLC, Stripe, Amazon, Tax, etc.)"
+            >
+              <option value="">-- Service Select Karein --</option>
+              {AMAZFAST_SERVICES.map((s) => (
+                <option key={s.id} value={s.shortLabel}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 1-Click Fast Qualification Buttons */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {/* Qualified Button */}
+            <button
+              type="button"
+              onClick={() => onUpdateLead(activeLead.id, { stage: 'Qualified' })}
+              className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 shadow-2xs ${
+                activeLead.stage === 'Qualified'
+                  ? 'bg-purple-600 text-white ring-2 ring-purple-300'
+                  : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
+              }`}
+              title="Mark as Genuine / Qualified Buyer"
+            >
+              <span>🟣</span>
+              <span>Qualified</span>
+            </button>
+
+            {/* Unqualified / Lost Button */}
+            <button
+              type="button"
+              onClick={() => onUpdateLead(activeLead.id, { stage: 'Lost' })}
+              className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 shadow-2xs ${
+                activeLead.stage === 'Lost'
+                  ? 'bg-rose-600 text-white ring-2 ring-rose-300'
+                  : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+              }`}
+              title="Mark as Unqualified / Not Interested / Spam"
+            >
+              <span>🔴</span>
+              <span>Unqualified</span>
+            </button>
+
+            {/* Deal Closed / Won Button */}
+            <button
+              type="button"
+              onClick={() => {
+                const amt = prompt('Deal Closed! Final Amount likhein (PKR / USD):', activeLead.dealValue || '0');
+                if (amt !== null) {
+                  onUpdateLead(activeLead.id, { stage: 'Deal Won', dealValue: amt.trim() || '0' });
+                }
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 shadow-2xs ${
+                activeLead.stage === 'Deal Won'
+                  ? 'bg-emerald-600 text-white ring-2 ring-emerald-300'
+                  : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+              }`}
+              title="Order Final / Deal Closed"
+            >
+              <span>🟢</span>
+              <span>Deal Won</span>
+            </button>
+
+            {/* Follow-up Reminder Button */}
+            <button
+              type="button"
+              onClick={() => setShowAddReminderForm(true)}
+              className="px-2.5 py-1 rounded-lg text-xs font-black bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 transition-all flex items-center gap-1 shadow-2xs"
+              title="Follow-up Call / Message Schedule Karein"
+            >
+              <span>⏰</span>
+              <span>Follow-up</span>
+            </button>
+
+            {/* Direct Free WhatsApp Button */}
+            <a
+              href={`https://wa.me/${(activeLead.phone || '').replace(/[^0-9]/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white transition-all flex items-center gap-1 shadow-2xs"
+              title="Mobile ya WhatsApp Web par free mein direct chat kholein"
+            >
+              <span>💬</span>
+              <span>Free WA</span>
+            </a>
           </div>
         </div>
 

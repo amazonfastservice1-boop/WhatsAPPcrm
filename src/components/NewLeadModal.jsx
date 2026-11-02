@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { X, Smartphone, User, DollarSign, MessageSquare, Plus, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 import { CHANNELS, AGENTS } from '../data/mockData';
 import { normalizePhoneNumber } from '../utils/leadFilters';
+import { AMAZFAST_SERVICES } from '../data/servicesList';
 
 export default function NewLeadModal({ 
   isOpen, 
@@ -21,6 +22,7 @@ export default function NewLeadModal({
   const [channelId, setChannelId] = useState(defaultChannelId);
   const [initialMessage, setInitialMessage] = useState('');
   const [dealValue, setDealValue] = useState('');
+  const [serviceInterest, setServiceInterest] = useState('US LLC Formation');
   const [assignedTo, setAssignedTo] = useState('Unassigned');
 
   React.useEffect(() => {
@@ -64,6 +66,7 @@ export default function NewLeadModal({
       phone: cleanPhone,
       channelId: existingLeadMatch ? (existingLeadMatch.channel || channelId) : channelId,
       dealValue: dealValue || existingLeadMatch?.dealValue || '0',
+      serviceInterest: serviceInterest || existingLeadMatch?.serviceInterest || '',
       initialMessage: initialMessage.trim(),
     });
     onClose();
@@ -215,6 +218,24 @@ export default function NewLeadModal({
               placeholder="Customer ko foran bhejney ke liye message likhein (warna khali chhor dein)..."
               className="w-full px-3.5 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500"
             />
+          </div>
+
+          {/* Service Selection Dropdown */}
+          <div>
+            <label className="text-xs font-extrabold text-slate-700 block mb-1">
+              💼 Kis Service Ke Liye Interested Hai? (AmazFast Service)
+            </label>
+            <select
+              value={serviceInterest}
+              onChange={(e) => setServiceInterest(e.target.value)}
+              className="w-full px-3 py-2 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-orange-500 text-slate-800"
+            >
+              {AMAZFAST_SERVICES.map((s) => (
+                <option key={s.id} value={s.shortLabel}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Deal Value & Agent */}

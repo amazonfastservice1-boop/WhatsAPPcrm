@@ -88,6 +88,7 @@ model Lead {
   channel       WhatsAppChannel @relation(fields: [channelId], references: [id], onDelete: Restrict)
   stage         LeadStage       @default(NEW_LEAD)
   dealValue     Float?          // Value in channel's currency (AED, SAR, PKR)
+  serviceInterest String?       // "US LLC Formation", "UK LTD", "Stripe Payment Gateway", etc.
   assignedToId  String?
   assignedTo    User?           @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
   tags          TagOnLead[]

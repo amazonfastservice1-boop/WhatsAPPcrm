@@ -121,7 +121,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
  */
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const { fullName, phoneNumber, channelId, dealValue, stage = 'NEW_LEAD' } = req.body;
+    const { fullName, phoneNumber, channelId, dealValue, stage = 'NEW_LEAD', serviceInterest } = req.body;
     if (!phoneNumber) return res.status(400).json({ error: 'Phone number is required.' });
 
     let targetChannelId = channelId;
@@ -172,6 +172,9 @@ router.post('/', authenticateToken, async (req, res) => {
       if (fullName && fullName.trim() && fullName !== cleanPhone) {
         updateData.fullName = fullName.trim();
       }
+      if (serviceInterest !== undefined && serviceInterest !== '') {
+        updateData.serviceInterest = serviceInterest;
+      }
       if (dealValue !== undefined && dealValue !== '' && !isNaN(parseFloat(dealValue))) {
         updateData.dealValue = parseFloat(dealValue);
       }
@@ -202,6 +205,7 @@ router.post('/', authenticateToken, async (req, res) => {
           fullName: fullName || cleanPhone,
           channelId: targetChannelId,
           dealValue: dealValue ? parseFloat(dealValue) : null,
+          serviceInterest: serviceInterest || null,
           stage: stage || 'NEW_LEAD',
         },
         include: {
@@ -233,12 +237,13 @@ router.post('/', authenticateToken, async (req, res) => {
  */
 router.patch('/:id', authenticateToken, async (req, res) => {
   try {
-    const { fullName, stage, dealValue, assignedToId } = req.body;
+    const { fullName, stage, dealValue, assignedToId, serviceInterest } = req.body;
     const leadId = req.params.id;
 
     const data = {};
     if (fullName !== undefined) data.fullName = fullName;
     if (stage !== undefined) data.stage = stage;
+    if (serviceInterest !== undefined) data.serviceInterest = serviceInterest;
     if (dealValue !== undefined) data.dealValue = dealValue === '' ? null : parseFloat(dealValue);
     if (assignedToId !== undefined) data.assignedToId = assignedToId === '' ? null : assignedToId;
 

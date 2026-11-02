@@ -98,10 +98,23 @@ router.get('/', authenticateToken, async (req, res) => {
       });
     }
 
-    const enrichedLeads = leads.map(l => ({
-      ...l,
-      firstMessageAt: firstCustomerMsgCache.get(l.id) || l.createdAt,
-    }));
+    const enrichedLeads = leads
+      .map(l => {
+        const msgTime = l.messages?.[0]?.createdAt ? new Date(l.messages[0].createdAt).getTime() : 0;
+        const lTime = l.lastMessageAt ? new Date(l.lastMessageAt).getTime() : 0;
+        const trueLastMessageAt = msgTime > lTime ? l.messages[0].createdAt : l.lastMessageAt;
+
+        return {
+          ...l,
+          lastMessageAt: trueLastMessageAt,
+          firstMessageAt: firstCustomerMsgCache.get(l.id) || l.createdAt,
+        };
+      })
+      .sort((a, b) => {
+        const timeA = new Date(a.lastMessageAt || a.createdAt || 0).getTime() || 0;
+        const timeB = new Date(b.lastMessageAt || b.createdAt || 0).getTime() || 0;
+        return timeB - timeA;
+      });
 
     res.json({ leads: enrichedLeads });
   } catch (error) {

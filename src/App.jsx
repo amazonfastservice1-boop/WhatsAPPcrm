@@ -101,9 +101,19 @@ export default function App() {
       createdAt: l.createdAt ? new Date(l.createdAt).toISOString() : new Date().toISOString(),
       updatedAt: l.updatedAt ? new Date(l.updatedAt).toISOString() : new Date().toISOString(),
       firstMessageAt: l.firstMessageAt ? new Date(l.firstMessageAt).toISOString() : (l.createdAt ? new Date(l.createdAt).toISOString() : new Date().toISOString()),
-      rawLastMessageAt: l.lastMessageAt || l.messages?.[0]?.createdAt || 0,
+      rawLastMessageAt: (() => {
+        const msgTime = l.messages?.[0]?.createdAt ? new Date(l.messages[0].createdAt).getTime() : 0;
+        const lTime = l.lastMessageAt ? new Date(l.lastMessageAt).getTime() : 0;
+        const trueTime = Math.max(msgTime, lTime) || (l.createdAt ? new Date(l.createdAt).getTime() : Date.now());
+        return new Date(trueTime).toISOString();
+      })(),
       lastMessage: l.lastMessage || l.messages?.[0]?.content || 'WhatsApp conversation',
-      lastTime: formatWhatsAppTimestamp(l.lastMessageAt || l.messages?.[0]?.createdAt),
+      lastTime: formatWhatsAppTimestamp((() => {
+        const msgTime = l.messages?.[0]?.createdAt ? new Date(l.messages[0].createdAt).getTime() : 0;
+        const lTime = l.lastMessageAt ? new Date(l.lastMessageAt).getTime() : 0;
+        const trueTime = Math.max(msgTime, lTime) || (l.createdAt ? new Date(l.createdAt).getTime() : Date.now());
+        return new Date(trueTime).toISOString();
+      })()),
       tags: l.tags?.map((t) => t.tag?.name) || ['WhatsApp Inbound'],
       notes: l.notes || [],
       messages: l.messages?.map((m) => ({

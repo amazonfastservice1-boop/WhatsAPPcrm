@@ -41,7 +41,7 @@ import {
 } from 'lucide-react';
 import { AGENTS, PIPELINE_STAGES, QUICK_REPLIES } from '../data/mockData';
 import { AMAZFAST_SERVICES, getServiceMeta } from '../data/servicesList';
-import { api } from '../services/api';
+import { api, SERVER_BASE } from '../services/api';
 import { formatChannelDisplayName, formatSafeTime } from '../utils/leadFilters';
 import { convertBlobToMp3 } from '../utils/audioEncoder';
 
@@ -50,8 +50,8 @@ const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 function getMediaSrc(url) {
   if (!url) return '';
   if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) return url;
-  if (url.startsWith('/')) return `http://localhost:5000${url}`;
-  return `http://localhost:5000/api/messages/media/${url}`;
+  if (url.startsWith('/')) return `${SERVER_BASE}${url}`;
+  return `${SERVER_BASE}/api/messages/media/${url}`;
 }
 
 /**

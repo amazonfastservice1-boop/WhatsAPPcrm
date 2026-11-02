@@ -244,10 +244,41 @@ export default function TeamView() {
                           {user.role}
                         </span>
                       </div>
-                      <p className="text-xs font-medium text-slate-500 flex items-center gap-1 mt-0.5">
-                        <Mail className="w-3 h-3 text-slate-400" />
-                        {user.email}
-                      </p>
+                      <div className="flex items-center gap-3 mt-1">
+                        <p className="text-xs font-medium text-slate-500 flex items-center gap-1">
+                          <Mail className="w-3 h-3 text-slate-400" />
+                          {user.email}
+                        </p>
+
+                        {/* Password Eye Toggle for Admin */}
+                        {user.role !== 'ADMIN' && (
+                          <div className="flex items-center gap-1.5 text-xs bg-slate-100/80 px-2 py-0.5 rounded-md border border-slate-200/80">
+                            <Lock className="w-3 h-3 text-slate-400" />
+                            <span className="font-mono text-slate-700 font-bold text-[11px]">
+                              {showPasswordMap[user.id] 
+                                ? (user.plainPassword || '••••••••') 
+                                : '••••••••'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowPasswordMap(prev => ({
+                                  ...prev,
+                                  [user.id]: !prev[user.id]
+                                }));
+                              }}
+                              className="text-slate-400 hover:text-orange-600 transition-colors ml-0.5 cursor-pointer"
+                              title={showPasswordMap[user.id] ? 'Hide Password' : 'Show Password'}
+                            >
+                              {showPasswordMap[user.id] ? (
+                                <EyeOff className="w-3.5 h-3.5" />
+                              ) : (
+                                <Eye className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 

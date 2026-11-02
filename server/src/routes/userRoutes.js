@@ -15,6 +15,7 @@ router.get('/', authenticateToken, async (req, res) => {
         email: true,
         role: true,
         isOnline: true,
+        plainPassword: true,
         createdAt: true,
         allowedChannels: {
           include: {
@@ -100,6 +101,7 @@ router.post('/', authenticateToken, async (req, res) => {
           name: name.trim(),
           email: email.toLowerCase().trim(),
           passwordHash,
+          plainPassword: password,
           role: safeRole,
           isOnline: false,
         },
@@ -146,6 +148,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     if (password && password.length >= 6) {
       const salt = await bcrypt.genSalt(10);
       dataToUpdate.passwordHash = await bcrypt.hash(password, salt);
+      dataToUpdate.plainPassword = password;
     }
 
     await prisma.$transaction(async (tx) => {

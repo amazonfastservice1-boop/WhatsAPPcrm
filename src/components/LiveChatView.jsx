@@ -1006,7 +1006,7 @@ export default function LiveChatView({
             mediaType = uploadRes.mediaType || 'IMAGE';
             // Replace local preview with server URL in state
             onUpdateLead(activeLead.id, {
-              messages: updatedMessages.map(m => m.id === tempId ? { ...m, mediaUrl: `http://localhost:5000${mediaUrl}` } : m)
+              messages: updatedMessages.map(m => m.id === tempId ? { ...m, mediaUrl: `${SERVER_BASE}${mediaUrl}` } : m)
             });
           }
         }

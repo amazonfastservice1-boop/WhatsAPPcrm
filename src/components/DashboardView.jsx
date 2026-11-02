@@ -827,35 +827,68 @@ export default function DashboardView({
       )}
 
       {/* 2. Top Interactive Pipeline KPI Cards (Clickable Drilldown) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
+        {/* Card 0: Total Leads (Kul Leads) */}
+        <div 
+          onClick={() => { setDrilldownCategory('all_leads'); setDrilldownSearch(''); }}
+          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-indigo-400 transition-all border border-slate-200/80 cursor-pointer"
+          title="Click to view all leads in current filter"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-8.5 h-8.5 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+              <Layers className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 flex items-center gap-1">
+              <Eye className="w-3 h-3" /> Kul Leads
+            </span>
+          </div>
+
+          <div className="mt-3 flex items-baseline gap-2">
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+              {totalLeadsCount}
+            </h3>
+            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+              📊 Total
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-500 font-semibold mt-1">
+            Kul Leads (Is Filter Mein)
+          </p>
+
+          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
+            <span className="text-indigo-700">All Customers</span>
+            <span className="text-slate-400 font-medium">Click List →</span>
+          </div>
+        </div>
+
         {/* Card 1: Naye Customers (New Leads) */}
         <div 
           onClick={() => { setDrilldownCategory('stage_New Lead'); setDrilldownSearch(''); }}
-          className="card-soft p-4.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-amber-400 transition-all border border-slate-200/80 cursor-pointer"
+          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-amber-400 transition-all border border-slate-200/80 cursor-pointer"
           title="Click to view new leads list"
         >
           <div className="flex items-center justify-between">
-            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
-              <Users className="w-4.5 h-4.5" />
+            <div className="w-8.5 h-8.5 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+              <Users className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 flex items-center gap-1">
               <Eye className="w-3 h-3" /> Naye
             </span>
           </div>
 
-          <div className="mt-3.5 flex items-baseline gap-2">
-            <h3 className="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">
+          <div className="mt-3 flex items-baseline gap-2">
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight">
               {newLeadsCount}
             </h3>
-            <span className="inline-flex items-center text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
+            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
               🟡 New Leads
             </span>
           </div>
-          <p className="text-xs text-slate-500 font-semibold mt-1">
-            Naye Customers (Pehla Message)
+          <p className="text-[11px] text-slate-500 font-semibold mt-1">
+            Naye Customers (Pehla Msg)
           </p>
 
-          <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
+          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
             <span className="text-amber-700">Reply Dena Hai</span>
             <span className="text-slate-400 font-medium">Click Details →</span>
           </div>
@@ -864,32 +897,32 @@ export default function DashboardView({
         {/* Card 2: Contacted (Rabta Hua) */}
         <div 
           onClick={() => { setDrilldownCategory('stage_Contacted'); setDrilldownSearch(''); }}
-          className="card-soft p-4.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-blue-400 transition-all border border-slate-200/80 cursor-pointer"
+          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-blue-400 transition-all border border-slate-200/80 cursor-pointer"
           title="Click to view contacted customers"
         >
           <div className="flex items-center justify-between">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
-              <MessageSquare className="w-4.5 h-4.5" />
+            <div className="w-8.5 h-8.5 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+              <MessageSquare className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 flex items-center gap-1">
               <Eye className="w-3 h-3" /> Active
             </span>
           </div>
 
-          <div className="mt-3.5 flex items-baseline gap-2">
-            <h3 className="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">
+          <div className="mt-3 flex items-baseline gap-2">
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight">
               {contactedCount}
             </h3>
-            <span className="inline-flex items-center text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
               🔵 Contacted
             </span>
           </div>
-          <p className="text-xs text-slate-500 font-semibold mt-1">
-            Rabta Hua (Conversation Active)
+          <p className="text-[11px] text-slate-500 font-semibold mt-1">
+            Rabta Hua (Active)
           </p>
 
-          <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-600">
-            <span className="text-blue-700">Baat Chal Rahi Hai</span>
+          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-600">
+            <span className="text-blue-700">Baat Chal Rahi</span>
             <span className="text-slate-400 font-medium">Click List →</span>
           </div>
         </div>
@@ -897,31 +930,31 @@ export default function DashboardView({
         {/* Card 3: Qualified (Quality Leads) */}
         <div 
           onClick={() => { setDrilldownCategory('stage_Qualified'); setDrilldownSearch(''); }}
-          className="card-soft p-4.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-purple-400 transition-all border border-slate-200/80 cursor-pointer"
+          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-purple-400 transition-all border border-slate-200/80 cursor-pointer"
           title="Click to view qualified leads list"
         >
           <div className="flex items-center justify-between">
-            <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
-              <CheckCircle2 className="w-4.5 h-4.5" />
+            <div className="w-8.5 h-8.5 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+              <CheckCircle2 className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 flex items-center gap-1">
               <Eye className="w-3 h-3" /> Genuine
             </span>
           </div>
 
-          <div className="mt-3.5 flex items-baseline gap-2">
-            <h3 className="text-2xl lg:text-3xl font-black text-purple-900 tracking-tight">
+          <div className="mt-3 flex items-baseline gap-2">
+            <h3 className="text-2xl font-black text-purple-900 tracking-tight">
               {qualifiedCount}
             </h3>
-            <span className="inline-flex items-center text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
               🟣 Qualified
             </span>
           </div>
-          <p className="text-xs text-slate-500 font-semibold mt-1">
+          <p className="text-[11px] text-slate-500 font-semibold mt-1">
             Genuine Quality Buyers
           </p>
 
-          <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
+          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
             <span className="text-purple-700">Khareedar Tayyar</span>
             <span className="text-slate-400 font-medium">Click List →</span>
           </div>
@@ -930,31 +963,31 @@ export default function DashboardView({
         {/* Card 4: Deals Won & Revenue */}
         <div 
           onClick={() => { setDrilldownCategory('won'); setDrilldownSearch(''); }}
-          className="card-soft p-4.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-emerald-400 transition-all border border-slate-200/80 cursor-pointer"
+          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-emerald-400 transition-all border border-slate-200/80 cursor-pointer"
           title="Click to view won deals"
         >
           <div className="flex items-center justify-between">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
-              <TrendingUp className="w-4.5 h-4.5" />
+            <div className="w-8.5 h-8.5 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+              <TrendingUp className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1">
               <Eye className="w-3 h-3" /> Sales
             </span>
           </div>
 
-          <div className="mt-3.5 flex items-baseline gap-2">
-            <h3 className="text-2xl lg:text-3xl font-black text-emerald-900 tracking-tight">
+          <div className="mt-3 flex items-baseline gap-2">
+            <h3 className="text-2xl font-black text-emerald-900 tracking-tight">
               {wonCount}
             </h3>
-            <span className="inline-flex items-center text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
               🟢 Deal Won
             </span>
           </div>
-          <p className="text-xs text-slate-500 font-semibold mt-1 truncate">
+          <p className="text-[11px] text-slate-500 font-semibold mt-1 truncate">
             {totalRevenue > 0 ? `PKR ${totalRevenue.toLocaleString()}` : 'Closed Deals'}
           </p>
 
-          <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
+          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
             <span className="text-emerald-700">Kamai / Revenue</span>
             <span className="text-slate-400 font-medium">Click List →</span>
           </div>
@@ -963,31 +996,31 @@ export default function DashboardView({
         {/* Card 5: Unqualified / Rejected (Red Card) */}
         <div 
           onClick={() => { setDrilldownCategory('stage_Lost'); setDrilldownSearch(''); }}
-          className="card-soft p-4.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-rose-400 transition-all border border-slate-200/80 cursor-pointer"
+          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-rose-400 transition-all border border-slate-200/80 cursor-pointer"
           title="Click to view unqualified inquiries"
         >
           <div className="flex items-center justify-between">
-            <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
-              <AlertCircle className="w-4.5 h-4.5" />
+            <div className="w-8.5 h-8.5 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+              <AlertCircle className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 flex items-center gap-1">
               <Eye className="w-3 h-3" /> Rejected
             </span>
           </div>
 
-          <div className="mt-3.5 flex items-baseline gap-2">
-            <h3 className="text-2xl lg:text-3xl font-black text-rose-900 tracking-tight">
+          <div className="mt-3 flex items-baseline gap-2">
+            <h3 className="text-2xl font-black text-rose-900 tracking-tight">
               {unqualifiedCount}
             </h3>
-            <span className="inline-flex items-center text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200">
+            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200">
               🔴 Unqualified
             </span>
           </div>
-          <p className="text-xs text-slate-500 font-semibold mt-1">
-            Timepass Ya Inactive Inquiries
+          <p className="text-[11px] text-slate-500 font-semibold mt-1">
+            Timepass / Rejected
           </p>
 
-          <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
+          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
             <span className="text-rose-700">Rejected List</span>
             <span className="text-slate-400 font-medium">Click List →</span>
           </div>

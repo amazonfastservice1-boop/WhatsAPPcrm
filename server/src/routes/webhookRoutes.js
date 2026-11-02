@@ -8,6 +8,25 @@ const router = express.Router();
 const channelCache = new Map();
 const leadCache = new Map();
 
+// Helper: Smart auto-detection of AmazFast service interest from customer messages
+function detectServiceInterest(text) {
+  if (!text || typeof text !== 'string') return null;
+  const t = text.toLowerCase();
+  if (/\b(llc|wyoming|delaware|new mexico|us company|llc formation)\b/i.test(t)) return 'US LLC Formation';
+  if (/\b(uk ltd|ltd company|companies house|uk company)\b/i.test(t)) return 'UK LTD Formation';
+  if (/\b(stripe|payment gateway|stripe account|card payment)\b/i.test(t)) return 'Stripe Gateway';
+  if (/\b(paypal|paypal business)\b/i.test(t)) return 'PayPal Business';
+  if (/\b(mercury|relay|payoneer|wise|bank account|business bank)\b/i.test(t)) return 'Business Bank';
+  if (/\b(wholesale|brand approval|fba wholesale|distributor)\b/i.test(t)) return 'Amazon Wholesale';
+  if (/\b(private label|\bpl\b|launch|ppc|product hunting)\b/i.test(t)) return 'Amazon PL';
+  if (/\b(brand registry|trademark|brand gating)\b/i.test(t)) return 'Brand Registry';
+  if (/\b(shopify|dropshipping|shopify store)\b/i.test(t)) return 'Shopify Store';
+  if (/\b(tiktok|tik tok|tiktok shop)\b/i.test(t)) return 'TikTok Shop';
+  if (/\b(itin|ein|tax return|tax id|w8ben)\b/i.test(t)) return 'ITIN / EIN Tax';
+  if (/\b(virtual address|us address|uk address|mail forwarding)\b/i.test(t)) return 'Virtual Address';
+  return null;
+}
+
 /**
  * 1. Meta Webhook Verification Handshake
  * GET /api/webhook
@@ -217,6 +236,20 @@ router.post('/', verifyMetaWebhookSignature, async (req, res) => {
           // Skip completely empty messages to prevent empty / Invalid Date bubbles
           if (!content && !mediaUrl) {
             continue;
+          }
+
+          // Smart Auto-Tagging: Detect AmazFast service interest from customer message keywords
+          if (!isAgentEcho && content && (!lead.serviceInterest || lead.serviceInterest === '')) {
+            const detectedService = detectServiceInterest(content);
+            if (detectedService) {
+              lead.serviceInterest = detectedService;
+              leadCache.set(leadCacheKey, lead);
+              prisma.lead.update({
+                where: { id: lead.id },
+                data: { serviceInterest: detectedService }
+              }).catch(() => {});
+              req.io?.emit('lead:updated', { ...lead, serviceInterest: detectedService });
+            }
           }
 
           // Calculate safe timestamp from Meta unix seconds or current time

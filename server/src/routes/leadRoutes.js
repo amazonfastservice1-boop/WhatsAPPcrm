@@ -242,7 +242,16 @@ router.patch('/:id', authenticateToken, async (req, res) => {
 
     const data = {};
     if (fullName !== undefined) data.fullName = fullName;
-    if (stage !== undefined) data.stage = stage;
+    if (stage !== undefined) {
+      const s = String(stage).toUpperCase();
+      if (s.includes('LOST') || s.includes('UNQUALIF') || s.includes('REJECT')) data.stage = 'LOST';
+      else if (s.includes('QUALIF')) data.stage = 'QUALIFIED';
+      else if (s.includes('PROPOS')) data.stage = 'PROPOSAL_SENT';
+      else if (s.includes('WON') || s.includes('CLOSED')) data.stage = 'WON';
+      else if (s.includes('CONTACT')) data.stage = 'CONTACTED';
+      else if (s.includes('NEW')) data.stage = 'NEW_LEAD';
+      else data.stage = stage;
+    }
     if (serviceInterest !== undefined) data.serviceInterest = serviceInterest;
     if (dealValue !== undefined) data.dealValue = dealValue === '' ? null : parseFloat(dealValue);
     if (assignedToId !== undefined) data.assignedToId = assignedToId === '' ? null : assignedToId;
@@ -280,10 +289,22 @@ router.patch('/:id/stage', authenticateToken, async (req, res) => {
     const { stage, dealValue } = req.body;
     const leadId = req.params.id;
 
+    let targetStage = undefined;
+    if (stage) {
+      const s = String(stage).toUpperCase();
+      if (s.includes('LOST') || s.includes('UNQUALIF') || s.includes('REJECT')) targetStage = 'LOST';
+      else if (s.includes('QUALIF')) targetStage = 'QUALIFIED';
+      else if (s.includes('PROPOS')) targetStage = 'PROPOSAL_SENT';
+      else if (s.includes('WON') || s.includes('CLOSED')) targetStage = 'WON';
+      else if (s.includes('CONTACT')) targetStage = 'CONTACTED';
+      else if (s.includes('NEW')) targetStage = 'NEW_LEAD';
+      else targetStage = stage;
+    }
+
     const updatedLead = await prisma.lead.update({
       where: { id: leadId },
       data: {
-        ...(stage ? { stage } : {}),
+        ...(targetStage ? { stage: targetStage } : {}),
         ...(dealValue !== undefined ? { dealValue: parseFloat(dealValue) } : {}),
       },
       include: {

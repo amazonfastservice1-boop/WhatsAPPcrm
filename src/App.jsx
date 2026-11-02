@@ -49,6 +49,7 @@ export default function App() {
   const [isAppLoading, setIsAppLoading] = useState(false);
 
   const selectedLeadIdRef = React.useRef(selectedLeadId);
+  const recentLocalUpdatesRef = React.useRef(new Map());
   useEffect(() => {
     selectedLeadIdRef.current = selectedLeadId;
   }, [selectedLeadId]);
@@ -116,7 +117,7 @@ export default function App() {
     };
   };
 
-  // Reusable leads fetcher from PostgreSQL (Intelligent Merge — Never wipes open conversation)
+  // Reusable leads fetcher from PostgreSQL (Intelligent Merge — Never wipes open conversation or pending edits)
   const fetchRealLeads = React.useCallback(async (overrideReset = false) => {
     try {
       const res = await api.getLeads();
@@ -124,19 +125,53 @@ export default function App() {
         const realLeads = res.leads.map(formatApiLead);
         setLeads((prev) => {
           if (overrideReset || prev.length === 0) return realLeads;
-          // Preserve full message thread for whichever lead is currently open
-          return realLeads.map((newLead) => {
+
+          // Merge preserving active conversation and recent local user edits
+          const merged = realLeads.map((newLead) => {
             const existing = prev.find((p) => p.id === newLead.id);
+            const localUpdate = recentLocalUpdatesRef.current.get(newLead.id);
+
+            let stage = newLead.stage;
+            let serviceInterest = newLead.serviceInterest;
+
+            // If locally edited within last 12 seconds, lock local user choice against slow DB replication
+            if (localUpdate && Date.now() - localUpdate.timestamp < 12000) {
+              if (localUpdate.stage) stage = localUpdate.stage;
+              if (localUpdate.serviceInterest !== undefined) serviceInterest = localUpdate.serviceInterest;
+            }
+
             if (existing && existing.messages && existing.messages.length > 0) {
               return {
                 ...newLead,
+                stage,
+                serviceInterest,
                 messages: existing.messages,
                 lastMessage: existing.lastMessage || newLead.lastMessage,
                 unreadCount: existing.id === selectedLeadIdRef.current ? 0 : (existing.unreadCount || newLead.unreadCount),
               };
             }
-            return newLead;
+            return {
+              ...newLead,
+              stage,
+              serviceInterest,
+            };
           });
+
+          // Shallow equality check: if nothing meaningful changed, DO NOT update state (stops 4s flickering!)
+          if (prev.length === merged.length) {
+            let hasChanged = false;
+            for (let i = 0; i < prev.length; i++) {
+              const p = prev[i];
+              const m = merged[i];
+              if (!m || p.id !== m.id || p.stage !== m.stage || p.serviceInterest !== m.serviceInterest || p.unreadCount !== m.unreadCount || p.rawLastMessageAt !== m.rawLastMessageAt) {
+                hasChanged = true;
+                break;
+              }
+            }
+            if (!hasChanged) return prev; // Preserve identity -> React skips re-render!
+          }
+
+          return merged;
         });
         if (realLeads.length > 0 && (!selectedLeadIdRef.current || overrideReset)) {
           setSelectedLeadId(realLeads[0].id);
@@ -412,13 +447,19 @@ export default function App() {
     const handleStageUpdate = ({ leadId, stage, dealValue, serviceInterest }) => {
       const displayStage = stageMap[stage] || stage;
       setLeads((prev) =>
-        prev.map((l) => (l.id === leadId ? {
-          ...l,
-          stage: displayStage,
-          ...(serviceInterest !== undefined ? { serviceInterest } : {}),
-          ...(dealValue !== undefined ? { dealValue } : {}),
-          updatedAt: new Date().toISOString()
-        } : l))
+        prev.map((l) => {
+          if (l.id !== leadId) return l;
+          if (l.stage === displayStage && (serviceInterest === undefined || l.serviceInterest === serviceInterest)) {
+            return l;
+          }
+          return {
+            ...l,
+            stage: displayStage,
+            ...(serviceInterest !== undefined ? { serviceInterest } : {}),
+            ...(dealValue !== undefined ? { dealValue } : {}),
+            updatedAt: new Date().toISOString()
+          };
+        })
       );
     };
 
@@ -426,14 +467,24 @@ export default function App() {
       if (!updatedLead || !updatedLead.id) return;
       const displayStage = stageMap[updatedLead.stage] || updatedLead.stage;
       setLeads((prev) =>
-        prev.map((l) => (l.id === updatedLead.id ? {
-          ...l,
-          name: updatedLead.fullName || l.name,
-          stage: displayStage,
-          serviceInterest: updatedLead.serviceInterest !== undefined ? updatedLead.serviceInterest : l.serviceInterest,
-          dealValue: updatedLead.dealValue !== undefined ? updatedLead.dealValue : l.dealValue,
-          updatedAt: new Date().toISOString()
-        } : l))
+        prev.map((l) => {
+          if (l.id !== updatedLead.id) return l;
+          if (
+            l.stage === displayStage &&
+            l.name === (updatedLead.fullName || l.name) &&
+            (updatedLead.serviceInterest === undefined || l.serviceInterest === updatedLead.serviceInterest)
+          ) {
+            return l;
+          }
+          return {
+            ...l,
+            name: updatedLead.fullName || l.name,
+            stage: displayStage,
+            serviceInterest: updatedLead.serviceInterest !== undefined ? updatedLead.serviceInterest : l.serviceInterest,
+            dealValue: updatedLead.dealValue !== undefined ? updatedLead.dealValue : l.dealValue,
+            updatedAt: new Date().toISOString()
+          };
+        })
       );
     };
 
@@ -475,9 +526,11 @@ export default function App() {
     };
   }, []);
 
-  // Update lead helper - persists to PostgreSQL database
+  // Update lead helper - persists to PostgreSQL database with instant optimistic locking
   const handleUpdateLead = (leadId, updates) => {
     const nowIso = new Date().toISOString();
+    recentLocalUpdatesRef.current.set(leadId, { ...updates, timestamp: Date.now() });
+
     setLeads((prev) =>
       prev.map((lead) => {
         if (lead.id === leadId) {
@@ -496,15 +549,15 @@ export default function App() {
       if (updates.serviceInterest !== undefined) apiUpdates.serviceInterest = updates.serviceInterest;
       if (updates.assignedToId !== undefined) apiUpdates.assignedToId = updates.assignedToId;
       if (updates.stage !== undefined) {
-        const reverseStageMap = {
-          'New Lead': 'NEW_LEAD',
-          'Contacted': 'CONTACTED',
-          'Qualified': 'QUALIFIED',
-          'Proposal Sent': 'PROPOSAL_SENT',
-          'Deal Won': 'WON',
-          'Lost': 'LOST',
-        };
-        apiUpdates.stage = reverseStageMap[updates.stage] || updates.stage;
+        const s = String(updates.stage).toLowerCase();
+        let targetStage = 'NEW_LEAD';
+        if (s.includes('lost') || s.includes('unqualif') || s.includes('reject')) targetStage = 'LOST';
+        else if (s.includes('qualif')) targetStage = 'QUALIFIED';
+        else if (s.includes('propos')) targetStage = 'PROPOSAL_SENT';
+        else if (s.includes('won') || s.includes('closed')) targetStage = 'WON';
+        else if (s.includes('contact')) targetStage = 'CONTACTED';
+        else targetStage = updates.stage;
+        apiUpdates.stage = targetStage;
       }
 
       if (Object.keys(apiUpdates).length > 0) {

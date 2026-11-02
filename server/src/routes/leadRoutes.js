@@ -17,28 +17,24 @@ router.get('/', authenticateToken, async (req, res) => {
 
     // 1. Strict Role-Based Lead Isolation
     if (user.role === 'ADMIN') {
-      // ADMIN sees everything across all channels or filtered channel
+      // ADMIN: Full system access across all active channels
       if (channelId && channelId !== 'all') {
         where.channelId = channelId;
       } else {
         where.channel = { isActive: true };
       }
-    } else if (user.role === 'MANAGER') {
-      // MANAGER sees all staff leads within their allowed regional channels
+    } else {
+      // STAFF / AGENT / MANAGER:
+      // Staff member ko unke ALLOWED CHANNELS (jaise Line 3: 03710327973) ka pura data nazar aayega!
+      // Agar kisi specific lead par assignedToId set hai to wo bhi show hogi.
       if (channelId && channelId !== 'all') {
         if (!user.allowedChannelIds.includes(channelId)) {
-          return res.status(403).json({ error: 'Access denied for this regional channel.' });
+          return res.status(403).json({ error: 'Access denied for this WhatsApp channel.' });
         }
         where.channelId = channelId;
       } else {
         where.channelId = { in: user.allowedChannelIds };
         where.channel = { isActive: true };
-      }
-    } else {
-      // AGENT / STAFF: STRICT ISOLATION -> Only sees leads assigned directly to them!
-      where.assignedToId = user.id;
-      if (channelId && channelId !== 'all') {
-        where.channelId = channelId;
       }
     }
 

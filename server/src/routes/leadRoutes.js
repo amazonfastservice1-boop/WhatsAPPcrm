@@ -4,6 +4,9 @@ import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Memory cache for immutable first customer message timestamp per lead (0ms instant lookup)
+const firstCustomerMsgCache = new Map();
+
 /**
  * GET /api/leads
  * List leads with channel, stage, and search query filters

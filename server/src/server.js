@@ -185,4 +185,21 @@ server.listen(PORT, async () => {
     // 20-second watchdog to ensure it NEVER stops
     setInterval(checkAndRevive, 20000);
   }
+
+  // ---------------------------------------------------------------------------
+  // Production Anti-Sleep Keep-Alive (Prevents Render Free Tier from Sleeping)
+  // ---------------------------------------------------------------------------
+  const PROD_URL = process.env.RENDER_EXTERNAL_URL || 'https://whatsappcrm-9nko.onrender.com';
+  const keepAlivePing = async () => {
+    try {
+      const axios = (await import('axios')).default;
+      await axios.get(`${PROD_URL}/health`, { timeout: 10000 });
+      console.log(`💓 Production Keep-Alive Ping successful to ${PROD_URL}/health`);
+    } catch (err) {
+      console.warn(`Keep-alive ping warning: ${err.message}`);
+    }
+  };
+
+  // Ping every 8 minutes (Render sleeps after 15 mins)
+  setInterval(keepAlivePing, 8 * 60 * 1000);
 });

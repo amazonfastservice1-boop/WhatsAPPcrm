@@ -1730,8 +1730,8 @@ export default function DashboardView({
                               {lead.stage === 'Lost' ? '🔴 Unqualified' : lead.stage}
                             </span>
                           </div>
-                          <p className="text-[11px] font-mono text-slate-500 mt-0.5">
-                            {lead.phone} • {lead.channelName} • <span className="font-bold text-slate-700">Deal: {lead.dealValue ? `${lead.dealValue} PKR` : 'Pending'}</span>
+                          <p className="text-xs font-mono text-slate-700 font-bold mt-0.5">
+                            <span className="text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded font-black">{lead.phone}</span> • <span className="text-slate-500 font-normal">{lead.channelName}</span> • <span className="font-bold text-slate-700">Deal: {lead.dealValue ? `${lead.dealValue} PKR` : 'Pending'}</span>
                           </p>
                           <p className="text-[10px] text-slate-400 font-medium">
                             📅 Added: {new Date(lead.createdAt || lead.rawLastMessageAt).toLocaleDateString('en-GB')} {lead.lastTime}

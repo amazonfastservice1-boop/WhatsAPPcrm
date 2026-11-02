@@ -1523,8 +1523,12 @@ export default function LiveChatView({
                   ))}
                 </select>
               </div>
-              <p className="text-xs text-slate-600 font-mono mt-0.5">
-                {activeLead.phone} • {activeLead.channelName}
+              <p className="text-xs text-slate-600 font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
+                <span className="font-black text-slate-900 text-sm tracking-wide bg-slate-100 px-2 py-0.5 rounded-md select-all border border-slate-200/80">
+                  📞 {activeLead.phone}
+                </span>
+                <span className="text-slate-400">•</span>
+                <span className="font-bold text-slate-600">{activeLead.channelName}</span>
               </p>
             </div>
           </div>
@@ -2278,9 +2282,19 @@ export default function LiveChatView({
           <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-orange-500 to-amber-400 text-white font-black text-2xl flex items-center justify-center mx-auto shadow-sm">
             {(activeLead?.name || '+').charAt(0)}
           </div>
-          <h4 className="mt-3 text-sm font-extrabold text-slate-900">{activeLead.name}</h4>
-          <p className="text-xs font-mono text-slate-500 mt-0.5">{activeLead.phone}</p>
-          <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-slate-200 text-xs font-bold text-slate-700 shadow-2xs">
+          <h4 className="mt-3 text-base font-black text-slate-900 tracking-tight">{activeLead.name}</h4>
+          
+          {/* Bold, prominent customer phone number */}
+          <div className="mt-2 flex items-center justify-center">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-900 shadow-xs">
+              <Phone className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span className="text-base font-black font-mono tracking-wider text-slate-950 select-all">
+                {activeLead.phone}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-slate-200 text-xs font-bold text-slate-700 shadow-2xs">
             <span>{activeLead.flag}</span>
             <span>{activeLead.channelName}</span>
           </div>

@@ -1213,30 +1213,119 @@ export default function DashboardView({
               </div>
             ) : (
               /* TAB 2: Past 7-Day Inbound Trend Chart */
-              <div className="pt-3">
-                <div className="relative h-56 flex items-end justify-between gap-3 px-3 border-b border-slate-100">
-                  {dailyTrends.map((d) => (
-                    <div key={d.dateStr} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
-                      <span className="text-xs font-black text-slate-700 opacity-90 group-hover:scale-125 transition-transform">
-                        {d.count}
-                      </span>
-                      <div 
-                        style={{ height: `${d.heightPct}%` }}
-                        className={`w-full max-w-[44px] rounded-t-xl transition-all duration-300 ${
-                          d.isToday 
-                            ? 'bg-gradient-to-t from-emerald-600 via-emerald-500 to-teal-400 shadow-md shadow-emerald-500/20' 
-                            : d.isYesterday
-                            ? 'bg-gradient-to-t from-blue-600 via-blue-500 to-cyan-400 shadow-md shadow-blue-500/20'
-                            : 'bg-slate-200 group-hover:bg-orange-300'
-                        }`}
-                      ></div>
-                      <span className={`text-[11px] font-extrabold mt-1 ${
-                        d.isToday ? 'text-emerald-700' : d.isYesterday ? 'text-blue-700' : 'text-slate-600'
-                      }`}>
-                        {d.label}
-                      </span>
+              <div className="pt-3 animate-fade-in">
+                {/* Background Grid Lines */}
+                <div className="relative h-64 flex items-end justify-between gap-2 sm:gap-4 px-3 sm:px-6 border-b border-slate-100 bg-gradient-to-b from-slate-50/50 to-transparent rounded-2xl pb-3 overflow-hidden">
+                  {/* Subtle Grid reference lines */}
+                  <div className="absolute inset-x-3 top-3 bottom-12 flex flex-col justify-between pointer-events-none opacity-20 z-0">
+                    <div className="border-b border-dashed border-slate-400 w-full flex justify-between text-[9px] font-mono text-slate-500">
+                      <span>Peak Activity</span>
                     </div>
-                  ))}
+                    <div className="border-b border-dashed border-slate-300 w-full"></div>
+                    <div className="border-b border-dashed border-slate-300 w-full"></div>
+                    <div className="border-b border-slate-200 w-full"></div>
+                  </div>
+
+                  {dailyTrends.map((d, index) => {
+                    const isPeak = d.count > 0 && d.count === Math.max(...dailyTrends.map(x => x.count));
+
+                    return (
+                      <div
+                        key={d.dateStr}
+                        className="flex-1 flex flex-col items-center gap-2 h-full justify-end group relative z-10 cursor-pointer"
+                        onClick={() => {
+                          // Filter drilldown for this day
+                          setDrilldownCategory('replied');
+                          setDrilldownSearch(d.dateStr);
+                        }}
+                      >
+                        {/* Interactive Floating Tooltip on Hover */}
+                        <div className="opacity-0 group-hover:opacity-100 group-hover:-translate-y-2 pointer-events-none transition-all duration-200 absolute -top-8 z-30 px-2.5 py-1 rounded-lg bg-slate-900 text-white text-[11px] font-bold shadow-xl whitespace-nowrap flex items-center gap-1.5 border border-slate-700">
+                          <span>{d.count} Leads</span>
+                          <span className="text-slate-400">•</span>
+                          <span className="text-orange-400">{d.label}</span>
+                        </div>
+
+                        {/* Top Number Counter Badge */}
+                        <div className="flex flex-col items-center transition-all duration-300 group-hover:scale-125">
+                          {isPeak && (
+                            <span className="text-[9px] font-black uppercase text-amber-500 tracking-wider flex items-center gap-0.5 animate-bounce mb-0.5">
+                              ⭐ Top
+                            </span>
+                          )}
+                          <span className={`text-xs sm:text-sm font-black transition-colors ${
+                            d.isToday
+                              ? 'text-emerald-600'
+                              : d.isYesterday
+                              ? 'text-blue-600'
+                              : isPeak
+                              ? 'text-orange-600'
+                              : 'text-slate-700'
+                          }`}>
+                            {d.count}
+                          </span>
+                        </div>
+
+                        {/* 3D Animated Bar with Glowing Gradients */}
+                        <div className="w-full max-w-[48px] relative flex flex-col justify-end items-center h-full max-h-[175px]">
+                          <div
+                            style={{ height: `${d.heightPct}%` }}
+                            className={`w-full rounded-t-2xl transition-all duration-700 ease-out relative group-hover:scale-y-105 group-hover:brightness-110 shadow-sm ${
+                              d.isToday
+                                ? 'bg-gradient-to-t from-emerald-600 via-emerald-500 to-teal-300 shadow-lg shadow-emerald-500/30'
+                                : d.isYesterday
+                                ? 'bg-gradient-to-t from-blue-600 via-blue-500 to-cyan-300 shadow-lg shadow-blue-500/30'
+                                : isPeak
+                                ? 'bg-gradient-to-t from-orange-600 via-amber-500 to-yellow-300 shadow-lg shadow-orange-500/30 ring-2 ring-orange-400/40'
+                                : 'bg-gradient-to-t from-slate-300 via-slate-200 to-slate-100 group-hover:from-orange-400 group-hover:to-amber-300'
+                            }`}
+                          >
+                            {/* Shiny Top highlight cap */}
+                            <div className="absolute top-0 inset-x-0 h-1.5 rounded-t-2xl bg-white/40"></div>
+
+                            {/* Animated Pulse indicator for Today */}
+                            {d.isToday && (
+                              <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-white animate-ping"></div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Bottom Day Label */}
+                        <div className="text-center mt-1">
+                          <span className={`text-xs font-black block transition-all ${
+                            d.isToday
+                              ? 'text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-extrabold'
+                              : d.isYesterday
+                              ? 'text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 font-extrabold'
+                              : 'text-slate-600 group-hover:text-orange-600'
+                          }`}>
+                            {d.label}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Footer Quick Stats below the graph */}
+                <div className="flex items-center justify-between pt-3 px-2 text-xs font-bold text-slate-500">
+                  <div className="flex items-center gap-4">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs"></span>
+                      <span className="text-slate-700">Aaj (Today)</span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-xs"></span>
+                      <span className="text-slate-700">Kal (Yesterday)</span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-xs"></span>
+                      <span className="text-slate-700">Peak Days</span>
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    ⚡ Live 7-Day Inbound WhatsApp Volume
+                  </span>
                 </div>
               </div>
             )}

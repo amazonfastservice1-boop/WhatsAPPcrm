@@ -42,7 +42,7 @@ import {
 import { AGENTS, PIPELINE_STAGES, QUICK_REPLIES } from '../data/mockData';
 import { AMAZFAST_SERVICES, getServiceMeta } from '../data/servicesList';
 import { api, SERVER_BASE } from '../services/api';
-import { formatChannelDisplayName, formatSafeTime } from '../utils/leadFilters';
+import { formatChannelDisplayName, formatSafeTime, isLeadToday } from '../utils/leadFilters';
 import { convertBlobToMp3 } from '../utils/audioEncoder';
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
@@ -715,8 +715,11 @@ export default function LiveChatView({
       leadReminders.some(r => !r.completed && !r.reminderSent && (r.leadId === lead.id || (lead.phone && r.leadPhone && r.leadPhone.replace(/\D/g, '') === lead.phone.replace(/\D/g, ''))))
     ).length;
 
+    const todayNewCount = list.filter(l => isLeadToday(l)).length;
+
     return {
       all: list.length,
+      todayNew: todayNewCount,
       unread: list.filter(l => l.unreadCount > 0).length,
       reminders: scheduledRemCount,
       qualified: list.filter(l => /qualif/i.test(l.stage || '')).length,
@@ -736,6 +739,10 @@ export default function LiveChatView({
         // Channel filter
         if (selectedChannel !== 'all' && lead.channel !== selectedChannel) return false;
         // Tab filter
+        if (filterTab === 'today') {
+          // Strictly brand-new inbound leads of today (first customer message after 12:00 AM)
+          if (!isLeadToday(lead)) return false;
+        }
         if (filterTab === 'reminders') {
           const hasRem = leadReminders.some((r) => 
             !r.completed && !r.reminderSent && (r.leadId === lead.id || (lead.phone && r.leadPhone && r.leadPhone.replace(/\D/g, '') === lead.phone.replace(/\D/g, '')))
@@ -1184,14 +1191,35 @@ export default function LiveChatView({
 
           {/* Filter Tabs / Stage Sections */}
           <div className="flex items-center gap-1 overflow-x-auto pb-1 text-xs border-b border-slate-100 pt-1">
+            {/* Tab 1: Aaj Ki Nayi Leads (First time customers after 12 AM) */}
+            <button 
+              type="button"
+              onClick={() => setFilterTab('today')}
+              className={`pb-1 px-2.5 border-b-2 font-black whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+                filterTab === 'today' 
+                  ? 'border-emerald-600 text-emerald-700 bg-emerald-50/70 font-black rounded-t shadow-2xs' 
+                  : 'border-transparent text-slate-500 hover:text-emerald-700 hover:bg-emerald-50/40 rounded-t'
+              }`}
+              title="Aaj aane wali naye customers ki leads jinka pehla message 12:00 AM ke baad aaya hai"
+            >
+              <span>⚡ Aaj Ki Leads</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                filterTab === 'today' ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-800'
+              }`}>
+                {stageCounts.todayNew}
+              </span>
+            </button>
+
+            {/* Tab 2: Saari Chats (Existing returning clients + Aaj ki leads) */}
             <button 
               type="button"
               onClick={() => setFilterTab('all')}
-              className={`pb-1 px-2 border-b-2 font-bold whitespace-nowrap transition-colors ${
-                filterTab === 'all' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-500 hover:text-slate-800'
+              className={`pb-1 px-2.5 border-b-2 font-bold whitespace-nowrap transition-colors ${
+                filterTab === 'all' ? 'border-orange-500 text-orange-600 bg-orange-50/40 rounded-t' : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
+              title="Tamaam chats — Purane customers aur aaj ki leads dono shamil hain"
             >
-              Saari ({stageCounts.all})
+              Saari Chats ({stageCounts.all})
             </button>
             <button 
               type="button"

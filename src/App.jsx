@@ -638,8 +638,8 @@ export default function App() {
     setActiveTab('chat');
   };
 
-  // Calculate total unread
-  const totalUnread = leads.reduce((acc, l) => acc + (l.unreadCount || 0), 0);
+  // Calculate unread conversations count (chats needing attention)
+  const unreadChatsCount = leads.filter((l) => (l.unreadCount || 0) > 0).length;
 
   return (
     <div className="flex min-h-screen bg-[#F8F9FC] text-slate-800 antialiased relative">
@@ -668,7 +668,7 @@ export default function App() {
       <Sidebar 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
-        unreadTotal={totalUnread}
+        unreadTotal={unreadChatsCount}
         waStatus={waStatus}
         currentUser={currentUser}
         onLogout={handleLogout}

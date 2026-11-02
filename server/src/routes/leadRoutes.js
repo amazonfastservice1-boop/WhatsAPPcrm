@@ -18,12 +18,16 @@ router.get('/', authenticateToken, async (req, res) => {
     // 1. Strict Role-Based Lead Isolation
     if (user.role === 'ADMIN') {
       // ADMIN: Full system access across all active channels
+      // ADMIN: Full system access across all active channels
       if (channelId && channelId !== 'all') {
         where.channelId = channelId;
       } else {
         where.channel = { isActive: true };
       }
     } else {
+      // STAFF / AGENT / MANAGER:
+      // Staff member ko unke ALLOWED CHANNELS (jaise Line 3: 03710327973) ka pura data nazar aayega!
+      // Agar kisi specific lead par assignedToId set hai to wo bhi show hogi.
       // STAFF / AGENT / MANAGER:
       // Staff member ko unke ALLOWED CHANNELS (jaise Line 3: 03710327973) ka pura data nazar aayega!
       // Agar kisi specific lead par assignedToId set hai to wo bhi show hogi.

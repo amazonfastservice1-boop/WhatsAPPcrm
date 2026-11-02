@@ -175,17 +175,27 @@ export default function App() {
               number: ch.phoneNumber || '',
             };
           });
-          setChannels([
-            { id: 'all', name: 'Saare Numbers', flag: '🌐', number: 'All Channels' },
-            ...dbChannels,
-          ]);
 
-          // Automatically default to the Real Meta API Channel (+92 332 2568950)
-          const realMetaChannel = dbChannels.find(
-            (c) => c.number?.includes('3322568950') || c.id === '25f254f7-edc2-42de-b782-fff737c75999'
-          );
-          if (realMetaChannel) {
-            setSelectedChannel(realMetaChannel.id);
+          // If user is ADMIN, show "Saare Numbers" pill + all channels.
+          // If user is STAFF/AGENT, only show their specific allowed channels!
+          if (currentUser?.role === 'ADMIN') {
+            setChannels([
+              { id: 'all', name: 'Saare Numbers', flag: '🌐', number: 'All Channels' },
+              ...dbChannels,
+            ]);
+            // Automatically default to Line 1 (+92 332 2568950)
+            const realMetaChannel = dbChannels.find(
+              (c) => c.number?.includes('3322568950') || c.id === '25f254f7-edc2-42de-b782-fff737c75999'
+            );
+            if (realMetaChannel) {
+              setSelectedChannel(realMetaChannel.id);
+            }
+          } else {
+            // Staff sees only their assigned numbers
+            setChannels(dbChannels);
+            if (dbChannels.length > 0) {
+              setSelectedChannel(dbChannels[0].id);
+            }
           }
         }
 
@@ -514,6 +524,7 @@ export default function App() {
           waStatus={waStatus}
           waUser={waUser}
           onNavigateToChannels={() => setActiveTab('channels')}
+          currentUser={currentUser}
         />
 
         {/* Dynamic Views */}

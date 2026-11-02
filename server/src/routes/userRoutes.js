@@ -54,6 +54,9 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Name, email, and password are required' });
     }
 
+    // Security Rule: Only 1 Admin allowed in the system
+    const safeRole = role === 'MANAGER' ? 'MANAGER' : 'AGENT';
+
     // Check if email already exists
     const existing = await prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
@@ -74,7 +77,7 @@ router.post('/', authenticateToken, async (req, res) => {
           name: name.trim(),
           email: email.toLowerCase().trim(),
           passwordHash,
-          role,
+          role: safeRole,
           isOnline: false,
         },
       });

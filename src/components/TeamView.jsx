@@ -35,11 +35,10 @@ export default function TeamView() {
       if (staffRes?.users) {
         setUsers(staffRes.users);
       }
-      if (channelsRes?.channels) {
-        setChannels(channelsRes.channels);
-      } else if (Array.isArray(channelsRes)) {
-        setChannels(channelsRes);
-      }
+      // Only include active channels (Line 1, Line 2, Line 3)
+      const allCh = channelsRes?.channels || (Array.isArray(channelsRes) ? channelsRes : []);
+      const activeOnly = allCh.filter((c) => c.isActive);
+      setChannels(activeOnly);
     } catch (err) {
       console.error('Failed to load team data:', err);
     } finally {
@@ -413,17 +412,18 @@ export default function TeamView() {
                 >
                   <option value="AGENT">AGENT (Can only manage assigned leads)</option>
                   <option value="MANAGER">MANAGER (Can view team performance & leads)</option>
-                  <option value="ADMIN">ADMIN (Full unrestricted system control)</option>
                 </select>
+                <p className="text-[10px] text-slate-500 mt-1">
+                  * Note: System Admin sirf aap hain. Naye staff ko sirf Agent ya Manager ka access mil sakta hai.
+                </p>
               </div>
 
               {/* Allowed Channels Selection */}
-              {formData.role !== 'ADMIN' && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Allowed Regional WhatsApp Channels
-                  </label>
-                  <div className="space-y-2 border border-slate-100 rounded-xl p-3 bg-slate-50/50 max-h-36 overflow-y-auto">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Allowed Active WhatsApp Channels (Select which numbers this staff can see)
+                </label>
+                <div className="space-y-2 border border-slate-100 rounded-xl p-3 bg-slate-50/50 max-h-36 overflow-y-auto">
                     {Array.isArray(channels) && channels.length > 0 ? (
                       channels.map((ch) => {
                         const checked = formData.channelIds.includes(ch.id);
@@ -454,7 +454,6 @@ export default function TeamView() {
                     )}
                   </div>
                 </div>
-              )}
 
               {/* Action Buttons */}
               <div className="pt-2 flex items-center justify-end gap-2.5">

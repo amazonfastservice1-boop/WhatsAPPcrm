@@ -64,6 +64,39 @@ export function formatSafeTime(rawVal) {
   return formatted.toLowerCase().includes('invalid') ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : formatted;
 }
 
+/**
+ * Exact WhatsApp-style smart timestamp for chat list items:
+ * - Today: "01:29 AM"
+ * - Yesterday: "Kal"
+ * - Within 7 days: "Sun", "Sat", "Fri"
+ * - Older: "31 Oct", "28 Oct"
+ * Eliminates confusion where a 3-day old message shows "04:30 PM"!
+ */
+export function formatWhatsAppTimestamp(rawVal) {
+  if (!rawVal) return 'Just now';
+  const d = parseLeadDate(rawVal);
+  if (!d) return 'Just now';
+
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const startYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+  const diffDays = Math.floor((startToday.getTime() - new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()) / (24 * 3600 * 1000));
+
+  if (d >= startToday) {
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  if (d >= startYesterday && d < startToday) {
+    return 'Kal';
+  }
+
+  if (diffDays > 1 && diffDays < 7) {
+    return d.toLocaleDateString('en-US', { weekday: 'short' });
+  }
+
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+}
+
 export function formatChannelDisplayName(channel) {
   if (!channel) return 'Unknown';
   if (channel.id === 'all') return 'Saare Numbers';

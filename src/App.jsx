@@ -13,7 +13,7 @@ import LoginModal from './components/LoginModal';
 import { QUICK_REPLIES } from './data/mockData';
 import { socket } from './services/socket';
 import { api } from './services/api';
-import { formatChannelDisplayName, formatSafeTime, normalizePhoneNumber } from './utils/leadFilters';
+import { formatChannelDisplayName, formatSafeTime, formatWhatsAppTimestamp, normalizePhoneNumber } from './utils/leadFilters';
 
 // Helper: get country flag and key from country code
 function getChannelMeta(countryCode) {
@@ -103,7 +103,7 @@ export default function App() {
       firstMessageAt: l.firstMessageAt ? new Date(l.firstMessageAt).toISOString() : (l.createdAt ? new Date(l.createdAt).toISOString() : new Date().toISOString()),
       rawLastMessageAt: l.lastMessageAt || l.messages?.[0]?.createdAt || 0,
       lastMessage: l.lastMessage || l.messages?.[0]?.content || 'WhatsApp conversation',
-      lastTime: l.lastMessageAt ? formatSafeTime(l.lastMessageAt) : 'Just now',
+      lastTime: formatWhatsAppTimestamp(l.lastMessageAt || l.messages?.[0]?.createdAt),
       tags: l.tags?.map((t) => t.tag?.name) || ['WhatsApp Inbound'],
       notes: l.notes || [],
       messages: l.messages?.map((m) => ({
@@ -383,59 +383,58 @@ export default function App() {
       const messageContent = msg.content || (msg.mediaType === 'AUDIO' ? 'Voice Note' : 'New Message');
 
       setLeads((prev) => {
-        const found = prev.some((l) => l.id === targetLeadId);
-        if (!found) {
+        const targetLead = prev.find((l) => l.id === targetLeadId);
+        if (!targetLead) {
           // If customer not yet in list, reload real leads immediately!
           fetchRealLeads();
           return prev;
         }
 
-        return prev.map((l) => {
-          if (l.id === targetLeadId) {
-            const formatted = {
-              id: msg.id || `msg-${Date.now()}`,
-              sender: msg.senderType === 'AGENT' ? 'agent' : 'customer',
-              agentName: msg.senderUser?.name || 'Agent',
-              text: messageContent,
-              mediaType: msg.mediaType || (messageContent === 'Voice Note' ? 'AUDIO' : 'TEXT'),
-              mediaUrl: msg.mediaUrl || null,
-              time: formatSafeTime(msg.createdAt || now),
-              status: (msg.status || 'delivered').toLowerCase(),
-            };
+        const formatted = {
+          id: msg.id || `msg-${Date.now()}`,
+          sender: msg.senderType === 'AGENT' ? 'agent' : 'customer',
+          agentName: msg.senderUser?.name || 'Agent',
+          text: messageContent,
+          mediaType: msg.mediaType || (messageContent === 'Voice Note' ? 'AUDIO' : 'TEXT'),
+          mediaUrl: msg.mediaUrl || null,
+          time: formatSafeTime(msg.createdAt || now),
+          status: (msg.status || 'delivered').toLowerCase(),
+        };
 
-            const existingMsgs = l.messages || [];
-            
-            // Smart Deduplication & In-place update to eliminate double-bubble flicker
-            let isDup = existingMsgs.some((m) => m.id === formatted.id);
-            let newMsgs = existingMsgs;
+        const existingMsgs = targetLead.messages || [];
+        
+        // Smart Deduplication & In-place update to eliminate double-bubble flicker
+        let isDup = existingMsgs.some((m) => m.id === formatted.id);
+        let newMsgs = existingMsgs;
 
-            if (!isDup && formatted.sender === 'agent') {
-              const pendingIdx = existingMsgs.findIndex(
-                (m) => m.sender === 'agent' && (m.status === 'sending' || m.id?.startsWith('msg-')) && m.text === formatted.text
-              );
-              if (pendingIdx !== -1) {
-                newMsgs = existingMsgs.map((m, idx) => 
-                  idx === pendingIdx ? { ...m, ...formatted, id: formatted.id, status: 'delivered' } : m
-                );
-                isDup = true;
-              }
-            }
-
-            if (!isDup) {
-              newMsgs = [...existingMsgs, formatted];
-            }
-
-            return {
-              ...l,
-              messages: newMsgs,
-              lastMessage: messageContent,
-              lastTime: formatSafeTime(msg.createdAt || now),
-              rawLastMessageAt: now.toISOString(),
-              unreadCount: l.id === currentSelected ? 0 : (l.unreadCount || 0) + 1,
-            };
+        if (!isDup && formatted.sender === 'agent') {
+          const pendingIdx = existingMsgs.findIndex(
+            (m) => m.sender === 'agent' && (m.status === 'sending' || m.id?.startsWith('msg-')) && m.text === formatted.text
+          );
+          if (pendingIdx !== -1) {
+            newMsgs = existingMsgs.map((m, idx) => 
+              idx === pendingIdx ? { ...m, ...formatted, id: formatted.id, status: 'delivered' } : m
+            );
+            isDup = true;
           }
-          return l;
-        });
+        }
+
+        if (!isDup) {
+          newMsgs = [...existingMsgs, formatted];
+        }
+
+        const updatedLead = {
+          ...targetLead,
+          messages: newMsgs,
+          lastMessage: messageContent,
+          lastTime: formatWhatsAppTimestamp(msg.createdAt || now),
+          rawLastMessageAt: (msg.createdAt ? new Date(msg.createdAt) : now).toISOString(),
+          unreadCount: targetLead.id === currentSelected ? 0 : (targetLead.unreadCount || 0) + 1,
+        };
+
+        // WhatsApp Realtime Behavior: Active chat leaps to the absolute top of the list!
+        const remaining = prev.filter((l) => l.id !== targetLeadId);
+        return [updatedLead, ...remaining];
       });
     };
 

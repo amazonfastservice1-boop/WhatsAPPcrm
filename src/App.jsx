@@ -8,6 +8,7 @@ import ChannelsView from './components/ChannelsView';
 import TeamView from './components/TeamView';
 import ScheduleView from './components/ScheduleView';
 import NewLeadModal from './components/NewLeadModal';
+import LoginModal from './components/LoginModal';
 import { QUICK_REPLIES } from './data/mockData';
 import { socket } from './services/socket';
 import { api } from './services/api';
@@ -22,6 +23,15 @@ function getChannelMeta(countryCode) {
 }
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('token'));
   const [activeTab, setActiveTab] = useState('chat');
   const [selectedChannel, setSelectedChannel] = useState('all');
   // Dynamic channels loaded from database — starts with just the 'All' option
@@ -133,11 +143,24 @@ export default function App() {
     }
   }, []);
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+  };
+
+  const handleLoginSuccess = (user) => {
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+  };
+
   // Load 100% REAL leads from database on startup (ZERO mock data)
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     async function initRealData() {
       try {
-        await api.login();
 
         // Load real channels from database and build dynamic switcher
         const chRes = await api.getChannels();
@@ -473,6 +496,8 @@ export default function App() {
         setActiveTab={setActiveTab} 
         unreadTotal={totalUnread}
         waStatus={waStatus}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
 
       {/* 2. Main Content Area */}
@@ -669,6 +694,11 @@ export default function App() {
         leads={leads}
         onOpenChat={handleOpenChat}
       />
+
+      {/* 4. Secure Authentication Modal */}
+      {!isAuthenticated && (
+        <LoginModal onLoginSuccess={handleLoginSuccess} />
+      )}
     </div>
   );
 }

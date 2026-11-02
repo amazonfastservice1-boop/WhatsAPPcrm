@@ -16,7 +16,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
-export default function Sidebar({ activeTab, setActiveTab, unreadTotal = 4, waStatus = 'disconnected' }) {
+export default function Sidebar({ activeTab, setActiveTab, unreadTotal = 4, waStatus = 'disconnected', currentUser, onLogout }) {
   const mainNav = [
     { id: 'dashboard', label: 'Main Overview', icon: LayoutDashboard },
     { id: 'chat', label: 'Customer Chats', icon: MessageSquare, badge: unreadTotal },
@@ -150,24 +150,28 @@ export default function Sidebar({ activeTab, setActiveTab, unreadTotal = 4, waSt
         </div>
 
         {/* User Card */}
-        <div className="flex items-center justify-between p-2 rounded-xl hover:bg-white transition-colors cursor-pointer group">
+        <div className="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-100 shadow-2xs">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="relative">
-              <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-                alt="Ali Husni"
-                className="w-9 h-9 rounded-full object-cover ring-2 ring-orange-200"
-              />
+              <div className="w-8 h-8 rounded-full bg-orange-100 border border-orange-200 flex items-center justify-center font-black text-orange-600 text-xs">
+                {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'A'}
+              </div>
               <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white"></span>
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-bold text-slate-800 truncate group-hover:text-orange-600">Ali Husni</p>
-              <p className="text-[11px] font-medium text-slate-600 truncate">Super Admin</p>
+              <p className="text-xs font-bold text-slate-800 truncate">{currentUser?.name || 'Admin User'}</p>
+              <p className="text-[10px] font-bold text-orange-600 uppercase tracking-wider">{currentUser?.role || 'ADMIN'}</p>
             </div>
           </div>
-          <button className="text-slate-600 hover:text-slate-600 p-1" title="Account settings">
-            <ChevronRight className="w-4 h-4" />
-          </button>
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-all"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
     </aside>

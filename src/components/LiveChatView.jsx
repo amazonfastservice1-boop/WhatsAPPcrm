@@ -2283,9 +2283,9 @@ export default function LiveChatView({
           
           {/* Bold, prominent customer phone number */}
           <div className="mt-2 flex items-center justify-center">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-900 shadow-xs">
-              <Phone className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span className="text-base font-black font-mono tracking-wider text-slate-950 select-all">
+            <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 text-white shadow-md border border-slate-800">
+              <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="text-lg font-black font-mono tracking-wider select-all text-white">
                 {activeLead.phone}
               </span>
             </div>

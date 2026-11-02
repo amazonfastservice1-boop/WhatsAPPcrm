@@ -580,12 +580,21 @@ export default function DashboardView({
       badgeColor = 'bg-orange-100 text-orange-800';
       list = filteredLeads;
     } else if (drilldownCategory === 'all_leads') {
-      title = selectedChannel === 'all' ? 'Kul WhatsApp Leads (Saare Numbers)' : 'Is WhatsApp Line Ki Kul Leads';
-      description = selectedChannel === 'all' 
-        ? 'Teeno WhatsApp numbers ki tamaam database leads.' 
-        : `Selected WhatsApp number ki tamaam leads (${channelLeads.length}).`;
-      badgeColor = 'bg-orange-100 text-orange-800';
-      list = channelLeads;
+      const isFiltered = timeRange !== 'all';
+      title = timeRange === 'today' 
+        ? 'Aaj Ki WhatsApp Leads' 
+        : timeRange === 'yesterday' 
+        ? 'Kal Ki WhatsApp Leads' 
+        : timeRange === 'custom'
+        ? `${customDayDisplay} Ki Leads`
+        : timeRange === '7days'
+        ? 'Pichle 7 Din Ki Leads'
+        : (selectedChannel === 'all' ? 'Kul WhatsApp Leads (Saare Numbers)' : 'Is WhatsApp Line Ki Kul Leads');
+      description = isFiltered 
+        ? `Selected filter (${timeRange === 'today' ? 'Aaj' : timeRange === 'yesterday' ? 'Kal' : 'Custom'}) ke mutabiq leads ki mukammal tafseel (${filteredLeads.length}).`
+        : (selectedChannel === 'all' ? 'Teeno WhatsApp numbers ki tamaam database leads.' : `Selected WhatsApp number ki tamaam leads (${channelLeads.length}).`);
+      badgeColor = 'bg-indigo-100 text-indigo-800';
+      list = filteredLeads;
     } else if (drilldownCategory === 'today') {
       title = 'Aaj Ki WhatsApp Leads';
       description = 'Aaj jitne bhi naye customers ne message kiya ya register hue.';
@@ -839,7 +848,7 @@ export default function DashboardView({
               <Layers className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 flex items-center gap-1">
-              <Eye className="w-3 h-3" /> Kul Leads
+              <Eye className="w-3 h-3" /> {timeRange === 'today' ? 'Aaj' : timeRange === 'yesterday' ? 'Kal' : timeRange === '7days' ? '7 Din' : 'Kul'} Leads
             </span>
           </div>
 
@@ -848,11 +857,11 @@ export default function DashboardView({
               {totalLeadsCount}
             </h3>
             <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
-              📊 Total
+              📊 {timeRange === 'today' ? 'Aaj Ka Total' : timeRange === 'yesterday' ? 'Kal Ka Total' : 'Total Leads'}
             </span>
           </div>
           <p className="text-[11px] text-slate-500 font-semibold mt-1">
-            Kul Leads (Is Filter Mein)
+            {timeRange === 'today' ? 'Aaj Aayi Hui Leads' : timeRange === 'yesterday' ? 'Kal Ki Aayi Hui Leads' : timeRange === '7days' ? 'Pichle 7 Din Ki Leads' : 'Tamaam Aayi Hui Leads'}
           </p>
 
           <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">

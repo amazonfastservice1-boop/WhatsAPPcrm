@@ -38,7 +38,30 @@ router.get('/', authenticateToken, async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json({ success: true, users });
+    // Calculate actual active leads belonging to each staff member's assigned channels
+    const enrichedUsers = await Promise.all(
+      users.map(async (u) => {
+        const allowedChannelIds = u.allowedChannels.map((ac) => ac.channel.id);
+        
+        let channelLeadsCount = 0;
+        if (u.role === 'ADMIN') {
+          channelLeadsCount = await prisma.lead.count({ where: { channel: { isActive: true } } });
+        } else if (allowedChannelIds.length > 0) {
+          channelLeadsCount = await prisma.lead.count({
+            where: {
+              channelId: { in: allowedChannelIds },
+            },
+          });
+        }
+
+        return {
+          ...u,
+          channelLeadsCount,
+        };
+      })
+    );
+
+    res.json({ success: true, users: enrichedUsers });
   } catch (err) {
     console.error('Error fetching staff members:', err);
     res.status(500).json({ error: 'Failed to fetch staff members' });
@@ -110,7 +133,7 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
-// PUT update staff details or channel access
+// PUT update staff details, password, or channel access
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -118,7 +141,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     const dataToUpdate = {};
     if (name) dataToUpdate.name = name.trim();
-    if (role) dataToUpdate.role = role;
+    if (role && role !== 'ADMIN') dataToUpdate.role = role;
     if (typeof isOnline === 'boolean') dataToUpdate.isOnline = isOnline;
     if (password && password.length >= 6) {
       const salt = await bcrypt.genSalt(10);

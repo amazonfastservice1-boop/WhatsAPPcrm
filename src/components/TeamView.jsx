@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, UserPlus, CheckCircle2, Shield, RefreshCw, 
-  Trash2, Mail, Lock, Phone, Globe, AlertCircle, X, Check
+  Trash2, Mail, Lock, Phone, Globe, AlertCircle, X, Check,
+  KeyRound, Eye, EyeOff
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -14,6 +15,10 @@ export default function TeamView() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [editingPasswordUser, setEditingPasswordUser] = useState(null);
+  const [newPasswordVal, setNewPasswordVal] = useState('');
+  const [showPasswordMap, setShowPasswordMap] = useState({});
+  const [savingPassword, setSavingPassword] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -281,7 +286,7 @@ export default function TeamView() {
                         Assigned Leads
                       </span>
                       <span className="font-extrabold text-orange-600 text-sm">
-                        {assignedCount}
+                        {user.channelLeadsCount !== undefined ? user.channelLeadsCount : assignedCount}
                       </span>
                     </div>
 
@@ -310,6 +315,19 @@ export default function TeamView() {
                         {user.isOnline ? 'Online' : 'Offline'}
                       </button>
                     </div>
+
+                    {/* Reset Password Button */}
+                    <button
+                      onClick={() => {
+                        setEditingPasswordUser(user);
+                        setNewPasswordVal('');
+                      }}
+                      title="Password Badlein ya Naya Password Set Karein"
+                      className="flex items-center gap-1 px-2.5 py-1 text-slate-600 hover:text-orange-600 hover:bg-orange-50 border border-slate-200 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                    >
+                      <KeyRound className="w-3.5 h-3.5 text-orange-500" />
+                      <span>Change Password</span>
+                    </button>
 
                     {/* Delete Action (if not main admin) */}
                     {user.email !== 'admin@amazfast.com' && (
@@ -470,6 +488,88 @@ export default function TeamView() {
                   className="px-5 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 active:scale-95 disabled:opacity-50 rounded-xl shadow-sm transition-all"
                 >
                   {submitting ? 'Creating...' : 'Create Staff Member'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Change Password Modal */}
+      {editingPasswordUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-bold">
+                  <KeyRound className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-slate-900">Change Staff Password</h4>
+                  <p className="text-[10px] text-slate-500 font-medium">{editingPasswordUser.name} ({editingPasswordUser.email})</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setEditingPasswordUser(null)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!newPasswordVal || newPasswordVal.length < 6) {
+                  alert('Password must be at least 6 characters long.');
+                  return;
+                }
+                try {
+                  setSavingPassword(true);
+                  const res = await api.updateStaff(editingPasswordUser.id, { password: newPasswordVal });
+                  if (res?.success) {
+                    alert(`Password updated successfully for ${editingPasswordUser.name}!`);
+                    setEditingPasswordUser(null);
+                    setNewPasswordVal('');
+                  } else {
+                    alert(res?.error || 'Failed to update password');
+                  }
+                } catch {
+                  alert('Server error updating password');
+                } finally {
+                  setSavingPassword(false);
+                }
+              }}
+              className="p-4 space-y-3"
+            >
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">New Password (Admin Override)</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Enter new password (e.g. ismail123)"
+                  value={newPasswordVal}
+                  onChange={(e) => setNewPasswordVal(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 font-bold"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">
+                  * Password change karte hi staff is naye password se login karega.
+                </p>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingPasswordUser(null)}
+                  className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingPassword}
+                  className="px-4 py-1.5 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-sm"
+                >
+                  {savingPassword ? 'Saving...' : 'Set Password'}
                 </button>
               </div>
             </form>

@@ -716,7 +716,15 @@ export default function LiveChatView({
         const existingTime = new Date(existing.rawLastMessageAt || existing.createdAt || 0).getTime();
         const incomingTime = new Date(l.rawLastMessageAt || l.createdAt || 0).getTime();
         if (incomingTime > existingTime) {
-          phoneMap.set(key, l); // Keep newer record with latest active chat!
+          phoneMap.set(key, {
+            ...l,
+            unreadCount: (l.unreadCount || 0) + (existing.unreadCount || 0),
+          });
+        } else {
+          phoneMap.set(key, {
+            ...existing,
+            unreadCount: (existing.unreadCount || 0) + (l.unreadCount || 0),
+          });
         }
       }
     });

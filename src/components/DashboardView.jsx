@@ -46,6 +46,7 @@ import {
   getLeadStats 
 } from '../utils/leadFilters';
 import { AMAZFAST_SERVICES } from '../data/servicesList';
+import { API_BASE } from '../services/api';
 
 export default function DashboardView({ 
   leads = [], 
@@ -90,7 +91,7 @@ export default function DashboardView({
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
       const timeoutId = controller ? setTimeout(() => controller.abort(), 5000) : null;
       
-      const res = await fetch('http://localhost:5000/api/channels', { 
+      const res = await fetch(`${API_BASE}/channels`, { 
         method: 'GET',
         headers: { 'Cache-Control': 'no-cache' },
         signal: controller ? controller.signal : undefined

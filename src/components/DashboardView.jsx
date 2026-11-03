@@ -41,6 +41,7 @@ import {
   isLeadYesterday, 
   isLeadWithinDays, 
   isLeadOnDate,
+  isLeadStatusActiveInPeriod,
   getLeadLocalDateString,
   getLeadDate,
   getLeadStats 
@@ -276,6 +277,55 @@ export default function DashboardView({
       }
       return true;
     });
+  }, [leads, selectedChannel, timeRange, selectedServiceFilter, customSelectedDate]);
+
+  // Leads for Status/Pipeline/Tag Cards (Deal Won, Qualified, Unqualified, Follow-up, Meeting, No Response):
+  // Includes leads that arrived in the selected period OR old contacts whose status/tags were updated in this period!
+  const statusFilteredLeads = useMemo(() => {
+    const rawList = leads.filter((l) => {
+      if (selectedChannel !== 'all' && l.channel !== selectedChannel) {
+        return false;
+      }
+      if (selectedServiceFilter !== 'all') {
+        const s = l.serviceInterest || '';
+        if (!s.toLowerCase().includes(selectedServiceFilter.toLowerCase())) {
+          return false;
+        }
+      }
+
+      // Check if lead arrived in this time range
+      let arrivedInPeriod = true;
+      if (timeRange === 'today') arrivedInPeriod = isLeadToday(l);
+      else if (timeRange === 'yesterday') arrivedInPeriod = isLeadYesterday(l);
+      else if (timeRange === 'custom') arrivedInPeriod = isLeadOnDate(l, customSelectedDate);
+      else if (timeRange === '7days') arrivedInPeriod = isLeadWithinDays(l, 7);
+      else if (timeRange === '30days') arrivedInPeriod = isLeadWithinDays(l, 30);
+      else if (timeRange === '6months') arrivedInPeriod = isLeadWithinDays(l, 180);
+      else if (timeRange === 'year') arrivedInPeriod = isLeadWithinDays(l, 365);
+
+      if (arrivedInPeriod) return true;
+
+      // Also include old leads if their status/tags were explicitly updated during this time period
+      return isLeadStatusActiveInPeriod(l, timeRange, customSelectedDate);
+    });
+
+    // Deduplicate by phone number when viewing 'all' channels so one contact with multiple records counts once
+    if (selectedChannel !== 'all') return rawList;
+    const phoneMap = new Map();
+    rawList.forEach((l) => {
+      const key = l.phone ? String(l.phone).replace(/\D/g, '') : l.id;
+      const existing = phoneMap.get(key);
+      if (!existing) {
+        phoneMap.set(key, l);
+      } else {
+        const existingStatusTime = existing.statusUpdatedAt ? new Date(existing.statusUpdatedAt).getTime() : 0;
+        const incomingStatusTime = l.statusUpdatedAt ? new Date(l.statusUpdatedAt).getTime() : 0;
+        if (incomingStatusTime >= existingStatusTime) {
+          phoneMap.set(key, l);
+        }
+      }
+    });
+    return Array.from(phoneMap.values());
   }, [leads, selectedChannel, timeRange, selectedServiceFilter, customSelectedDate]);
 
   // --- Real Analytical Metrics ---

@@ -705,11 +705,11 @@ export default function LiveChatView({
       todayNew: todayNewCount,
       unread: list.filter(l => l.unreadCount > 0).length,
       reminders: scheduledRemCount,
-      qualified: list.filter(l => /qualif/i.test(l.stage || '')).length,
+      qualified: list.filter(l => /qualif/i.test(l.stage || '') || l.tags?.some(t => /qualif/i.test(t))).length,
       proposal: list.filter(l => /proposal/i.test(l.stage || '')).length,
-      won: list.filter(l => /won|closed/i.test(l.stage || '')).length,
+      won: list.filter(l => /won|closed/i.test(l.stage || '') || l.tags?.some(t => /won/i.test(t))).length,
       contacted: list.filter(l => /contact/i.test(l.stage || '')).length,
-      unqualified: list.filter(l => /lost|unqualif/i.test(l.stage || '')).length,
+      unqualified: list.filter(l => /lost|unqualif/i.test(l.stage || '') || l.tags?.some(t => /unqualif/i.test(t))).length,
       new: list.filter(l => /new/i.test(l.stage || '') && !l.messages?.some(m => m.sender === 'agent')).length,
       unassigned: list.filter(l => !l.assignedTo || l.assignedTo === 'Unassigned').length,
     };
@@ -735,11 +735,11 @@ export default function LiveChatView({
         if (filterTab === 'unassigned' && lead.assignedTo !== 'Unassigned') return false;
         if (filterTab === 'mine' && lead.assignedTo !== 'Hamza Tariq' && lead.assignedTo !== 'Ali Husni') return false;
         if (filterTab === 'unread' && lead.unreadCount === 0) return false;
-        if (filterTab === 'qualified' && !/qualif/i.test(lead.stage || '')) return false;
+        if (filterTab === 'qualified' && !(/qualif/i.test(lead.stage || '') || lead.tags?.some((t) => /qualif/i.test(t)))) return false;
         if (filterTab === 'proposal' && !/proposal/i.test(lead.stage || '')) return false;
-        if (filterTab === 'won' && !/won|closed/i.test(lead.stage || '')) return false;
+        if (filterTab === 'won' && !(/won|closed/i.test(lead.stage || '') || lead.tags?.some((t) => /won/i.test(t)))) return false;
         if (filterTab === 'contacted' && !/contact/i.test(lead.stage || '')) return false;
-        if (filterTab === 'unqualified' && !/lost|unqualif/i.test(lead.stage || '')) return false;
+        if (filterTab === 'unqualified' && !(/lost|unqualif/i.test(lead.stage || '') || lead.tags?.some((t) => /unqualif/i.test(t)))) return false;
         if (filterTab === 'new' && (!/new/i.test(lead.stage || '') || lead.messages?.some((m) => m.sender === 'agent'))) return false;
 
         // Service Filter
@@ -2677,19 +2677,35 @@ export default function LiveChatView({
         <div className="space-y-2">
           <label className="text-xs font-extrabold text-slate-700">Customer Tags (Category)</label>
           <div className="flex flex-wrap gap-1.5">
-            {(activeLead.tags || []).map((tag) => (
-              <span key={tag} className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-orange-50 text-orange-700 border border-orange-200">
-                {tag}
+            {(activeLead.tags || []).filter(t => t !== 'WhatsApp Inbound').map((tag) => (
+              <span key={tag} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                <span>{tag}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextTags = (activeLead.tags || []).filter(t => t !== tag);
+                    onUpdateLead(activeLead.id, { tags: nextTags });
+                  }}
+                  className="text-orange-400 hover:text-rose-600 font-bold text-xs"
+                  title={`Tag "${tag}" hatayein`}
+                >
+                  ✕
+                </button>
               </span>
             ))}
             <button 
+              type="button"
               onClick={() => {
                 const newTag = prompt('Naya tag likhein:');
-                if (newTag) {
-                  onUpdateLead(activeLead.id, { tags: [...(activeLead.tags || []), newTag] });
+                if (newTag && newTag.trim()) {
+                  const clean = newTag.trim();
+                  const currentTags = (activeLead.tags || []).filter(t => t !== 'WhatsApp Inbound');
+                  if (!currentTags.includes(clean)) {
+                    onUpdateLead(activeLead.id, { tags: [...currentTags, clean] });
+                  }
                 }
               }}
-              className="px-2 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600"
+              className="px-2 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
             >
               + Tag
             </button>

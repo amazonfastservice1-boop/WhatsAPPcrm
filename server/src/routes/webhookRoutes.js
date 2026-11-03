@@ -12,18 +12,12 @@ const leadCache = new Map();
 function detectServiceInterest(text) {
   if (!text || typeof text !== 'string') return null;
   const t = text.toLowerCase();
-  if (/\b(llc|wyoming|delaware|new mexico|us company|llc formation)\b/i.test(t)) return 'US LLC Formation';
-  if (/\b(uk ltd|ltd company|companies house|uk company)\b/i.test(t)) return 'UK LTD Formation';
-  if (/\b(stripe|payment gateway|stripe account|card payment)\b/i.test(t)) return 'Stripe Gateway';
-  if (/\b(paypal|paypal business)\b/i.test(t)) return 'PayPal Business';
-  if (/\b(mercury|relay|payoneer|wise|bank account|business bank)\b/i.test(t)) return 'Business Bank';
-  if (/\b(wholesale|brand approval|fba wholesale|distributor)\b/i.test(t)) return 'Amazon Wholesale';
-  if (/\b(private label|\bpl\b|launch|ppc|product hunting)\b/i.test(t)) return 'Amazon PL';
-  if (/\b(brand registry|trademark|brand gating)\b/i.test(t)) return 'Brand Registry';
-  if (/\b(shopify|dropshipping|shopify store)\b/i.test(t)) return 'Shopify Store';
-  if (/\b(tiktok|tik tok|tiktok shop)\b/i.test(t)) return 'TikTok Shop';
-  if (/\b(itin|ein|tax return|tax id|w8ben)\b/i.test(t)) return 'ITIN / EIN Tax';
-  if (/\b(virtual address|us address|uk address|mail forwarding)\b/i.test(t)) return 'Virtual Address';
+  if (/\b(combo|all in one|full package|complete package)\b/i.test(t)) return 'Combo';
+  if (/\b(amazon account|seller central|amazon acc|seller account|account creation)\b/i.test(t)) return 'Amazon Account Creation';
+  if (/\b(llc|wyoming|delaware|new mexico|us company|llc formation|uk ltd|company formation)\b/i.test(t)) return 'LLC';
+  if (/\b(bank|mercury|relay|payoneer|wise|bank account|business bank|bank creation|stripe|paypal)\b/i.test(t)) return 'Bank Creation';
+  if (/\b(brand approval|brand registry|trademark|brand gating|approval)\b/i.test(t)) return 'Brand Approval';
+  if (/\b(wholesale|fba wholesale|distributor|whols)\b/i.test(t)) return 'Amazon Wholesale';
   return null;
 }
 

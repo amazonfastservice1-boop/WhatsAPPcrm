@@ -329,7 +329,7 @@ export default function LiveChatView({
   const [newRemMinute, setNewRemMinute] = useState('00');
   const [newRemAmPm, setNewRemAmPm] = useState('PM');
   const [newRemCustomMsg, setNewRemCustomMsg] = useState('');
-  const [newRemAutoSend, setNewRemAutoSend] = useState(false);
+  const [newRemAutoSend, setNewRemAutoSend] = useState(true);
   const [newRemPriority, setNewRemPriority] = useState('HIGH');
   const [sendingReminderId, setSendingReminderId] = useState(null);
   const [reminderToast, setReminderToast] = useState(null);
@@ -468,6 +468,7 @@ export default function LiveChatView({
     setNewRemDate(rem.date || new Date().toISOString().slice(0, 10));
     setNewRemCustomMsg(rem.customMessage || rem.notes || '');
     setNewRemPriority(rem.priority || 'HIGH');
+    setNewRemAutoSend(rem.autoSend !== false);
 
     let h = '05', m = '00', ap = 'PM';
     if (rem.time) {
@@ -2963,6 +2964,19 @@ export default function LiveChatView({
               </div>
 
 
+              {/* Auto-send toggle */}
+              <label className="flex items-center gap-2 cursor-pointer select-none bg-orange-50 p-2 rounded-lg border border-orange-200">
+                <input
+                  type="checkbox"
+                  checked={newRemAutoSend}
+                  onChange={(e) => setNewRemAutoSend(e.target.checked)}
+                  className="w-3.5 h-3.5 accent-orange-600 rounded cursor-pointer"
+                />
+                <span className="text-[11px] font-extrabold text-orange-950">
+                  ⚡ Muqarrar waqt par automatically WhatsApp send karein
+                </span>
+              </label>
+
               <div>
                 <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Priority:</label>
                 <div className="flex items-center gap-1.5">
@@ -3043,9 +3057,6 @@ export default function LiveChatView({
                           <span className="text-[10px] font-bold text-slate-600 font-mono">
                             {rem.date} @ {formatTo12Hour(rem.time)}
                           </span>
-                            <span className="text-[9px] px-1 py-0.2 rounded font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
-                            </span>
-                          )}
                         </div>
                         <h5 className={`font-bold leading-snug truncate ${rem.completed ? 'line-through text-slate-500' : 'text-slate-900'}`}>
                           {rem.title}

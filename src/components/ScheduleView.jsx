@@ -58,7 +58,8 @@ export default function ScheduleView({
   const [priority, setPriority] = useState('MEDIUM'); // HIGH, MEDIUM, LOW
   const [assignedAgent, setAssignedAgent] = useState('Ali Husni');
   const [reminderNotes, setReminderNotes] = useState('');
-  const [remAutoSend, setRemAutoSend] = useState(false);
+  const [remAutoSend, setRemAutoSend] = useState(true);
+  const [sendingDirectId, setSendingDirectId] = useState(null);
 
   // Reminders list persisted in localStorage
   const [reminders, setReminders] = useState(() => {
@@ -110,7 +111,7 @@ export default function ScheduleView({
     setPriority('MEDIUM');
     setAssignedAgent('Ali Husni');
     setReminderNotes('');
-    setRemAutoSend(false);
+    setRemAutoSend(true);
     setIsModalOpen(true);
   };
 
@@ -148,8 +149,48 @@ export default function ScheduleView({
     setPriority(rem.priority || 'MEDIUM');
     setAssignedAgent(rem.assignedTo || 'Ali Husni');
     setReminderNotes(rem.notes || rem.customMessage || '');
-    setRemAutoSend(false);
+    setRemAutoSend(rem.autoSend !== false);
     setIsModalOpen(true);
+  };
+
+  // Direct 1-click WhatsApp sender from Schedule View
+  const handleSendDirectWhatsApp = async (rem) => {
+    if (!rem.leadPhone) return;
+    setSendingDirectId(rem.id);
+    const msg = rem.notes || rem.customMessage || `Assalam o Alaikum ${rem.leadName || 'Customer'}! Yeh aapke follow-up ke hawale se reminder message hai: "${rem.title}". Shukriya!`;
+
+    try {
+      if (api.sendMessage) {
+        await api.sendMessage({
+          leadId: rem.leadId || `lead-${rem.leadPhone.replace(/\D/g, '')}`,
+          phoneNumber: rem.leadPhone,
+          customerName: rem.leadName,
+          channelId: rem.channelId,
+          content: msg,
+          mediaType: 'TEXT',
+        });
+      }
+      const sentTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setReminders(prev => {
+        const updated = prev.map(r => r.id === rem.id ? { 
+          ...r, 
+          reminderSent: true, 
+          reminderSentAt: sentTimeStr,
+          completed: true
+        } : r);
+        try {
+          localStorage.setItem('crm_schedule_reminders', JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
+      window.dispatchEvent(new Event('crm_reminders_updated'));
+      alert(`✓ WhatsApp reminder "${rem.leadName}" ko foran deliver ho gaya!`);
+    } catch (err) {
+      console.error('Failed to send WhatsApp reminder:', err);
+      alert('Message bhejne mein masla aaya.');
+    } finally {
+      setSendingDirectId(null);
+    }
   };
 
   // Handle saving reminder (add or update)
@@ -175,7 +216,7 @@ export default function ScheduleView({
               assignedTo: assignedAgent,
               notes: reminderNotes,
               customMessage: reminderNotes,
-              autoSend: false,
+              autoSend: remAutoSend,
               updatedAt: new Date().toISOString()
             };
           }
@@ -200,7 +241,7 @@ export default function ScheduleView({
         assignedTo: assignedAgent,
         notes: reminderNotes,
         customMessage: reminderNotes,
-        autoSend: false,
+        autoSend: remAutoSend,
         completed: false,
         reminderSent: false,
         createdAt: new Date().toISOString()
@@ -618,6 +659,30 @@ export default function ScheduleView({
                     </a>
                   )}
 
+                  {/* Direct 1-Click Send Button */}
+                  {rem.leadPhone && !rem.completed && (
+                    <button
+                      type="button"
+                      onClick={() => handleSendDirectWhatsApp(rem)}
+                      disabled={sendingDirectId === rem.id}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-all shadow-xs cursor-pointer"
+                      title="Is customer ko foran WhatsApp par message bhejein"
+                    >
+                      {sendingDirectId === rem.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Zap className="w-3.5 h-3.5 fill-current" />
+                      )}
+                      <span>WhatsApp Bhejein</span>
+                    </button>
+                  )}
+
+                  {rem.reminderSent && (
+                    <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                      ✓ Bhej Diya ({rem.reminderSentAt || 'Done'})
+                    </span>
+                  )}
+
                   {/* Edit Button */}
                   <button
                     onClick={() => handleStartEditReminder(rem)}
@@ -796,6 +861,19 @@ export default function ScheduleView({
                 </div>
               </div>
 
+
+              {/* Auto-send toggle */}
+              <label className="flex items-center gap-2 cursor-pointer select-none bg-orange-50 p-2.5 rounded-xl border border-orange-200">
+                <input
+                  type="checkbox"
+                  checked={remAutoSend}
+                  onChange={(e) => setRemAutoSend(e.target.checked)}
+                  className="w-4 h-4 accent-orange-600 rounded cursor-pointer"
+                />
+                <span className="text-xs font-bold text-orange-950">
+                  ⚡ Muqarrar waqt par automatically WhatsApp bhejein
+                </span>
+              </label>
 
               {/* Notes / WhatsApp Message */}
               <div>

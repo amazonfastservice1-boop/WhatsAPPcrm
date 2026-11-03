@@ -260,3 +260,23 @@ export function getLeadStats(leads = [], channels = []) {
     byChannel: channelMap,
   };
 }
+
+export function parseTimeToMinutes(timeStr) {
+  if (!timeStr) return 0;
+  const match12 = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (match12) {
+    let hours = parseInt(match12[1], 10);
+    const minutes = parseInt(match12[2], 10);
+    const ampm = match12[3].toUpperCase();
+    if (ampm === 'PM' && hours < 12) hours += 12;
+    if (ampm === 'AM' && hours === 12) hours = 0;
+    return hours * 60 + minutes;
+  }
+  const parts = timeStr.split(':');
+  if (parts.length >= 2) {
+    const hours = parseInt(parts[0], 10) || 0;
+    const minutes = parseInt(parts[1], 10) || 0;
+    return hours * 60 + minutes;
+  }
+  return 0;
+}

@@ -13,7 +13,7 @@ import LoginModal from './components/LoginModal';
 import { QUICK_REPLIES } from './data/mockData';
 import { socket } from './services/socket';
 import { api } from './services/api';
-import { formatChannelDisplayName, formatSafeTime, formatWhatsAppTimestamp, normalizePhoneNumber } from './utils/leadFilters';
+import { formatChannelDisplayName, formatSafeTime, formatWhatsAppTimestamp, normalizePhoneNumber, parseTimeToMinutes } from './utils/leadFilters';
 
 // Helper: get country flag and key from country code
 function getChannelMeta(countryCode) {
@@ -772,18 +772,130 @@ export default function App() {
     }
   };
 
-  // SAFETY PROTOCOL: Wipe any legacy auto-send flags from reminders so NO customer ever receives automated messages
+  // RELIABLE SCHEDULED REMINDER DISPATCHER:
+  // Strict rule: ONLY sends WhatsApp messages when the USER explicitly scheduled a reminder for a lead.
+  // Never creates any reminders or sends unsolicited messages on its own.
   React.useEffect(() => {
+    // One-time repair for any reminder mistakenly marked completed by legacy wipe without actually being sent
     try {
       const raw = localStorage.getItem('crm_schedule_reminders');
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          const sanitized = parsed.map(r => ({ ...r, autoSend: false, completed: true, reminderSent: true }));
-          localStorage.setItem('crm_schedule_reminders', JSON.stringify(sanitized));
+          let modified = false;
+          const restored = parsed.map(r => {
+            if (r.completed && !r.reminderSentAt && r.autoSend === false) {
+              modified = true;
+              return { ...r, autoSend: true, completed: false, reminderSent: false };
+            }
+            return r;
+          });
+          if (modified) {
+            localStorage.setItem('crm_schedule_reminders', JSON.stringify(restored));
+            window.dispatchEvent(new Event('crm_reminders_updated'));
+          }
         }
       }
     } catch (e) {}
+
+    const processScheduledReminders = async () => {
+      try {
+        const raw = localStorage.getItem('crm_schedule_reminders');
+        if (!raw) return;
+        const reminders = JSON.parse(raw);
+        if (!Array.isArray(reminders) || reminders.length === 0) return;
+
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        const localTodayStr = `${y}-${m}-${d}`;
+        const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+
+        let hasChanged = false;
+        const updatedList = [...reminders];
+
+        for (let i = 0; i < updatedList.length; i++) {
+          const rem = updatedList[i];
+          // STRICT VERIFICATION:
+          // 1. Must NOT be already completed or already sent
+          // 2. autoSend must be explicitly allowed (not false)
+          // 3. Must have a valid phone number
+          if (rem.completed || rem.reminderSent || rem.autoSend === false || !rem.leadPhone) {
+            continue;
+          }
+
+          if (rem.date && rem.time) {
+            const remMinutes = parseTimeToMinutes(rem.time);
+            const isDue = rem.date < localTodayStr || (rem.date === localTodayStr && remMinutes <= currentTotalMinutes);
+
+            if (isDue) {
+              hasChanged = true;
+              rem.reminderSent = true;
+              rem.completed = true;
+              const sentTimeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              rem.reminderSentAt = sentTimeStr;
+
+              const msgText = rem.customMessage || rem.notes || `Assalam o Alaikum ${rem.leadName || 'Customer'}! Yeh aapke follow-up ke hawale se reminder message hai: "${rem.title}". Shukriya!`;
+
+              console.log(`⏰ [Auto Reminder] Dispatching scheduled follow-up to ${rem.leadName} (${rem.leadPhone}) at ${sentTimeStr}`);
+
+              try {
+                await api.sendMessage({
+                  leadId: rem.leadId || `lead-${rem.leadPhone.replace(/\D/g, '')}`,
+                  phoneNumber: rem.leadPhone,
+                  customerName: rem.leadName,
+                  channelId: rem.channelId,
+                  content: msgText,
+                  mediaType: 'TEXT',
+                });
+
+                // Append message to live lead state
+                setLeads(prevLeads => prevLeads.map(l => {
+                  if (l.id === rem.leadId || l.phone === rem.leadPhone) {
+                    const newMsg = {
+                      id: `rem-auto-${Date.now()}`,
+                      sender: 'agent',
+                      agentName: 'System (Scheduled Reminder)',
+                      text: msgText,
+                      time: sentTimeStr,
+                      status: 'delivered'
+                    };
+                    return {
+                      ...l,
+                      messages: [...(l.messages || []), newMsg],
+                      lastMessage: msgText,
+                      lastTime: 'Just now'
+                    };
+                  }
+                  return l;
+                }));
+
+                setConnectionToast({
+                  title: '⏰ Scheduled Reminder Bhej Diya Gaya',
+                  name: rem.leadName,
+                  phone: rem.leadPhone
+                });
+                setTimeout(() => setConnectionToast(null), 5000);
+              } catch (sendErr) {
+                console.error('Failed to auto-send scheduled reminder:', sendErr);
+              }
+            }
+          }
+        }
+
+        if (hasChanged) {
+          localStorage.setItem('crm_schedule_reminders', JSON.stringify(updatedList));
+          window.dispatchEvent(new Event('crm_reminders_updated'));
+        }
+      } catch (err) {
+        console.warn('Error checking scheduled reminders:', err);
+      }
+    };
+
+    const timer = setInterval(processScheduledReminders, 10000);
+    processScheduledReminders();
+    return () => clearInterval(timer);
   }, []);
 
   // Navigate to chat

@@ -1124,12 +1124,12 @@ export default function LiveChatView({
   return (
     <div className="flex h-full w-full overflow-hidden bg-[#F8F9FC]">
       {/* 1. Left Column: Conversations List (WhatsApp Style) */}
-      <div className="w-72 sm:w-80 xl:w-[330px] 2xl:w-96 bg-white border-r border-[#EEF2F6] flex flex-col shrink-0">
+      <div className="w-64 lg:w-72 2xl:w-80 bg-white border-r border-[#EEF2F6] flex flex-col shrink-0">
         {/* Header & Channel Selector */}
-        <div className="p-3.5 border-b border-[#F1F5F9] space-y-2.5">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-extrabold text-slate-900 tracking-tight">Customer WhatsApp Chats</h2>
-            <div className="flex items-center gap-1.5">
+        <div className="p-2.5 border-b border-[#F1F5F9] space-y-2">
+          <div className="flex items-center justify-between gap-1">
+            <h2 className="text-sm font-extrabold text-slate-900 tracking-tight truncate">Customer Chats</h2>
+            <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={async () => {
                   if (onRefreshLeads) {
@@ -1143,8 +1143,8 @@ export default function LiveChatView({
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-orange-500' : ''}`} />
               </button>
-              <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">
-                {displayLeads.length} Customers
+              <span className="text-[11px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100 whitespace-nowrap">
+                {displayLeads.length} Chats
               </span>
             </div>
           </div>
@@ -1621,123 +1621,125 @@ export default function LiveChatView({
         <>
           {/* 2. Middle Column: Active Chat Conversation */}
           <div className="flex-1 flex flex-col bg-[#F4F5F8] border-r border-[#EEF2F6] min-w-0">
-        {/* ⚡ Single Clean Top Bar: Service, Status & Tag Buttons */}
-        <div className="bg-white border-b border-slate-200 px-3.5 py-2.5 flex items-center justify-between gap-2 shrink-0 flex-wrap shadow-2xs">
-          {/* Left: Service Dropdown */}
-          <div className="flex items-center gap-1.5 shrink-0 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200/80">
-            <span className="text-[11px] font-black uppercase text-slate-600 flex items-center gap-1">
-              <span>💼</span>
-              <span>Service:</span>
-            </span>
-            <select
-              value={activeLead.serviceInterest || ''}
-              onChange={(e) => {
-                const sVal = e.target.value;
-                onUpdateLead(activeLead.id, { serviceInterest: sVal });
-                if (sVal) {
-                  setSmartBarToast(`💼 Service "${sVal}" save ho gayi! Dashboard update ✓`);
+        {/* ⚡ Organized Top Action Header (Laptop Zoom & DPI Safe) */}
+        <div className="bg-white border-b border-slate-200 px-3 py-2 space-y-1.5 shrink-0 shadow-2xs">
+          {/* Row 1: Service Selector + Primary Status Buttons (Qualified, Unqualified, Deal Won) */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            {/* Left: Service Dropdown */}
+            <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/80 min-w-0 flex-1 sm:flex-initial">
+              <span className="text-[10px] font-black uppercase text-slate-600 flex items-center gap-1 shrink-0">
+                <span>💼</span>
+                <span>Service:</span>
+              </span>
+              <select
+                value={activeLead.serviceInterest || ''}
+                onChange={(e) => {
+                  const sVal = e.target.value;
+                  onUpdateLead(activeLead.id, { serviceInterest: sVal });
+                  if (sVal) {
+                    setSmartBarToast(`💼 Service "${sVal}" save ho gayi! Dashboard update ✓`);
+                    setTimeout(() => setSmartBarToast(null), 3000);
+                  }
+                }}
+                className="text-[11px] font-bold bg-transparent text-slate-800 focus:outline-none cursor-pointer truncate max-w-[165px]"
+                title="Customer kis AmazFast service mein interested hai (LLC, Stripe, Amazon, Tax, etc.)"
+              >
+                <option value="">-- Service Select Karein --</option>
+                {AMAZFAST_SERVICES.map((s) => (
+                  <option key={s.id} value={s.shortLabel}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Right: Primary Status Buttons */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Qualified Toggle Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  const isCurrentlyQualified = activeLead.stage === 'Qualified';
+                  const nextStage = isCurrentlyQualified ? 'New Lead' : 'Qualified';
+                  onUpdateLead(activeLead.id, { stage: nextStage, tags: activeLead.tags || [] });
+                  if (isCurrentlyQualified) {
+                    setSmartBarToast('🟣 "Qualified" hata diya gaya');
+                  } else {
+                    setSmartBarToast('🟣 Lead "Qualified" ho gayi!');
+                  }
                   setTimeout(() => setSmartBarToast(null), 3000);
-                }
-              }}
-              className="text-xs font-bold bg-transparent text-slate-800 focus:outline-none cursor-pointer"
-              title="Customer kis AmazFast service mein interested hai (LLC, Stripe, Amazon, Tax, etc.)"
-            >
-              <option value="">-- Service Select Karein --</option>
-              {AMAZFAST_SERVICES.map((s) => (
-                <option key={s.id} value={s.shortLabel}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
+                }}
+                className={`px-2 py-1 rounded-lg text-[11px] font-black transition-all flex items-center gap-1 whitespace-nowrap shadow-2xs ${
+                  activeLead.stage === 'Qualified'
+                    ? 'bg-purple-600 text-white ring-2 ring-purple-300 hover:bg-purple-700'
+                    : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
+                }`}
+              >
+                <span>🟣</span>
+                <span>Qualified</span>
+                {activeLead.stage === 'Qualified' && (
+                  <span className="text-[9px] bg-purple-700/80 px-1 rounded-full ml-0.5">✕</span>
+                )}
+              </button>
+
+              {/* Unqualified Toggle Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  const isCurrentlyLost = activeLead.stage === 'Lost';
+                  const nextStage = isCurrentlyLost ? 'New Lead' : 'Lost';
+                  onUpdateLead(activeLead.id, { stage: nextStage, tags: activeLead.tags || [] });
+                  if (isCurrentlyLost) {
+                    setSmartBarToast('🔴 "Unqualified" status hata diya gaya');
+                  } else {
+                    setSmartBarToast('🔴 Lead "Unqualified" mark ho gayi');
+                  }
+                  setTimeout(() => setSmartBarToast(null), 3000);
+                }}
+                className={`px-2 py-1 rounded-lg text-[11px] font-black transition-all flex items-center gap-1 whitespace-nowrap shadow-2xs ${
+                  activeLead.stage === 'Lost'
+                    ? 'bg-rose-600 text-white ring-2 ring-rose-300 hover:bg-rose-700'
+                    : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                }`}
+              >
+                <span>🔴</span>
+                <span>Unqualified</span>
+                {activeLead.stage === 'Lost' && (
+                  <span className="text-[9px] bg-rose-700/80 px-1 rounded-full ml-0.5">✕</span>
+                )}
+              </button>
+
+              {/* Deal Won Toggle Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  const isCurrentlyWon = activeLead.stage === 'Deal Won';
+                  const nextStage = isCurrentlyWon ? 'New Lead' : 'Deal Won';
+                  onUpdateLead(activeLead.id, { stage: nextStage, tags: activeLead.tags || [] });
+                  if (isCurrentlyWon) {
+                    setSmartBarToast('🟢 "Deal Won" status hata diya gaya');
+                  } else {
+                    setSmartBarToast('🟢 Mubarak! Deal Won ho gayi!');
+                  }
+                  setTimeout(() => setSmartBarToast(null), 3000);
+                }}
+                className={`px-2 py-1 rounded-lg text-[11px] font-black transition-all flex items-center gap-1 whitespace-nowrap shadow-2xs ${
+                  activeLead.stage === 'Deal Won'
+                    ? 'bg-emerald-600 text-white ring-2 ring-emerald-300 hover:bg-emerald-700'
+                    : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                }`}
+              >
+                <span>🟢</span>
+                <span>Deal Won</span>
+                {activeLead.stage === 'Deal Won' && (
+                  <span className="text-[9px] bg-emerald-700/80 px-1 rounded-full ml-0.5">✕</span>
+                )}
+              </button>
+            </div>
           </div>
 
-          {/* Center/Right: Organized Status & Multi-Tag Toggle Buttons */}
-          <div className="flex items-center gap-1.5 flex-wrap bg-slate-50/80 p-1 rounded-xl border border-slate-200/70">
-            {/* Qualified Toggle Button */}
-            <button
-              type="button"
-              onClick={() => {
-                const isCurrentlyQualified = activeLead.stage === 'Qualified';
-                const nextStage = isCurrentlyQualified ? 'New Lead' : 'Qualified';
-                onUpdateLead(activeLead.id, { stage: nextStage, tags: activeLead.tags || [] });
-                if (isCurrentlyQualified) {
-                  setSmartBarToast('🟣 "Qualified" hata diya gaya (Lead restore to New Lead)');
-                } else {
-                  setSmartBarToast('🟣 Lead "Qualified" ho gayi! (Dobara click se hat jayegi)');
-                }
-                setTimeout(() => setSmartBarToast(null), 3000);
-              }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-2xs ${
-                activeLead.stage === 'Qualified'
-                  ? 'bg-purple-600 text-white ring-2 ring-purple-300 hover:bg-purple-700'
-                  : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
-              }`}
-              title={activeLead.stage === 'Qualified' ? "Click karein Qualified status hatane ke liye (Toggle OFF)" : "Lead ko Qualified mark karein (Toggle ON)"}
-            >
-              <span>🟣</span>
-              <span>Qualified</span>
-              {activeLead.stage === 'Qualified' && (
-                <span className="text-[10px] bg-purple-700/80 hover:bg-purple-800 px-1 rounded-full ml-0.5" title="Hata dein">✕</span>
-              )}
-            </button>
-
-            {/* Unqualified Toggle Button */}
-            <button
-              type="button"
-              onClick={() => {
-                const isCurrentlyLost = activeLead.stage === 'Lost';
-                const nextStage = isCurrentlyLost ? 'New Lead' : 'Lost';
-                onUpdateLead(activeLead.id, { stage: nextStage, tags: activeLead.tags || [] });
-                if (isCurrentlyLost) {
-                  setSmartBarToast('🔴 "Unqualified" status hata diya gaya (Lead restore ho gayi)');
-                } else {
-                  setSmartBarToast('🔴 Lead "Unqualified / Rejected" mark ho gayi (Dobara click se hat jayegi)');
-                }
-                setTimeout(() => setSmartBarToast(null), 3000);
-              }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-2xs ${
-                activeLead.stage === 'Lost'
-                  ? 'bg-rose-600 text-white ring-2 ring-rose-300 hover:bg-rose-700'
-                  : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
-              }`}
-              title={activeLead.stage === 'Lost' ? "Click karein Unqualified status hatane ke liye (Toggle OFF)" : "Lead ko Unqualified mark karein (Toggle ON)"}
-            >
-              <span>🔴</span>
-              <span>Unqualified</span>
-              {activeLead.stage === 'Lost' && (
-                <span className="text-[10px] bg-rose-700/80 hover:bg-rose-800 px-1 rounded-full ml-0.5" title="Hata dein">✕</span>
-              )}
-            </button>
-
-            {/* Deal Won Toggle Button */}
-            <button
-              type="button"
-              onClick={() => {
-                const isCurrentlyWon = activeLead.stage === 'Deal Won';
-                const nextStage = isCurrentlyWon ? 'New Lead' : 'Deal Won';
-                onUpdateLead(activeLead.id, { stage: nextStage, tags: activeLead.tags || [] });
-                if (isCurrentlyWon) {
-                  setSmartBarToast('🟢 "Deal Won" status hata diya gaya');
-                } else {
-                  setSmartBarToast('🟢 Mubarak! Deal Won ho gayi! (Dobara click se hat jayegi)');
-                }
-                setTimeout(() => setSmartBarToast(null), 3000);
-              }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-2xs ${
-                activeLead.stage === 'Deal Won'
-                  ? 'bg-emerald-600 text-white ring-2 ring-emerald-300 hover:bg-emerald-700'
-                  : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
-              }`}
-              title={activeLead.stage === 'Deal Won' ? "Click karein Deal Won status hatane ke liye (Toggle OFF)" : "Order Final / Deal Closed (Toggle ON)"}
-            >
-              <span>🟢</span>
-              <span>Deal Won</span>
-              {activeLead.stage === 'Deal Won' && (
-                <span className="text-[10px] bg-emerald-700/80 hover:bg-emerald-800 px-1 rounded-full ml-0.5" title="Hata dein">✕</span>
-              )}
-            </button>
-
-            <div className="h-5 w-px bg-slate-200 mx-0.5" />
+          {/* Row 2: Organized Tag Buttons Strip (Follow-up, Meeting, No Response, + Tag) */}
+          <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-slate-100">
 
             {/* Follow-up Multi-Tag Toggle Button (Allows Qualified + Follow-up together) */}
             {(() => {
@@ -1967,8 +1969,8 @@ export default function LiveChatView({
             </span>
           </div>
 
-          {/* Meta 24-Hour Policy Notice: If customer hasn't replied yet */}
-          {!(activeLead.messages || []).some(m => m.sender === 'customer') ? (
+          {/* Meta 24-Hour Policy Notice: Only if customer hasn't replied yet */}
+          {!(activeLead.messages || []).some(m => m.sender === 'customer') && (
             <div className="p-3 bg-amber-50 border border-amber-300 rounded-2xl text-xs text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
               <div className="flex items-start gap-2.5">
                 <div className="w-7 h-7 rounded-xl bg-amber-200 text-amber-800 flex items-center justify-center font-black text-sm shrink-0">
@@ -1989,17 +1991,6 @@ export default function LiveChatView({
               >
                 <span>📱 WhatsApp Se Pehla Msg Karein ↗</span>
               </a>
-            </div>
-          ) : (
-            /* WhatsApp Cloud API 24h Policy Notice for Active Customer */
-            <div className="p-2.5 bg-blue-50/80 border border-blue-200/60 rounded-xl text-[11px] text-blue-900 flex items-start gap-2 shadow-2xs">
-              <ShieldAlert className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold">Meta WhatsApp Official Session Guide:</span>
-                <p className="text-blue-800 text-[10px] mt-0.5 leading-snug">
-                  Customer jab aapke number (<code className="font-bold">{activeLead.channel === 'pakistan' ? '+92 371 0327973' : activeLead.phone}</code>) par WhatsApp se message bhejta hai, to 24-ghante ki free chat window open hoti hai aur CRM se replies foran deliver hote hain.
-                </p>
-              </div>
             </div>
           )}
 
@@ -2517,10 +2508,10 @@ export default function LiveChatView({
       </div>
 
       {/* 3. Right Column: Clean Customer Profile, Quick Replies & Reminders Box */}
-      <div className={`bg-white border-l border-[#EEF2F6] p-4 overflow-y-auto space-y-4 shrink-0 transition-all ${
+      <div className={`bg-white border-l border-[#EEF2F6] p-3 overflow-y-auto space-y-3 shrink-0 transition-all ${
         showCustomerDetails 
-          ? 'w-72 lg:w-80 block' 
-          : 'hidden 2xl:block 2xl:w-80'
+          ? 'w-60 lg:w-64 2xl:w-72 block' 
+          : 'hidden 2xl:block 2xl:w-72'
       }`}>
         {/* 1. Compact Customer Profile Box */}
         <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 text-center">

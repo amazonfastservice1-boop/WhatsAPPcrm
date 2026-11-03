@@ -42,20 +42,20 @@ export default function Sidebar({ activeTab, setActiveTab, unreadTotal = 4, waSt
   ];
 
   return (
-    <aside className="w-56 xl:w-64 bg-white border-r border-[#EEF2F6] flex flex-col justify-between h-screen shrink-0 sticky top-0 select-none z-30 transition-all">
+    <aside className="w-48 lg:w-52 2xl:w-60 bg-white border-r border-[#EEF2F6] flex flex-col justify-between h-screen shrink-0 sticky top-0 select-none z-30 transition-all">
       {/* Top Brand Logo */}
       <div>
-        <div className="p-4 xl:p-5 pb-3 xl:pb-4 flex items-center justify-between border-b border-[#F1F5F9]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-400 flex items-center justify-center text-white shadow-md shadow-orange-500/20">
-              <MessageSquare className="w-5 h-5 fill-white" />
+        <div className="p-3.5 pb-3 flex items-center justify-between border-b border-[#F1F5F9]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-400 flex items-center justify-center text-white shadow-md shadow-orange-500/20 shrink-0">
+              <MessageSquare className="w-4 h-4 fill-white" />
             </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-base tracking-tight text-slate-900">AmazFast</span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 tracking-wide">PORTAL</span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1">
+                <span className="font-extrabold text-sm tracking-tight text-slate-900">AmazFast</span>
+                <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-orange-100 text-orange-700 tracking-wide">PORTAL</span>
               </div>
-              <p className="text-[11px] font-semibold text-slate-500">Service WhatsApp Hub</p>
+              <p className="text-[10px] font-semibold text-slate-500 truncate">Service WhatsApp Hub</p>
             </div>
           </div>
         </div>

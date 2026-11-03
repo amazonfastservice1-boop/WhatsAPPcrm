@@ -418,6 +418,28 @@ export default function DashboardView({
   const unqualifiedCount = useMemo(() => {
     return filteredLeads.filter(l => getStageCategory(l.stage) === 'Lost' || /unqualif/i.test(l.stage || '')).length;
   }, [filteredLeads]);
+
+  const followUpCount = useMemo(() => {
+    return filteredLeads.filter(l => 
+      l.tags?.some(t => /follow/i.test(t)) || 
+      /follow/i.test(l.stage || '') ||
+      reminders.some(r => !r.completed && r.leadId === l.id)
+    ).length;
+  }, [filteredLeads, reminders]);
+
+  const meetingCount = useMemo(() => {
+    return filteredLeads.filter(l => 
+      l.tags?.some(t => /meet|zoom|call schedule/i.test(t)) || 
+      /meet/i.test(l.stage || '')
+    ).length;
+  }, [filteredLeads]);
+
+  const noResponseCount = useMemo(() => {
+    return filteredLeads.filter(l => 
+      l.tags?.some(t => /no respon|no reply|ghost/i.test(t)) || 
+      /no respon/i.test(l.stage || '')
+    ).length;
+  }, [filteredLeads]);
   const totalRevenue = useMemo(() => {
     return wonLeads.reduce((acc, l) => {
       const val = typeof l.dealValue === 'string' ? parseFloat(l.dealValue.replace(/[^0-9.]/g, '')) : Number(l.dealValue);
@@ -710,6 +732,31 @@ export default function DashboardView({
       description = 'Wo inquiries jo timepass, spam ya reject hui hain.';
       badgeColor = 'bg-rose-100 text-rose-800';
       list = filteredLeads.filter(l => getStageCategory(l.stage) === 'Lost' || /unqualif|lost/i.test(l.stage || ''));
+    } else if (drilldownCategory === 'followup') {
+      title = '⏰ Follow-up Required Leads';
+      description = 'Jin customers par Follow-up tag laga hai ya follow-up call/alert pending hai.';
+      badgeColor = 'bg-amber-100 text-amber-900 border-amber-300';
+      list = filteredLeads.filter(l => 
+        l.tags?.some(t => /follow/i.test(t)) || 
+        /follow/i.test(l.stage || '') ||
+        reminders.some(r => !r.completed && r.leadId === l.id)
+      );
+    } else if (drilldownCategory === 'meeting') {
+      title = '🤝 Scheduled Meetings (Kin Se Meeting Hai)';
+      description = 'Jin customers ke sath Call, Demo ya Zoom Meeting tay hui hai.';
+      badgeColor = 'bg-sky-100 text-sky-900 border-sky-300';
+      list = filteredLeads.filter(l => 
+        l.tags?.some(t => /meet|zoom|call schedule/i.test(t)) || 
+        /meet/i.test(l.stage || '')
+      );
+    } else if (drilldownCategory === 'no_response') {
+      title = '📵 No Response Leads (Jawab Nahi Aaya)';
+      description = 'Customers jinko humne reply diya par aage se unka koi jawab nahi aaya.';
+      badgeColor = 'bg-slate-200 text-slate-800 border-slate-300';
+      list = filteredLeads.filter(l => 
+        l.tags?.some(t => /no respon|no reply|ghost/i.test(t)) || 
+        /no respon/i.test(l.stage || '')
+      );
     }
 
     if (drilldownSearch) {

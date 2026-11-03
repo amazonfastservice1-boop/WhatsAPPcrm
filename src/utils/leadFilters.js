@@ -151,11 +151,12 @@ export function parseLeadDate(raw) {
 
 export function getLeadFirstDate(lead) {
   if (!lead) return null;
-  // STRICT: Customer ka PEHLA EVER message timestamp!
-  // Agar customer ka pehla message 12:00 AM ke baad aaya hai to hi wo Aaj Ki Nayi Lead hai!
+  // Fallbacks: first message, created date, or last message date
   const dFirst = parseLeadDate(lead.firstMessageAt);
   if (dFirst) return dFirst;
-  return parseLeadDate(lead.createdAt);
+  const dCreated = parseLeadDate(lead.createdAt);
+  if (dCreated) return dCreated;
+  return parseLeadDate(lead.rawLastMessageAt || lead.lastMessageAt);
 }
 
 export function getLeadDate(lead) {
@@ -172,30 +173,47 @@ export function getLeadLocalDateString(lead) {
   return `${y}-${m}-${day}`;
 }
 
+export function isLeadOnDate(lead, targetDateStr) {
+  if (!lead || !targetDateStr) return false;
+  const target = targetDateStr.trim();
+  
+  // 1. Primary match on local date of firstMessageAt / createdAt
+  if (getLeadLocalDateString(lead) === target) return true;
+
+  // 2. Exact match on createdAt local date
+  const dCreated = parseLeadDate(lead.createdAt);
+  if (dCreated) {
+    const y = dCreated.getFullYear();
+    const m = String(dCreated.getMonth() + 1).padStart(2, '0');
+    const day = String(dCreated.getDate()).padStart(2, '0');
+    if (`${y}-${m}-${day}` === target) return true;
+  }
+
+  // 3. Exact match on last message / conversation local date
+  const dMsg = parseLeadDate(lead.rawLastMessageAt || lead.lastMessageAt);
+  if (dMsg) {
+    const y = dMsg.getFullYear();
+    const m = String(dMsg.getMonth() + 1).padStart(2, '0');
+    const day = String(dMsg.getDate()).padStart(2, '0');
+    if (`${y}-${m}-${day}` === target) return true;
+  }
+
+  return false;
+}
+
 export function isLeadToday(lead) {
   if (!lead) return false;
-  // STRICT: Only leads whose FIRST message arrived after 12:00 AM midnight belong to "Aaj Ki Leads"!
-  // Jinhone pehle se rabta kiya hua tha, wo purani leads hain, Aaj ki nahi!
-  const d = getLeadFirstDate(lead);
-  if (!d) return false;
-  
-  // Raat 12:00 AM se agle 12:00 AM (24 ghante) = Aaj Ka Din
   const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-  return d >= startOfToday && d <= endOfToday;
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  return isLeadOnDate(lead, todayStr);
 }
 
 export function isLeadYesterday(lead) {
   if (!lead) return false;
-  const d = getLeadFirstDate(lead);
-  if (!d) return false;
-  
-  // Kal Ka Din: Pichli raat 12:00 AM se raat 11:59:59 PM tak
   const now = new Date();
-  const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
-  const endOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
-  return d >= startOfYesterday && d <= endOfYesterday;
+  const yest = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  const yestStr = `${yest.getFullYear()}-${String(yest.getMonth() + 1).padStart(2, '0')}-${String(yest.getDate()).padStart(2, '0')}`;
+  return isLeadOnDate(lead, yestStr);
 }
 
 export function isLeadWithinDays(lead, days = 7) {
@@ -207,11 +225,6 @@ export function isLeadWithinDays(lead, days = 7) {
   cutoff.setDate(cutoff.getDate() - days);
   cutoff.setHours(0, 0, 0, 0);
   return d >= cutoff;
-}
-
-export function isLeadOnDate(lead, targetDateStr) {
-  if (!lead || !targetDateStr) return false;
-  return getLeadLocalDateString(lead) === targetDateStr;
 }
 
 export function getLeadStats(leads = [], channels = []) {

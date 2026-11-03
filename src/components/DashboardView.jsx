@@ -219,8 +219,21 @@ export default function DashboardView({
       const y = d.getFullYear();
       const m = String(d.getMonth() + 1).padStart(2, '0');
       const day = String(d.getDate()).padStart(2, '0');
-      setCustomSelectedDate(`${y}-${m}-${day}`);
-      setTimeRange('custom');
+      const targetStr = `${y}-${m}-${day}`;
+      setCustomSelectedDate(targetStr);
+
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const yest = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+      const yestStr = `${yest.getFullYear()}-${String(yest.getMonth() + 1).padStart(2, '0')}-${String(yest.getDate()).padStart(2, '0')}`;
+
+      if (targetStr === todayStr) {
+        setTimeRange('today');
+      } else if (targetStr === yestStr) {
+        setTimeRange('yesterday');
+      } else {
+        setTimeRange('custom');
+      }
     } catch (e) {}
   };
 
@@ -263,7 +276,7 @@ export default function DashboardView({
       }
       return true;
     });
-  }, [leads, selectedChannel, timeRange, selectedServiceFilter]);
+  }, [leads, selectedChannel, timeRange, selectedServiceFilter, customSelectedDate]);
 
   // --- Real Analytical Metrics ---
   const totalLeadsCount = filteredLeads.length;

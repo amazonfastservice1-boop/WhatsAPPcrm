@@ -501,7 +501,7 @@ export default function LiveChatView({
     if (!activeLead || !newRemTitle.trim()) return;
 
     const formattedTime12h = `${newRemHour.padStart(2, '0')}:${newRemMinute.padStart(2, '0')} ${newRemAmPm}`;
-    const defaultMsg = `Assalam o Alaikum ${activeLead.name}! Yeh aapke follow-up ke hawale se reminder message hai: "${newRemTitle.trim()}". Shukriya!`;
+    const defaultMsg = newRemTitle.trim();
 
     if (editingRemId) {
       const updated = leadReminders.map(r => {

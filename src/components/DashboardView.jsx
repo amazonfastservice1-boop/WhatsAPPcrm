@@ -661,12 +661,12 @@ export default function DashboardView({
       }
       return { ...st, conversionFromPrev };
     });
-  }, [filteredLeads]);
+  }, [filteredLeads, statusFilteredLeads]);
 
   // Top Requested AmazFast Services Breakdown
   const serviceStats = useMemo(() => {
     const map = {};
-    filteredLeads.forEach(l => {
+    statusFilteredLeads.forEach(l => {
       const s = l.serviceInterest?.trim();
       if (s) {
         map[s] = (map[s] || 0) + 1;
@@ -676,17 +676,17 @@ export default function DashboardView({
       .map(([name, count]) => ({ 
         name, 
         count, 
-        pct: Math.round((count / (filteredLeads.length || 1)) * 100) 
+        pct: Math.round((count / (statusFilteredLeads.length || 1)) * 100) 
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
-  }, [filteredLeads]);
+  }, [statusFilteredLeads]);
 
   // Service Grouped Leads by Day & Date (Shows clients of selected service grouped by date)
   const serviceGroupedLeads = useMemo(() => {
     const baseList = selectedServiceFilter === 'all' 
-      ? filteredLeads 
-      : filteredLeads.filter(l => {
+      ? statusFilteredLeads 
+      : statusFilteredLeads.filter(l => {
           const sm = getServiceMeta(l.serviceInterest);
           return (sm && (sm.id === selectedServiceFilter || sm.shortLabel === selectedServiceFilter)) ||
                  String(l.serviceInterest || '').toLowerCase().includes(selectedServiceFilter.toLowerCase());
@@ -728,7 +728,7 @@ export default function DashboardView({
     });
 
     return Object.values(groups).sort((a, b) => a.sortPriority - b.sortPriority);
-  }, [filteredLeads, selectedServiceFilter]);
+  }, [statusFilteredLeads, selectedServiceFilter]);
 
   // Daily Trends for past 7 days (Bar chart data)
   const dailyTrends = useMemo(() => {
@@ -847,22 +847,22 @@ export default function DashboardView({
       title = 'Sanbhalay Gaye (Qualified Quality Leads)';
       description = 'Verified aur genuine buyers jinka requirement confirm ho chuka hai.';
       badgeColor = 'bg-purple-100 text-purple-800';
-      list = filteredLeads.filter(l => getStageCategory(l.stage) === 'Qualified');
+      list = statusFilteredLeads.filter(l => getStageCategory(l.stage) === 'Qualified');
     } else if (drilldownCategory === 'stage_Proposal Sent') {
       title = 'Rate / Offer Bheji (Proposal Sent Leads)';
       description = 'Jin customers ko quotation, price plan ya proposal deliver ho chuki hai.';
       badgeColor = 'bg-orange-100 text-orange-800';
-      list = filteredLeads.filter(l => getStageCategory(l.stage) === 'Proposal Sent');
+      list = statusFilteredLeads.filter(l => getStageCategory(l.stage) === 'Proposal Sent');
     } else if (drilldownCategory === 'stage_Lost' || drilldownCategory === 'unqualified') {
       title = 'Unqualified Leads (Not Interested / Rejected)';
       description = 'Wo inquiries jo timepass, spam ya reject hui hain.';
       badgeColor = 'bg-rose-100 text-rose-800';
-      list = filteredLeads.filter(l => getStageCategory(l.stage) === 'Lost' || /unqualif|lost/i.test(l.stage || ''));
+      list = statusFilteredLeads.filter(l => getStageCategory(l.stage) === 'Lost' || /unqualif|lost/i.test(l.stage || ''));
     } else if (drilldownCategory === 'followup') {
       title = '⏰ Follow-up Required Leads';
       description = 'Jin customers par Follow-up tag laga hai ya follow-up call/alert pending hai.';
       badgeColor = 'bg-amber-100 text-amber-900 border-amber-300';
-      list = filteredLeads.filter(l => 
+      list = statusFilteredLeads.filter(l => 
         l.tags?.some(t => /follow/i.test(t)) || 
         /follow/i.test(l.stage || '') ||
         reminders.some(r => !r.completed && r.leadId === l.id)
@@ -871,7 +871,7 @@ export default function DashboardView({
       title = '🤝 Scheduled Meetings (Kin Se Meeting Hai)';
       description = 'Jin customers ke sath Call, Demo ya Zoom Meeting tay hui hai.';
       badgeColor = 'bg-sky-100 text-sky-900 border-sky-300';
-      list = filteredLeads.filter(l => 
+      list = statusFilteredLeads.filter(l => 
         l.tags?.some(t => /meet|zoom|call schedule/i.test(t)) || 
         /meet/i.test(l.stage || '')
       );
@@ -879,7 +879,7 @@ export default function DashboardView({
       title = '📵 No Response Leads (Jawab Nahi Aaya)';
       description = 'Customers jinko humne reply diya par aage se unka koi jawab nahi aaya.';
       badgeColor = 'bg-slate-200 text-slate-800 border-slate-300';
-      list = filteredLeads.filter(l => 
+      list = statusFilteredLeads.filter(l => 
         l.tags?.some(t => /no respon|no reply|ghost/i.test(t)) || 
         /no respon/i.test(l.stage || '')
       );

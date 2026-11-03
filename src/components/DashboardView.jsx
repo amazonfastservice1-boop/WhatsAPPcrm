@@ -456,19 +456,19 @@ export default function DashboardView({
     return 'New Lead';
   };
 
-  // Won Deals & Revenue
+  // Won Deals & Revenue (includes any contact marked Deal Won in this period)
   const wonLeads = useMemo(() => {
-    return filteredLeads.filter(l => {
+    return statusFilteredLeads.filter(l => {
       const s = String(l.stage || '').toLowerCase();
       return s.includes('won') || s.includes('closed');
     });
-  }, [filteredLeads]);
+  }, [statusFilteredLeads]);
 
   const wonCount = wonLeads.length;
 
   const qualifiedCount = useMemo(() => {
-    return filteredLeads.filter(l => getStageCategory(l.stage) === 'Qualified').length;
-  }, [filteredLeads]);
+    return statusFilteredLeads.filter(l => getStageCategory(l.stage) === 'Qualified').length;
+  }, [statusFilteredLeads]);
 
   const contactedCount = useMemo(() => {
     return filteredLeads.filter(l => getStageCategory(l.stage) === 'Contacted').length;
@@ -479,30 +479,30 @@ export default function DashboardView({
   }, [filteredLeads]);
 
   const unqualifiedCount = useMemo(() => {
-    return filteredLeads.filter(l => getStageCategory(l.stage) === 'Lost' || /unqualif/i.test(l.stage || '')).length;
-  }, [filteredLeads]);
+    return statusFilteredLeads.filter(l => getStageCategory(l.stage) === 'Lost' || /unqualif/i.test(l.stage || '')).length;
+  }, [statusFilteredLeads]);
 
   const followUpCount = useMemo(() => {
-    return filteredLeads.filter(l => 
+    return statusFilteredLeads.filter(l => 
       l.tags?.some(t => /follow/i.test(t)) || 
       /follow/i.test(l.stage || '') ||
       reminders.some(r => !r.completed && r.leadId === l.id)
     ).length;
-  }, [filteredLeads, reminders]);
+  }, [statusFilteredLeads, reminders]);
 
   const meetingCount = useMemo(() => {
-    return filteredLeads.filter(l => 
+    return statusFilteredLeads.filter(l => 
       l.tags?.some(t => /meet|zoom|call schedule/i.test(t)) || 
       /meet/i.test(l.stage || '')
     ).length;
-  }, [filteredLeads]);
+  }, [statusFilteredLeads]);
 
   const noResponseCount = useMemo(() => {
-    return filteredLeads.filter(l => 
+    return statusFilteredLeads.filter(l => 
       l.tags?.some(t => /no respon|no reply|ghost/i.test(t)) || 
       /no respon/i.test(l.stage || '')
     ).length;
-  }, [filteredLeads]);
+  }, [statusFilteredLeads]);
   const totalRevenue = useMemo(() => {
     return wonLeads.reduce((acc, l) => {
       const val = typeof l.dealValue === 'string' ? parseFloat(l.dealValue.replace(/[^0-9.]/g, '')) : Number(l.dealValue);
@@ -529,17 +529,32 @@ export default function DashboardView({
       'Lost': 0,
     };
 
+    // New Lead & Contacted strictly from arrival leads (filteredLeads)
     filteredLeads.forEach(l => {
       const cat = getStageCategory(l.stage);
-      counts[cat]++;
-      const val = typeof l.dealValue === 'string' ? parseFloat(l.dealValue.replace(/[^0-9.]/g, '')) : Number(l.dealValue);
-      if (!isNaN(val) && val > 0) {
-        values[cat] += val;
+      if (cat === 'New Lead' || cat === 'Contacted') {
+        counts[cat]++;
+        const val = typeof l.dealValue === 'string' ? parseFloat(l.dealValue.replace(/[^0-9.]/g, '')) : Number(l.dealValue);
+        if (!isNaN(val) && val > 0) {
+          values[cat] += val;
+        }
+      }
+    });
+
+    // Qualified, Proposal Sent, Deal Won, Lost from statusFilteredLeads (includes old contacts updated in this period)
+    statusFilteredLeads.forEach(l => {
+      const cat = getStageCategory(l.stage);
+      if (cat === 'Qualified' || cat === 'Proposal Sent' || cat === 'Deal Won' || cat === 'Lost') {
+        counts[cat]++;
+        const val = typeof l.dealValue === 'string' ? parseFloat(l.dealValue.replace(/[^0-9.]/g, '')) : Number(l.dealValue);
+        if (!isNaN(val) && val > 0) {
+          values[cat] += val;
+        }
       }
     });
 
     const max = Math.max(...Object.values(counts), 1);
-    const totalLeads = filteredLeads.length || 1;
+    const totalLeads = Math.max(filteredLeads.length, 1);
 
     const list = [
       { 

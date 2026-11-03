@@ -1101,9 +1101,9 @@ export default function LiveChatView({
 
   if (leads.length === 0) {
     return (
-      <div className="flex h-[calc(100vh-73px)] overflow-hidden bg-[#F8F9FC]">
+      <div className="flex h-full w-full overflow-hidden bg-[#F8F9FC]">
         {/* Left Column: Conversations List */}
-        <div className="w-80 md:w-96 bg-white border-r border-[#EEF2F6] flex flex-col shrink-0">
+        <div className="w-72 sm:w-80 xl:w-[330px] 2xl:w-96 bg-white border-r border-[#EEF2F6] flex flex-col shrink-0">
           <div className="p-3.5 border-b border-[#F1F5F9] space-y-2.5">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-extrabold text-slate-900 tracking-tight">Customer WhatsApp Chats</h2>
@@ -1126,9 +1126,9 @@ export default function LiveChatView({
   }
 
   return (
-    <div className="flex h-[calc(100vh-73px)] overflow-hidden bg-[#F8F9FC]">
+    <div className="flex h-full w-full overflow-hidden bg-[#F8F9FC]">
       {/* 1. Left Column: Conversations List (WhatsApp Style) */}
-      <div className="w-80 md:w-96 bg-white border-r border-[#EEF2F6] flex flex-col shrink-0">
+      <div className="w-72 sm:w-80 xl:w-[330px] 2xl:w-96 bg-white border-r border-[#EEF2F6] flex flex-col shrink-0">
         {/* Header & Channel Selector */}
         <div className="p-3.5 border-b border-[#F1F5F9] space-y-2.5">
           <div className="flex items-center justify-between">

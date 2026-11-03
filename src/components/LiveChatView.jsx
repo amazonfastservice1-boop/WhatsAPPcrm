@@ -1156,16 +1156,84 @@ export default function LiveChatView({
             </div>
           )}
 
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchLeadTerm}
-              onChange={(e) => setSearchLeadTerm(e.target.value)}
-              placeholder="Customer ka naam ya phone likhein..."
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 text-xs font-medium text-slate-800 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500"
-            />
+          {/* Search Mode & Input (Search by Phone Number Option) */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                {searchMode === 'phone' ? (
+                  <span className="text-emerald-700 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    📞 Number Se Search
+                  </span>
+                ) : (
+                  <span>🔍 Chat Search</span>
+                )}
+              </span>
+              <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200/70 text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => setSearchMode('phone')}
+                  className={`px-2 py-0.5 rounded-md font-extrabold transition-all flex items-center gap-1 ${
+                    searchMode === 'phone'
+                      ? 'bg-emerald-600 text-white shadow-2xs'
+                      : 'text-slate-600 hover:text-emerald-700'
+                  }`}
+                  title="WhatsApp phone number se client dhoondein"
+                >
+                  <span>📞 Number</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSearchMode('all')}
+                  className={`px-2 py-0.5 rounded-md font-extrabold transition-all ${
+                    searchMode === 'all'
+                      ? 'bg-white text-orange-600 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="Naam aur number dono se dhoondein"
+                >
+                  Sab (All)
+                </button>
+              </div>
+            </div>
+
+            <div className="relative">
+              {searchMode === 'phone' ? (
+                <Phone className="w-3.5 h-3.5 text-emerald-600 absolute left-3 top-1/2 -translate-y-1/2" />
+              ) : (
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              )}
+              <input
+                type={searchMode === 'phone' ? 'tel' : 'text'}
+                value={searchLeadTerm}
+                onChange={(e) => setSearchLeadTerm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && displayLeads.length > 0) {
+                    setSelectedLeadId(displayLeads[0].id);
+                  }
+                }}
+                placeholder={
+                  searchMode === 'phone'
+                    ? "Customer ka number likhein (0332..., +966...)"
+                    : "Customer ka naam ya phone likhein..."
+                }
+                className={`w-full pl-8 pr-7 py-1.5 text-xs font-bold rounded-xl border focus:outline-none transition-all ${
+                  searchMode === 'phone'
+                    ? 'bg-emerald-50/50 border-emerald-300 text-emerald-950 placeholder-emerald-700/60 focus:border-emerald-600 focus:bg-white'
+                    : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-orange-500 focus:bg-white'
+                }`}
+              />
+              {searchLeadTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchLeadTerm('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold p-0.5"
+                  title="Clear search"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
 
           {/* AmazFast Service Filter Dropdown */}

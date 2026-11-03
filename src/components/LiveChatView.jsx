@@ -37,7 +37,8 @@ import {
   Users,
   Video,
   Calendar,
-  Plus
+  Plus,
+  Info
 } from 'lucide-react';
 import { AGENTS, PIPELINE_STAGES, QUICK_REPLIES } from '../data/mockData';
 import { AMAZFAST_SERVICES, getServiceMeta } from '../data/servicesList';

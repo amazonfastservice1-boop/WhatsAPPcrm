@@ -1174,36 +1174,36 @@ export default function DashboardView({
         </div>
       </div>
 
-      {/* 2. Top Interactive Pipeline KPI Cards (Clickable Drilldown) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-9 gap-3">
+      {/* 2. Top Interactive Pipeline KPI Cards (2 Spacious Rows) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {/* Card 0: Total Leads (Kul Leads) */}
         <div 
           onClick={() => { setDrilldownCategory('all_leads'); setDrilldownSearch(''); }}
-          className="card-soft p-3.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-indigo-400 transition-all border border-slate-200/80 cursor-pointer"
+          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-indigo-400 transition-all border border-slate-200/80 cursor-pointer"
           title="Click to view all leads in current filter"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
               <Layers className="w-4 h-4" />
             </div>
-            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 flex items-center gap-1">
+            <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 flex items-center gap-1">
               <Eye className="w-3 h-3" /> {timeRange === 'today' ? 'Aaj' : timeRange === 'yesterday' ? 'Kal' : timeRange === '7days' ? '7 Din' : 'Kul'}
             </span>
           </div>
 
-          <div className="mt-2.5 flex items-baseline gap-1.5">
-            <h3 className="text-xl font-black text-slate-900 tracking-tight">
+          <div className="mt-3 flex items-baseline gap-2">
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight">
               {totalLeadsCount}
             </h3>
-            <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+            <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
               📊 Total
             </span>
           </div>
-          <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
+          <p className="text-xs text-slate-500 font-semibold mt-1 truncate">
             {timeRange === 'today' ? 'Aaj Aayi Hui Leads' : 'Tamaam Aayi Hui Leads'}
           </p>
 
-          <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
+          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
             <span className="text-indigo-700">All Clients</span>
             <span className="text-slate-400 font-medium">List →</span>
           </div>
@@ -1212,31 +1212,31 @@ export default function DashboardView({
         {/* Card 1: Naye Customers (New Leads) */}
         <div 
           onClick={() => { setDrilldownCategory('stage_New Lead'); setDrilldownSearch(''); }}
-          className="card-soft p-3.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-amber-400 transition-all border border-slate-200/80 cursor-pointer"
+          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-amber-400 transition-all border border-slate-200/80 cursor-pointer"
           title="Click to view new leads list"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
               <Users className="w-4 h-4" />
             </div>
-            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 flex items-center gap-1">
+            <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 flex items-center gap-1">
               <Eye className="w-3 h-3" /> Naye
             </span>
           </div>
 
-          <div className="mt-2.5 flex items-baseline gap-1.5">
-            <h3 className="text-xl font-black text-slate-900 tracking-tight">
+          <div className="mt-3 flex items-baseline gap-2">
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight">
               {newLeadsCount}
             </h3>
-            <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
+            <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
               🟡 New
             </span>
           </div>
-          <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
+          <p className="text-xs text-slate-500 font-semibold mt-1 truncate">
             Pehla Msg Aaya Hai
           </p>
 
-          <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
+          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
             <span className="text-amber-700">Reply Dena Hai</span>
             <span className="text-slate-400 font-medium">List →</span>
           </div>
@@ -1245,31 +1245,31 @@ export default function DashboardView({
         {/* Card 2: Contacted (Rabta Hua) */}
         <div 
           onClick={() => { setDrilldownCategory('stage_Contacted'); setDrilldownSearch(''); }}
-          className="card-soft p-3.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-blue-400 transition-all border border-slate-200/80 cursor-pointer"
+          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-blue-400 transition-all border border-slate-200/80 cursor-pointer"
           title="Click to view contacted customers"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
               <MessageSquare className="w-4 h-4" />
             </div>
-            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 flex items-center gap-1">
+            <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 flex items-center gap-1">
               <Eye className="w-3 h-3" /> Active
             </span>
           </div>
 
-          <div className="mt-2.5 flex items-baseline gap-1.5">
-            <h3 className="text-xl font-black text-slate-900 tracking-tight">
+          <div className="mt-3 flex items-baseline gap-2">
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight">
               {contactedCount}
             </h3>
-            <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+            <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
               🔵 Active
             </span>
           </div>
-          <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
+          <p className="text-xs text-slate-500 font-semibold mt-1 truncate">
             Rabta Hua (Chat Chalu)
           </p>
 
-          <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-600">
+          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-600">
             <span className="text-blue-700">Baat Chal Rahi</span>
             <span className="text-slate-400 font-medium">List →</span>
           </div>
@@ -1278,130 +1278,130 @@ export default function DashboardView({
         {/* Card 3: Qualified (Quality Leads) */}
         <div 
           onClick={() => { setDrilldownCategory('stage_Qualified'); setDrilldownSearch(''); }}
-          className="card-soft p-3.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-purple-400 transition-all border border-slate-200/80 cursor-pointer"
+          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-purple-400 transition-all border border-slate-200/80 cursor-pointer"
           title="Click to view qualified leads list"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
               <CheckCircle2 className="w-4 h-4" />
             </div>
-            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 flex items-center gap-1">
+            <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 flex items-center gap-1">
               <Eye className="w-3 h-3" /> Genuine
             </span>
           </div>
 
-          <div className="mt-2.5 flex items-baseline gap-1.5">
-            <h3 className="text-xl font-black text-purple-900 tracking-tight">
+          <div className="mt-3 flex items-baseline gap-2">
+            <h3 className="text-2xl font-black text-purple-900 tracking-tight">
               {qualifiedCount}
             </h3>
-            <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+            <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
               🟣 Qualified
             </span>
           </div>
-          <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
+          <p className="text-xs text-slate-500 font-semibold mt-1 truncate">
             Genuine Quality Buyers
           </p>
 
-          <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
+          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
             <span className="text-purple-700">Khareedar Tayyar</span>
             <span className="text-slate-400 font-medium">List →</span>
           </div>
         </div>
 
-        {/* Card 4: Follow-up Required Leads (NEW) */}
+        {/* Card 4: Follow-up Required Leads */}
         <div 
           onClick={() => { setDrilldownCategory('followup'); setDrilldownSearch(''); }}
-          className="card-soft p-3.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-amber-400 transition-all border border-slate-200/80 cursor-pointer"
+          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-amber-400 transition-all border border-slate-200/80 cursor-pointer"
           title="Click to view follow-up leads"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
               <Clock className="w-4 h-4 text-amber-600" />
             </div>
-            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 flex items-center gap-1">
+            <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 flex items-center gap-1">
               <Eye className="w-3 h-3" /> Follow-up
             </span>
           </div>
 
-          <div className="mt-2.5 flex items-baseline gap-1.5">
-            <h3 className="text-xl font-black text-amber-900 tracking-tight">
+          <div className="mt-3 flex items-baseline gap-2">
+            <h3 className="text-2xl font-black text-amber-900 tracking-tight">
               {followUpCount}
             </h3>
-            <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
+            <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
               ⏰ Follow-up
             </span>
           </div>
-          <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
+          <p className="text-xs text-slate-500 font-semibold mt-1 truncate">
             Follow-up Call / Message
           </p>
 
-          <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
+          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
             <span className="text-amber-700">Follow-up List</span>
             <span className="text-slate-400 font-medium">List →</span>
           </div>
         </div>
 
-        {/* Card 5: Meeting Scheduled (NEW) */}
+        {/* Card 5: Meeting Scheduled */}
         <div 
           onClick={() => { setDrilldownCategory('meeting'); setDrilldownSearch(''); }}
-          className="card-soft p-3.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-sky-400 transition-all border border-slate-200/80 cursor-pointer"
+          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-sky-400 transition-all border border-slate-200/80 cursor-pointer"
           title="Click to view scheduled meetings"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
               <CalendarIcon className="w-4 h-4 text-sky-600" />
             </div>
-            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 flex items-center gap-1">
+            <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 flex items-center gap-1">
               <Eye className="w-3 h-3" /> Meeting
             </span>
           </div>
 
-          <div className="mt-2.5 flex items-baseline gap-1.5">
-            <h3 className="text-xl font-black text-sky-900 tracking-tight">
+          <div className="mt-3 flex items-baseline gap-2">
+            <h3 className="text-2xl font-black text-sky-900 tracking-tight">
               {meetingCount}
             </h3>
-            <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-sky-50 text-sky-700 border border-sky-200">
+            <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 border border-sky-200">
               🤝 Meeting
             </span>
           </div>
-          <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
+          <p className="text-xs text-slate-500 font-semibold mt-1 truncate">
             Kin Se Meeting Hai
           </p>
 
-          <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
+          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
             <span className="text-sky-700">Meetings List</span>
             <span className="text-slate-400 font-medium">List →</span>
           </div>
         </div>
 
-        {/* Card 6: No Response / Ghosted (NEW) */}
+        {/* Card 6: No Response / Ghosted */}
         <div 
           onClick={() => { setDrilldownCategory('no_response'); setDrilldownSearch(''); }}
-          className="card-soft p-3.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-slate-400 transition-all border border-slate-200/80 cursor-pointer"
+          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-slate-400 transition-all border border-slate-200/80 cursor-pointer"
           title="Click to view no response leads"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
               <MessageCircle className="w-4 h-4 text-slate-600" />
             </div>
-            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-200 text-slate-800 flex items-center gap-1">
+            <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-800 flex items-center gap-1">
               <Eye className="w-3 h-3" /> Pending
             </span>
           </div>
 
-          <div className="mt-2.5 flex items-baseline gap-1.5">
-            <h3 className="text-xl font-black text-slate-800 tracking-tight">
+          <div className="mt-3 flex items-baseline gap-2">
+            <h3 className="text-2xl font-black text-slate-800 tracking-tight">
               {noResponseCount}
             </h3>
-            <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-300">
+            <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-300">
               📵 No Reply
             </span>
           </div>
-          <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
+          <p className="text-xs text-slate-500 font-semibold mt-1 truncate">
             Jawab Nahi Aaya
           </p>
 
-          <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
+          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
             <span className="text-slate-700">No Response</span>
             <span className="text-slate-400 font-medium">List →</span>
           </div>
@@ -1410,31 +1410,31 @@ export default function DashboardView({
         {/* Card 7: Deals Won & Revenue */}
         <div 
           onClick={() => { setDrilldownCategory('won'); setDrilldownSearch(''); }}
-          className="card-soft p-3.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-emerald-400 transition-all border border-slate-200/80 cursor-pointer"
+          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-emerald-400 transition-all border border-slate-200/80 cursor-pointer"
           title="Click to view won deals"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
               <TrendingUp className="w-4 h-4" />
             </div>
-            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1">
+            <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1">
               <Eye className="w-3 h-3" /> Sales
             </span>
           </div>
 
-          <div className="mt-2.5 flex items-baseline gap-1.5">
-            <h3 className="text-xl font-black text-emerald-900 tracking-tight">
+          <div className="mt-3 flex items-baseline gap-2">
+            <h3 className="text-2xl font-black text-emerald-900 tracking-tight">
               {wonCount}
             </h3>
-            <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
               🟢 Won
             </span>
           </div>
-          <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
+          <p className="text-xs text-slate-500 font-semibold mt-1 truncate">
             {totalRevenue > 0 ? `PKR ${totalRevenue.toLocaleString()}` : 'Closed Deals'}
           </p>
 
-          <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
+          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
             <span className="text-emerald-700">Kamai / Sales</span>
             <span className="text-slate-400 font-medium">List →</span>
           </div>
@@ -1443,121 +1443,43 @@ export default function DashboardView({
         {/* Card 8: Unqualified / Rejected (Red Card) */}
         <div 
           onClick={() => { setDrilldownCategory('stage_Lost'); setDrilldownSearch(''); }}
-          className="card-soft p-3.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-rose-400 transition-all border border-slate-200/80 cursor-pointer"
+          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-rose-400 transition-all border border-slate-200/80 cursor-pointer"
           title="Click to view unqualified inquiries"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
               <AlertCircle className="w-4 h-4" />
             </div>
-            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 flex items-center gap-1">
+            <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 flex items-center gap-1">
               <Eye className="w-3 h-3" /> Rejected
             </span>
           </div>
 
-          <div className="mt-2.5 flex items-baseline gap-1.5">
-            <h3 className="text-xl font-black text-rose-900 tracking-tight">
+          <div className="mt-3 flex items-baseline gap-2">
+            <h3 className="text-2xl font-black text-rose-900 tracking-tight">
               {unqualifiedCount}
             </h3>
-            <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200">
+            <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200">
               🔴 Lost
             </span>
           </div>
-          <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
+          <p className="text-xs text-slate-500 font-semibold mt-1 truncate">
             Timepass / Reject
           </p>
 
-          <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
+          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
             <span className="text-rose-700">Rejected List</span>
             <span className="text-slate-400 font-medium">List →</span>
           </div>
         </div>
       </div>
 
-      {/* 3. Dedicated Admin Visual Section: Response Flow & Engagement Bar */}
+      {/* 3. Main Analytics Graph & Pipeline Health Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Left 2 Cols: Inbound vs Outbound Messages & Response Breakdown */}
+        {/* Left 2 Cols: Main Analytics Graph Section */}
         <div className="lg:col-span-2 card-soft p-6 bg-white border border-slate-200/80 space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
-                <h3 className="text-base font-extrabold text-slate-900 tracking-tight">
-                  Aaj Ke Messages Aur Reply Ka Hisaab
-                </h3>
-              </div>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Kitne messages aye, kitno ko jawab diya gaya aur kitna response time raha.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg">
-                ⚡ {messageStats.replyRate}% Response Rate
-              </span>
-            </div>
-          </div>
-
-          {/* Visual Ratio Bar: Replied vs Pending */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs font-extrabold">
-              <span className="text-emerald-700 flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                Reply Send Kar Diya: {repliedLeadsList.length} Customers ({messageStats.replyRate}%)
-              </span>
-              <span className="text-amber-700 flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                Pending Jawab Dena Hai: {pendingLeadsList.length} Customers ({100 - messageStats.replyRate}%)
-              </span>
-            </div>
-
-            <div className="w-full bg-amber-100 h-4 rounded-full overflow-hidden flex">
-              <div 
-                style={{ width: `${messageStats.replyRate}%` }} 
-                className="bg-emerald-500 h-full rounded-l-full transition-all duration-500 shadow-sm"
-                title={`${repliedLeadsList.length} Replied`}
-              ></div>
-              <div 
-                style={{ width: `${100 - messageStats.replyRate}%` }} 
-                className="bg-amber-400 h-full rounded-r-full transition-all duration-500 shadow-sm"
-                title={`${pendingLeadsList.length} Pending`}
-              ></div>
-            </div>
-          </div>
-
-          {/* 3 Detail KPI Chips */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
-              <span className="text-[10px] font-extrabold text-slate-500 uppercase block">Customers Ke Messages (Inbound)</span>
-              <span className="text-xl font-black text-slate-900 mt-1 block">
-                {filteredLeads.length} <span className="text-xs text-slate-500 font-semibold">Customers</span>
-              </span>
-              <p className="text-[11px] text-slate-500 mt-0.5">
-                {messageStats.customerMsgs} WhatsApp Inbound Messages
-              </p>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
-              <span className="text-[10px] font-extrabold text-slate-500 uppercase block">Hamare Replies (Outbound)</span>
-              <span className="text-xl font-black text-emerald-600 mt-1 block">
-                {repliedLeadsList.length} <span className="text-xs text-slate-500 font-semibold">Replies Sent</span>
-              </span>
-              <p className="text-[11px] text-slate-500 mt-0.5">
-                {messageStats.agentMsgs > 0 ? `${messageStats.agentMsgs} messages deliver kiye` : 'Koi reply nahi gaya abhi'}
-              </p>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
-              <span className="text-[10px] font-extrabold text-slate-500 uppercase block">Har Message Ka Reply Time</span>
-              <span className="text-xl font-black text-orange-600 mt-1 block">
-                ~2.4 <span className="text-xs text-slate-500 font-semibold">Minutes</span>
-              </span>
-              <p className="text-[11px] text-emerald-600 font-bold mt-0.5">⚡ WhatsApp Best Benchmark</p>
-            </div>
-          </div>
-
           {/* Main Analytics Graph Section: Pipeline Stages vs 7-Day Volume */}
-          <div className="pt-2">
+          <div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 gap-2 border-b border-slate-100">
               {/* Primary Tab Switcher */}
               <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-xl">

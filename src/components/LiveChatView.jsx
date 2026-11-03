@@ -3076,7 +3076,7 @@ export default function LiveChatView({
                           <p className={`text-[11px] p-1.5 rounded-lg border font-medium mt-1 leading-snug break-words ${
                             rem.completed ? 'bg-slate-100/60 border-slate-200 text-slate-500 line-through' : 'bg-orange-50/70 border-orange-200/70 text-slate-800'
                           }`}>
-                            💬 "{rem.customMessage}"
+                            💬 {String(rem.customMessage).replace(/^["']|["']$/g, '')}
                           </p>
                         )}
                       </div>

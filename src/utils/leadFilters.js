@@ -214,6 +214,54 @@ export function isLeadOnDate(lead, targetDateStr) {
   return getLeadLocalDateString(lead) === targetDateStr.trim();
 }
 
+export function isLeadStatusActiveInPeriod(lead, timeRange = 'today', customSelectedDate = '') {
+  if (!lead) return false;
+  if (timeRange === 'all') return true;
+
+  // Check explicit statusUpdatedAt timestamp (set whenever agent clicks Deal Won, Qualified, Follow-up, etc.)
+  const d = parseLeadDate(lead.statusUpdatedAt);
+  if (!d) return false;
+
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const tomorrowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+
+  if (timeRange === 'today') {
+    return d >= todayStart && d < tomorrowStart;
+  }
+  if (timeRange === 'yesterday') {
+    const yesterdayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+    return d >= yesterdayStart && d < todayStart;
+  }
+  if (timeRange === 'custom' && customSelectedDate) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}` === customSelectedDate.trim();
+  }
+  if (timeRange === '7days') {
+    const cutoff = new Date(todayStart);
+    cutoff.setDate(cutoff.getDate() - 7);
+    return d >= cutoff;
+  }
+  if (timeRange === '30days') {
+    const cutoff = new Date(todayStart);
+    cutoff.setDate(cutoff.getDate() - 30);
+    return d >= cutoff;
+  }
+  if (timeRange === '6months') {
+    const cutoff = new Date(todayStart);
+    cutoff.setDate(cutoff.getDate() - 180);
+    return d >= cutoff;
+  }
+  if (timeRange === 'year') {
+    const cutoff = new Date(todayStart);
+    cutoff.setDate(cutoff.getDate() - 365);
+    return d >= cutoff;
+  }
+  return false;
+}
+
 export function getLeadStats(leads = [], channels = []) {
   const total = leads.length;
   let todayCount = 0;

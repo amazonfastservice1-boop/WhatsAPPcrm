@@ -95,9 +95,10 @@ export default function App() {
     const bg = avatarBgColors[charCode % avatarBgColors.length];
     const generatedAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName || 'U')}&background=${bg}&color=fff&size=128&bold=true&rounded=true`;
 
+    const cleanPhoneKey = String(l.phoneNumber || '').replace(/\D/g, '');
     const localTags = (() => {
       try {
-        const raw = localStorage.getItem(`crm_lead_tags_${l.id}`);
+        const raw = localStorage.getItem(`crm_lead_tags_${l.id}`) || (cleanPhoneKey ? localStorage.getItem(`crm_phone_tags_${cleanPhoneKey}`) : null);
         return raw ? JSON.parse(raw) : null;
       } catch {
         return null;
@@ -105,7 +106,21 @@ export default function App() {
     })();
     const localStage = (() => {
       try {
-        return localStorage.getItem(`crm_lead_stage_${l.id}`);
+        return localStorage.getItem(`crm_lead_stage_${l.id}`) || (cleanPhoneKey ? localStorage.getItem(`crm_phone_stage_${cleanPhoneKey}`) : null);
+      } catch {
+        return null;
+      }
+    })();
+    const localStatusDate = (() => {
+      try {
+        const savedDate = localStorage.getItem(`crm_lead_status_date_${l.id}`) || (cleanPhoneKey ? localStorage.getItem(`crm_phone_status_date_${cleanPhoneKey}`) : null);
+        if (savedDate) return savedDate;
+        if (localStage || (Array.isArray(localTags) && localTags.length > 0)) {
+          const fallbackIso = l.updatedAt ? new Date(l.updatedAt).toISOString() : new Date().toISOString();
+          localStorage.setItem(`crm_lead_status_date_${l.id}`, fallbackIso);
+          return fallbackIso;
+        }
+        return null;
       } catch {
         return null;
       }
@@ -125,6 +140,7 @@ export default function App() {
       dealValue: l.dealValue ? l.dealValue.toLocaleString() : '0',
       serviceInterest: l.serviceInterest || '',
       stage: resolvedStage,
+      statusUpdatedAt: localStatusDate,
       assignedToId: l.assignedToId || null,
       assignedTo: l.assignedTo?.name || 'Unassigned',
       assignedAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',

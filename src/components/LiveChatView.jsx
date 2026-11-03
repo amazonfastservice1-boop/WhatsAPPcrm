@@ -290,7 +290,7 @@ export default function LiveChatView({
   const [pendingImage, setPendingImage] = useState(null); // { file, previewUrl, base64 }
   const [isUploading, setIsUploading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showCustomerDetails, setShowCustomerDetails] = useState(false);
+  const [showCustomerDetails, setShowCustomerDetails] = useState(true);
   const fileInputRef = useRef(null);
 
   // Voice recording state
@@ -1389,15 +1389,6 @@ export default function LiveChatView({
             >
               🔴 Unqualified ({stageCounts.unqualified})
             </button>
-            <button 
-              type="button"
-              onClick={() => setFilterTab('unassigned')}
-              className={`pb-1 px-2 border-b-2 font-bold whitespace-nowrap transition-colors ${
-                filterTab === 'unassigned' ? 'border-slate-500 text-slate-700' : 'border-transparent text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Bina Assign ({stageCounts.unassigned})
-            </button>
           </div>
         </div>
 
@@ -1576,17 +1567,9 @@ export default function LiveChatView({
                         {lead.dealValue ? `${lead.dealValue} ${lead.currency}` : lead.stage}
                       </span>
 
-                      {lead.unreadCount > 0 ? (
+                      {lead.unreadCount > 0 && (
                         <span className="w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center shadow-xs">
                           {lead.unreadCount}
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-medium text-slate-600 flex items-center gap-1">
-                          {(!lead.assignedTo || lead.assignedTo === 'Unassigned') ? (
-                            <span className="text-amber-600 font-bold">Unassigned</span>
-                          ) : (
-                            <span>{(lead.assignedTo || '').split(' ')[0]}</span>
-                          )}
                         </span>
                       )}
                     </div>
@@ -1708,18 +1691,9 @@ export default function LiveChatView({
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                   Online
                 </span>
-
-                {/* Direct Stage Mover from Chat */}
-                <select
-                  value={activeLead.stage}
-                  onChange={(e) => onUpdateLead(activeLead.id, { stage: e.target.value })}
-                  className={`text-[10px] font-extrabold px-2 py-0.5 rounded-lg border cursor-pointer transition-all ${getStageBadgeStyle(activeLead.stage)}`}
-                  title="Kanban Stage Badlein (Foran update hoga)"
-                >
-                  {PIPELINE_STAGES.map(s => (
-                    <option key={s.id} value={s.id}>{s.id}</option>
-                  ))}
-                </select>
+                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-lg border ${getStageBadgeStyle(activeLead.stage)}`}>
+                  {activeLead.stage}
+                </span>
               </div>
               <p className="text-xs text-slate-600 font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
                 <span className="font-black text-slate-900 text-sm tracking-wide bg-slate-100 px-2 py-0.5 rounded-md select-all border border-slate-200/80">
@@ -1732,53 +1706,40 @@ export default function LiveChatView({
           </div>
 
           {/* Quick Agent Actions */}
-          <div className="flex items-center gap-2">
-            <div className="text-right hidden sm:block">
-              <span className="text-[10px] font-bold text-slate-600 block">ASSIGNED TO</span>
-              <span className="text-xs font-bold text-orange-600">{activeLead.assignedTo}</span>
-            </div>
-
+          <div className="flex items-center gap-2 shrink-0">
             {/* Direct WhatsApp Web Link for 1-Click First Contact */}
             <a
-              href={`https://wa.me/${(activeLead.phone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Assalam o Alaikum, AmazFast support team se rabta karne ka shukriya!')}`}
+              href={`https://wa.me/${(activeLead.phone || '').replace(/[^0-9]/g, '')}`}
               target="_blank"
               rel="noopener noreferrer"
               className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all"
-              title="Direct WhatsApp Web ya Mobile App mein khol kar baat shuru karein"
+              title="Direct WhatsApp Web ya Mobile App mein kholein"
             >
               <MessageSquare className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">WhatsApp Web</span>
             </a>
 
-            <button 
-              onClick={() => alert(`Calling ${activeLead.phone} via WhatsApp VoIP...`)}
-              className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700"
-              title="Call Lead"
-            >
-              <Phone className="w-4 h-4" />
-            </button>
-
-            {/* Customer CRM Profile Toggle (Gives laptops spacious unzoomed chat width) */}
+            {/* Customer Right Sidebar Toggle */}
             <button 
               type="button"
               onClick={() => setShowCustomerDetails(prev => !prev)}
-              className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all ${
+              className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all ${
                 showCustomerDetails 
                   ? 'bg-orange-500 text-white border-orange-500 shadow-2xs' 
                   : 'border-slate-200 hover:bg-slate-50 text-slate-700 bg-white'
               }`}
-              title={showCustomerDetails ? "Customer Details Chupayein" : "Customer Details Dekhein"}
+              title={showCustomerDetails ? "Side Panel Chupayein" : "Side Panel Kholein"}
             >
-              <Info className="w-4 h-4" />
-              <span className="hidden xl:inline">{showCustomerDetails ? 'Hide Details' : 'Details'}</span>
+              <Info className="w-3.5 h-3.5" />
+              <span className="hidden xl:inline">{showCustomerDetails ? 'Side Panel' : 'Side Panel'}</span>
             </button>
           </div>
         </div>
 
-        {/* ⚡ AmazFast Smart Qualification & Service Bar (Paper-Pencil Replacement) */}
-        <div className="bg-white border-b border-slate-200 px-3 py-1.5 flex items-center justify-between gap-2 shrink-0 overflow-x-auto shadow-2xs">
+        {/* ⚡ AmazFast Smart Qualification & Service Bar */}
+        <div className="bg-slate-50/70 border-b border-slate-200 px-3.5 py-2 flex items-center justify-between gap-2 shrink-0 overflow-x-auto">
           {/* Service Dropdown */}
-          <div className="flex items-center gap-1.5 shrink-0 min-w-[160px] sm:min-w-[200px]">
+          <div className="flex items-center gap-1.5 shrink-0">
             <span className="text-[11px] font-black uppercase text-slate-500 flex items-center gap-1">
               <span>💼</span>
               <span>Service:</span>
@@ -1793,7 +1754,7 @@ export default function LiveChatView({
                   setTimeout(() => setSmartBarToast(null), 3000);
                 }
               }}
-              className="flex-1 text-xs font-bold px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-orange-500 cursor-pointer shadow-2xs transition-all hover:bg-orange-50/40"
+              className="text-xs font-bold px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-orange-500 cursor-pointer shadow-2xs transition-all hover:border-orange-300"
               title="Customer kis AmazFast service mein interested hai (LLC, Stripe, Amazon, Tax, etc.)"
             >
               <option value="">-- Service Select Karein --</option>
@@ -1806,7 +1767,7 @@ export default function LiveChatView({
           </div>
 
           {/* 1-Click Fast Qualification & Multi-Tag Toggle Buttons */}
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 shrink-0">
             {/* Qualified Toggle Button */}
             <button
               type="button"
@@ -2083,25 +2044,13 @@ export default function LiveChatView({
               <button
                 type="button"
                 onClick={() => setIsAddingTag(true)}
-                className="px-2 py-1 rounded-lg text-xs font-extrabold bg-slate-100 hover:bg-orange-50 text-slate-700 hover:text-orange-600 border border-slate-200 hover:border-orange-200 transition-all shadow-2xs flex items-center gap-1"
+                className="px-2 py-1 rounded-lg text-xs font-extrabold bg-white hover:bg-orange-50 text-slate-700 hover:text-orange-600 border border-slate-200 hover:border-orange-200 transition-all shadow-2xs flex items-center gap-1"
                 title="Customer ke liye naya custom tag likhein"
               >
                 <span>+</span>
                 <span>Tag</span>
               </button>
             )}
-
-            {/* Direct Free WhatsApp Button */}
-            <a
-              href={`https://wa.me/${(activeLead.phone || '').replace(/[^0-9]/g, '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white transition-all flex items-center gap-1 shadow-2xs"
-              title="Mobile ya WhatsApp Web par free mein direct chat kholein"
-            >
-              <span>💬</span>
-              <span>Free WA</span>
-            </a>
           </div>
         </div>
 
@@ -2527,23 +2476,6 @@ export default function LiveChatView({
           </div>
         )}
 
-        {/* Quick Replies Chips Bar */}
-        <div className="bg-white border-t border-slate-200/60 px-4 py-2 flex items-center gap-2 overflow-x-auto text-xs shrink-0">
-          <span className="text-[10px] font-extrabold text-orange-600 uppercase flex items-center gap-1 shrink-0">
-            <Zap className="w-3 h-3 fill-orange-500 text-orange-500" /> Fori Saved Jawab:
-          </span>
-          {QUICK_REPLIES.map((qr) => (
-            <button
-              key={qr.shortcut}
-              onClick={() => applyQuickReply(qr.content)}
-              className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-orange-100 hover:text-orange-700 text-slate-700 font-bold shrink-0 transition-colors text-[11px]"
-              title={qr.content}
-            >
-              {qr.shortcut}
-            </button>
-          ))}
-        </div>
-
         {/* Chat Input Bar */}
         <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-slate-200 shrink-0">
           {/* Internal Note vs WhatsApp Message Toggle */}
@@ -2699,147 +2631,69 @@ export default function LiveChatView({
 
       </div>
 
-      {/* 3. Right Column: Lead CRM Profile & Pipeline Drawer */}
-      <div className={`bg-white border-l border-[#EEF2F6] p-4 lg:p-5 overflow-y-auto space-y-6 shrink-0 transition-all ${
+      {/* 3. Right Column: Clean Customer Profile, Quick Replies & Reminders Box */}
+      <div className={`bg-white border-l border-[#EEF2F6] p-4 overflow-y-auto space-y-4 shrink-0 transition-all ${
         showCustomerDetails 
           ? 'w-72 lg:w-80 block' 
           : 'hidden 2xl:block 2xl:w-80'
       }`}>
-        <div>
-          <h3 className="text-sm font-extrabold text-slate-900 tracking-tight mb-1">Customer Ki Maloomat</h3>
-          <p className="text-xs text-slate-500 font-medium">Lead status aur agent assignment</p>
-        </div>
-
-        {/* Lead Profile Card */}
-        <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 text-center">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-orange-500 to-amber-400 text-white font-black text-2xl flex items-center justify-center mx-auto shadow-sm">
+        {/* 1. Compact Customer Profile Box */}
+        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 text-center">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-orange-500 to-amber-400 text-white font-black text-lg flex items-center justify-center mx-auto shadow-xs">
             {(activeLead?.name || '+').charAt(0)}
           </div>
-          <h4 className="mt-3 text-base font-black text-slate-900 tracking-tight">{activeLead.name}</h4>
+          <h4 className="mt-2 text-sm font-black text-slate-900 tracking-tight truncate">{activeLead.name}</h4>
           
-          {/* Bold, prominent customer phone number */}
           <div className="mt-2 flex items-center justify-center">
-            <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 text-white shadow-md border border-slate-800">
-              <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="text-lg font-black font-mono tracking-wider select-all text-white">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 text-white shadow-xs border border-slate-800">
+              <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="text-sm font-black font-mono tracking-wider select-all text-white">
                 {activeLead.phone}
               </span>
             </div>
           </div>
 
-          <div className="mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-slate-200 text-xs font-bold text-slate-700 shadow-2xs">
+          <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-[11px] font-bold text-slate-700">
             <span>{activeLead.flag}</span>
             <span>{activeLead.channelName}</span>
           </div>
         </div>
 
-        {/* Lead Stage Dropdown */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-extrabold text-slate-700">Customer Stage (Status)</label>
-          <select
-            value={activeLead.stage}
-            onChange={(e) => onUpdateLead(activeLead.id, { stage: e.target.value })}
-            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-orange-500"
-          >
-            {PIPELINE_STAGES.map((s) => (
-              <option key={s.id} value={s.id}>{s.title}</option>
+        {/* 2. Organized Quick Replies Box (Right Side Box) */}
+        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 fill-orange-500 text-orange-500" />
+              <span>Fori Saved Jawab (Quick Replies)</span>
+            </label>
+          </div>
+          <div className="grid grid-cols-1 gap-1.5">
+            {QUICK_REPLIES.map((qr) => (
+              <button
+                key={qr.shortcut}
+                type="button"
+                onClick={() => applyQuickReply(qr.content)}
+                className="w-full text-left p-2 rounded-lg bg-white hover:bg-orange-50 border border-slate-200/90 hover:border-orange-300 transition-all group shadow-2xs"
+                title={qr.content}
+              >
+                <div className="flex items-center justify-between gap-1.5">
+                  <span className="text-[11px] font-extrabold text-slate-800 group-hover:text-orange-700 truncate">
+                    {qr.title || qr.shortcut}
+                  </span>
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 group-hover:bg-orange-100 text-orange-600 shrink-0">
+                    {qr.shortcut}
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-500 truncate mt-0.5">
+                  {qr.content}
+                </p>
+              </button>
             ))}
-          </select>
-        </div>
-
-        {/* Assign Lead to Agent */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-extrabold text-slate-700 flex items-center justify-between">
-            <span>Kaunsa Staff Handle Karega</span>
-            <span className="text-[10px] text-orange-600 font-bold">Live DB Sync</span>
-          </label>
-          <select
-            value={activeLead.assignedToId || ''}
-            onChange={(e) => {
-              const selectedId = e.target.value;
-              const selectedAgent = realStaffList.find((s) => s.id === selectedId);
-              onUpdateLead(activeLead.id, {
-                assignedToId: selectedId ? selectedId : null,
-                assignedTo: selectedAgent ? selectedAgent.name : 'Unassigned',
-              });
-            }}
-            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-orange-500 cursor-pointer"
-          >
-            <option value="">-- Kisi Ko Assign Nahi (Unassigned) --</option>
-            {realStaffList.length > 0 ? (
-              realStaffList.map((agent) => (
-                <option key={agent.id} value={agent.id}>
-                  {agent.name} ({agent.role}) - {agent.isOnline ? '🟢 Online' : '⚪ Offline'}
-                </option>
-              ))
-            ) : (
-              AGENTS.map((a) => (
-                <option key={a.id} value={a.name}>
-                  {a.name} ({a.country})
-                </option>
-              ))
-            )}
-          </select>
-        </div>
-
-        {/* Deal Value */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-extrabold text-slate-700">Expected Deal Ki Raqam (Value)</label>
-          <div className="relative">
-            <input
-              type="text"
-              value={activeLead.dealValue || ''}
-              onChange={(e) => onUpdateLead(activeLead.id, { dealValue: e.target.value })}
-              placeholder="e.g. 25,000"
-              className="w-full pl-3 pr-14 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-orange-500"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-500">
-              {activeLead.currency}
-            </span>
           </div>
         </div>
 
-        {/* Tags */}
-        <div className="space-y-2">
-          <label className="text-xs font-extrabold text-slate-700">Customer Tags (Category)</label>
-          <div className="flex flex-wrap gap-1.5">
-            {(activeLead.tags || []).filter(t => t !== 'WhatsApp Inbound').map((tag) => (
-              <span key={tag} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-orange-50 text-orange-700 border border-orange-200">
-                <span>{tag}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const nextTags = (activeLead.tags || []).filter(t => t !== tag);
-                    onUpdateLead(activeLead.id, { tags: nextTags });
-                  }}
-                  className="text-orange-400 hover:text-rose-600 font-bold text-xs"
-                  title={`Tag "${tag}" hatayein`}
-                >
-                  ✕
-                </button>
-              </span>
-            ))}
-            <button 
-              type="button"
-              onClick={() => {
-                const newTag = prompt('Naya tag likhein:');
-                if (newTag && newTag.trim()) {
-                  const clean = newTag.trim();
-                  const currentTags = (activeLead.tags || []).filter(t => t !== 'WhatsApp Inbound');
-                  if (!currentTags.includes(clean)) {
-                    onUpdateLead(activeLead.id, { tags: [...currentTags, clean] });
-                  }
-                }
-              }}
-              className="px-2 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
-            >
-              + Tag
-            </button>
-          </div>
-        </div>
-
-        {/* Customer Follow-up & Reminders Section */}
-        <div className="space-y-2.5 pt-2 border-t border-slate-100">
+        {/* 3. Customer Follow-up & Reminders Box */}
+        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5">
           <div className="flex items-center justify-between">
             <label className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-orange-600" />
@@ -3146,14 +3000,6 @@ export default function LiveChatView({
               })}
             </div>
           )}
-        </div>
-
-        {/* Quick Information Box */}
-        <div className="p-3 rounded-xl bg-orange-50/50 border border-orange-100 text-slate-700 text-xs space-y-1">
-          <p className="font-extrabold text-orange-900">Regional Routing Active</p>
-          <p className="text-[11px] text-slate-600">
-            Replies to this customer are routed via the {activeLead.channelName} gateway automatically.
-          </p>
         </div>
       </div>
       </>

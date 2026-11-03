@@ -1801,11 +1801,11 @@ export default function LiveChatView({
               type="button"
               onClick={() => {
                 const isCurrentlyQualified = activeLead.stage === 'Qualified';
+                const nextStage = isCurrentlyQualified ? 'New Lead' : 'Qualified';
+                onUpdateLead(activeLead.id, { stage: nextStage, tags: activeLead.tags || [] });
                 if (isCurrentlyQualified) {
-                  onUpdateLead(activeLead.id, { stage: 'New Lead' });
                   setSmartBarToast('🟣 "Qualified" hata diya gaya (Lead restore to New Lead)');
                 } else {
-                  onUpdateLead(activeLead.id, { stage: 'Qualified' });
                   setSmartBarToast('🟣 Lead "Qualified" ho gayi! (Dobara click se hat jayegi)');
                 }
                 setTimeout(() => setSmartBarToast(null), 3000);
@@ -1829,11 +1829,11 @@ export default function LiveChatView({
               type="button"
               onClick={() => {
                 const isCurrentlyLost = activeLead.stage === 'Lost';
+                const nextStage = isCurrentlyLost ? 'New Lead' : 'Lost';
+                onUpdateLead(activeLead.id, { stage: nextStage, tags: activeLead.tags || [] });
                 if (isCurrentlyLost) {
-                  onUpdateLead(activeLead.id, { stage: 'New Lead' });
                   setSmartBarToast('🔴 "Unqualified" status hata diya gaya (Lead restore ho gayi)');
                 } else {
-                  onUpdateLead(activeLead.id, { stage: 'Lost' });
                   setSmartBarToast('🔴 Lead "Unqualified / Rejected" mark ho gayi (Dobara click se hat jayegi)');
                 }
                 setTimeout(() => setSmartBarToast(null), 3000);
@@ -1857,11 +1857,11 @@ export default function LiveChatView({
               type="button"
               onClick={() => {
                 const isCurrentlyWon = activeLead.stage === 'Deal Won';
+                const nextStage = isCurrentlyWon ? 'New Lead' : 'Deal Won';
+                onUpdateLead(activeLead.id, { stage: nextStage, tags: activeLead.tags || [] });
                 if (isCurrentlyWon) {
-                  onUpdateLead(activeLead.id, { stage: 'New Lead' });
                   setSmartBarToast('🟢 "Deal Won" status hata diya gaya');
                 } else {
-                  onUpdateLead(activeLead.id, { stage: 'Deal Won' });
                   setSmartBarToast('🟢 Mubarak! Deal Won ho gayi! (Dobara click se hat jayegi)');
                 }
                 setTimeout(() => setSmartBarToast(null), 3000);
@@ -1899,7 +1899,7 @@ export default function LiveChatView({
                         nextTags = [...currentTags, 'Follow-up'];
                         setSmartBarToast('⏰ Lead par "Follow-up" tag lag gaya! (Qualified + Follow-up dono active)');
                       }
-                      onUpdateLead(activeLead.id, { tags: nextTags });
+                      onUpdateLead(activeLead.id, { tags: nextTags, stage: activeLead.stage || 'New Lead' });
                       setTimeout(() => setSmartBarToast(null), 3000);
                     }}
                     className={`px-2.5 py-1 text-xs font-black transition-all flex items-center gap-1 rounded-l-lg border ${
@@ -1947,7 +1947,7 @@ export default function LiveChatView({
                       nextTags = [...currentTags, 'Meeting'];
                       setSmartBarToast('🤝 Lead par "Meeting" tag lag gaya! Dashboard update ✓');
                     }
-                    onUpdateLead(activeLead.id, { tags: nextTags });
+                    onUpdateLead(activeLead.id, { tags: nextTags, stage: activeLead.stage || 'New Lead' });
                     setTimeout(() => setSmartBarToast(null), 3000);
                   }}
                   className={`px-2.5 py-1 text-xs font-black transition-all flex items-center gap-1 rounded-lg border shadow-2xs ${
@@ -1982,7 +1982,7 @@ export default function LiveChatView({
                       nextTags = [...currentTags, 'No Response'];
                       setSmartBarToast('📵 Lead par "No Response" tag lag gaya! Dashboard update ✓');
                     }
-                    onUpdateLead(activeLead.id, { tags: nextTags });
+                    onUpdateLead(activeLead.id, { tags: nextTags, stage: activeLead.stage || 'New Lead' });
                     setTimeout(() => setSmartBarToast(null), 3000);
                   }}
                   className={`px-2.5 py-1 text-xs font-black transition-all flex items-center gap-1 rounded-lg border shadow-2xs ${
@@ -2014,7 +2014,7 @@ export default function LiveChatView({
                     type="button"
                     onClick={() => {
                       const nextTags = (activeLead.tags || []).filter(t => t !== tag);
-                      onUpdateLead(activeLead.id, { tags: nextTags });
+                      onUpdateLead(activeLead.id, { tags: nextTags, stage: activeLead.stage || 'New Lead' });
                       setSmartBarToast(`🏷️ Tag "${tag}" hata diya gaya`);
                       setTimeout(() => setSmartBarToast(null), 2500);
                     }}
@@ -2036,7 +2036,7 @@ export default function LiveChatView({
                     const currentTags = (activeLead.tags || []).filter(t => t !== 'WhatsApp Inbound');
                     if (!currentTags.some(t => t.toLowerCase() === clean.toLowerCase())) {
                       const nextTags = [...currentTags, clean];
-                      onUpdateLead(activeLead.id, { tags: nextTags });
+                      onUpdateLead(activeLead.id, { tags: nextTags, stage: activeLead.stage || 'New Lead' });
                       setSmartBarToast(`🏷️ Naya Tag "${clean}" shamil ho gaya!`);
                       setTimeout(() => setSmartBarToast(null), 3000);
                     }
@@ -2069,6 +2069,16 @@ export default function LiveChatView({
                 </button>
               </form>
             ) : (
+              <button
+                type="button"
+                onClick={() => setIsAddingTag(true)}
+                className="px-2 py-1 rounded-lg text-xs font-extrabold bg-slate-100 hover:bg-orange-50 text-slate-700 hover:text-orange-600 border border-slate-200 hover:border-orange-200 transition-all shadow-2xs flex items-center gap-1"
+                title="Customer ke liye naya custom tag likhein"
+              >
+                <span>+</span>
+                <span>Tag</span>
+              </button>
+            )}
               <button
                 type="button"
                 onClick={() => setIsAddingTag(true)}

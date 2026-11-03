@@ -528,6 +528,12 @@ export default function App() {
     };
 
     const handleStageUpdate = ({ leadId, stage, dealValue, serviceInterest }) => {
+      const localUpdate = recentLocalUpdatesRef.current.get(leadId);
+      const isRecentlyEdited = localUpdate && (Date.now() - localUpdate.timestamp < 20000);
+      if (isRecentlyEdited && localUpdate.stage !== undefined) {
+        return; // Lock against stale socket stage broadcast!
+      }
+
       const displayStage = STAGE_MAP[stage] || stage;
       setLeads((prev) =>
         prev.map((l) => {
@@ -548,10 +554,23 @@ export default function App() {
 
     const handleLeadUpdated = (updatedLead) => {
       if (!updatedLead || !updatedLead.id) return;
-      const displayStage = STAGE_MAP[updatedLead.stage] || updatedLead.stage;
-      const updatedTags = Array.isArray(updatedLead.tags) 
+      const localUpdate = recentLocalUpdatesRef.current.get(updatedLead.id);
+      const isRecentlyEdited = localUpdate && (Date.now() - localUpdate.timestamp < 20000);
+
+      let displayStage = STAGE_MAP[updatedLead.stage] || updatedLead.stage;
+      let updatedTags = Array.isArray(updatedLead.tags) 
         ? normalizeTagList(updatedLead.tags) 
         : undefined;
+
+      // Lock user's explicit local clicks against any out-of-order socket arrival
+      if (isRecentlyEdited) {
+        if (localUpdate.stage !== undefined) {
+          displayStage = localUpdate.stage;
+        }
+        if (localUpdate.tags !== undefined) {
+          updatedTags = normalizeTagList(localUpdate.tags);
+        }
+      }
 
       setLeads((prev) => {
         const target = prev.find(l => l.id === updatedLead.id);
@@ -624,19 +643,35 @@ export default function App() {
   const handleUpdateLead = (leadId, updates) => {
     const nowIso = new Date().toISOString();
     const existingLocal = recentLocalUpdatesRef.current.get(leadId) || {};
-    const mergedLocal = { ...existingLocal, ...updates, timestamp: Date.now() };
+    const currentLead = leads.find((l) => l.id === leadId);
+
+    const resolvedStage = updates.stage !== undefined 
+      ? updates.stage 
+      : (existingLocal.stage !== undefined ? existingLocal.stage : currentLead?.stage);
+
+    const resolvedTags = updates.tags !== undefined 
+      ? updates.tags 
+      : (existingLocal.tags !== undefined ? existingLocal.tags : currentLead?.tags);
+
+    const mergedLocal = { 
+      ...existingLocal, 
+      ...updates, 
+      stage: resolvedStage,
+      tags: normalizeTagList(resolvedTags),
+      timestamp: Date.now() 
+    };
     recentLocalUpdatesRef.current.set(leadId, mergedLocal);
 
-    if (updates.tags !== undefined) {
+    if (resolvedTags !== undefined) {
       try {
-        localStorage.setItem(`crm_lead_tags_${leadId}`, JSON.stringify(updates.tags));
+        localStorage.setItem(`crm_lead_tags_${leadId}`, JSON.stringify(resolvedTags));
       } catch (e) {
         console.warn('Failed to cache tags locally', e);
       }
     }
-    if (updates.stage !== undefined) {
+    if (resolvedStage !== undefined) {
       try {
-        localStorage.setItem(`crm_lead_stage_${leadId}`, updates.stage);
+        localStorage.setItem(`crm_lead_stage_${leadId}`, resolvedStage);
       } catch (e) {
         console.warn('Failed to cache stage locally', e);
       }
@@ -645,7 +680,13 @@ export default function App() {
     setLeads((prev) =>
       prev.map((lead) => {
         if (lead.id === leadId) {
-          return { ...lead, ...updates, updatedAt: nowIso };
+          return { 
+            ...lead, 
+            ...updates, 
+            stage: resolvedStage || lead.stage,
+            tags: resolvedTags !== undefined ? normalizeTagList(resolvedTags) : lead.tags,
+            updatedAt: nowIso 
+          };
         }
         return lead;
       })
@@ -659,16 +700,22 @@ export default function App() {
       if (updates.dealValue !== undefined) apiUpdates.dealValue = updates.dealValue;
       if (updates.serviceInterest !== undefined) apiUpdates.serviceInterest = updates.serviceInterest;
       if (updates.assignedToId !== undefined) apiUpdates.assignedToId = updates.assignedToId;
-      if (updates.tags !== undefined) apiUpdates.tags = updates.tags;
-      if (updates.stage !== undefined) {
-        const s = String(updates.stage).toLowerCase();
+
+      // Always pass the fully resolved tags so backend doesn't overwrite them
+      if (resolvedTags !== undefined) {
+        apiUpdates.tags = normalizeTagList(resolvedTags);
+      }
+
+      // Always pass the fully resolved stage so backend doesn't overwrite it
+      if (resolvedStage !== undefined) {
+        const s = String(resolvedStage).toLowerCase();
         let targetStage = 'NEW_LEAD';
         if (s.includes('lost') || s.includes('unqualif') || s.includes('reject')) targetStage = 'LOST';
         else if (s.includes('qualif')) targetStage = 'QUALIFIED';
         else if (s.includes('propos')) targetStage = 'PROPOSAL_SENT';
         else if (s.includes('won') || s.includes('closed')) targetStage = 'WON';
         else if (s.includes('contact')) targetStage = 'CONTACTED';
-        else targetStage = updates.stage;
+        else targetStage = resolvedStage;
         apiUpdates.stage = targetStage;
       }
 

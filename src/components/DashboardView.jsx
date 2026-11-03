@@ -914,7 +914,19 @@ export default function DashboardView({
           <span className="text-xs font-bold text-slate-500">Waqt:</span>
           <select
             value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setTimeRange(val);
+              const now = new Date();
+              const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+              const yest = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+              const yestStr = `${yest.getFullYear()}-${String(yest.getMonth() + 1).padStart(2, '0')}-${String(yest.getDate()).padStart(2, '0')}`;
+              if (val === 'today') {
+                setCustomSelectedDate(todayStr);
+              } else if (val === 'yesterday') {
+                setCustomSelectedDate(yestStr);
+              }
+            }}
             className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-orange-500 cursor-pointer"
           >
             <option value="today">📅 Aaj Ki Leads ({channelTodayCount})</option>
@@ -939,8 +951,20 @@ export default function DashboardView({
               type="date"
               value={customSelectedDate}
               onChange={(e) => {
-                setCustomSelectedDate(e.target.value);
-                setTimeRange('custom');
+                const chosen = e.target.value;
+                if (!chosen) return;
+                setCustomSelectedDate(chosen);
+                const now = new Date();
+                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                const yest = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+                const yestStr = `${yest.getFullYear()}-${String(yest.getMonth() + 1).padStart(2, '0')}-${String(yest.getDate()).padStart(2, '0')}`;
+                if (chosen === todayStr) {
+                  setTimeRange('today');
+                } else if (chosen === yestStr) {
+                  setTimeRange('yesterday');
+                } else {
+                  setTimeRange('custom');
+                }
               }}
               className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer px-1"
               title="Koi bhi date chunein"

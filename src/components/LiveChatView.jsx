@@ -1649,9 +1649,9 @@ export default function LiveChatView({
         </div>
 
         {/* ⚡ AmazFast Smart Qualification & Service Bar (Paper-Pencil Replacement) */}
-        <div className="bg-white border-b border-slate-200 px-3.5 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-2xs">
+        <div className="bg-white border-b border-slate-200 px-3 py-1.5 flex items-center justify-between gap-2 shrink-0 overflow-x-auto shadow-2xs">
           {/* Service Dropdown */}
-          <div className="flex items-center gap-1.5 min-w-[220px]">
+          <div className="flex items-center gap-1.5 shrink-0 min-w-[160px] sm:min-w-[200px]">
             <span className="text-[11px] font-black uppercase text-slate-500 flex items-center gap-1">
               <span>💼</span>
               <span>Service:</span>

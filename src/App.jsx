@@ -651,7 +651,7 @@ export default function App() {
   const unreadChatsCount = leads.filter((l) => (l.unreadCount || 0) > 0).length;
 
   return (
-    <div className="flex min-h-screen bg-[#F8F9FC] text-slate-800 antialiased relative">
+    <div className="flex h-screen w-full overflow-hidden bg-[#F8F9FC] text-slate-800 antialiased relative">
       {/* Real-time WhatsApp Link Notification Toast */}
       {connectionToast && (
         <div className="fixed top-5 right-6 z-50 animate-bounce bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3.5 border border-emerald-400/50 backdrop-blur-md">

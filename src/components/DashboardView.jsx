@@ -604,6 +604,54 @@ export default function DashboardView({
       .slice(0, 5);
   }, [filteredLeads]);
 
+  // Service Grouped Leads by Day & Date (Shows clients of selected service grouped by date)
+  const serviceGroupedLeads = useMemo(() => {
+    const baseList = selectedServiceFilter === 'all' 
+      ? filteredLeads 
+      : filteredLeads.filter(l => {
+          const sm = getServiceMeta(l.serviceInterest);
+          return (sm && (sm.id === selectedServiceFilter || sm.shortLabel === selectedServiceFilter)) ||
+                 String(l.serviceInterest || '').toLowerCase().includes(selectedServiceFilter.toLowerCase());
+        });
+
+    const groups = {};
+    baseList.forEach(lead => {
+      let dayKey = 'other';
+      let dayLabel = 'Other Dates';
+      let sortPriority = 9999;
+
+      if (isLeadToday(lead)) {
+        dayKey = 'today';
+        dayLabel = '⚡ Aaj (Today)';
+        sortPriority = 0;
+      } else if (isLeadYesterday(lead)) {
+        dayKey = 'yesterday';
+        dayLabel = '⏪ Kal (Yesterday)';
+        sortPriority = 1;
+      } else {
+        const rawDate = lead.rawLastMessageAt || lead.createdAt;
+        const d = new Date(rawDate);
+        if (!isNaN(d.getTime())) {
+          dayKey = d.toISOString().slice(0, 10);
+          dayLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+          sortPriority = 2 + Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));
+        }
+      }
+
+      if (!groups[dayKey]) {
+        groups[dayKey] = {
+          key: dayKey,
+          label: dayLabel,
+          sortPriority,
+          leads: []
+        };
+      }
+      groups[dayKey].leads.push(lead);
+    });
+
+    return Object.values(groups).sort((a, b) => a.sortPriority - b.sortPriority);
+  }, [filteredLeads, selectedServiceFilter]);
+
   // Daily Trends for past 7 days (Bar chart data)
   const dailyTrends = useMemo(() => {
     const days = [];
@@ -1952,6 +2000,169 @@ export default function DashboardView({
             <Plus className="w-3.5 h-3.5" /> + Naya Customer Register Karein
           </button>
         </div>
+      </div>
+
+      {/* 4. Service-wise Clients Explorer (Day & Date Breakdown) */}
+      <div className="card-soft p-5 bg-white border border-slate-200/80 space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between pb-3 border-b border-slate-100 gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200">
+                Service Wise Clients
+              </span>
+              <span className="text-xs text-slate-400 font-semibold">
+                • Day & Date Breakdown
+              </span>
+            </div>
+            <h4 className="text-sm sm:text-base font-extrabold text-slate-900 mt-1">
+              💼 Service Ke Hisaab Se Clients Ka Record
+            </h4>
+            <p className="text-xs text-slate-500">
+              Kisi bhi AmazFast service par click karein aur uske clients din aur tareekh ke hisaab se dekhein.
+            </p>
+          </div>
+
+          {/* Service Selector Filter Pills */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setSelectedServiceFilter('all')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                selectedServiceFilter === 'all'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              🌐 Saari Services
+            </button>
+            {AMAZFAST_SERVICES.map((s) => {
+              const isSelected = selectedServiceFilter === s.shortLabel || selectedServiceFilter === s.id;
+              const svcLeadsCount = leads.filter(l => {
+                const sm = getServiceMeta(l.serviceInterest);
+                return sm && sm.id === s.id;
+              }).length;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setSelectedServiceFilter(isSelected ? 'all' : s.shortLabel)}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border ${
+                    isSelected
+                      ? `${s.badgeClass} ring-2 ring-orange-400 shadow-xs`
+                      : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                  }`}
+                  title={`${s.label} ke clients dekhein`}
+                >
+                  <span>{s.icon}</span>
+                  <span>{s.shortLabel}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    isSelected ? 'bg-black/10' : 'bg-slate-200 text-slate-700'
+                  }`}>
+                    {svcLeadsCount}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Grouped Clients by Date & Day */}
+        {serviceGroupedLeads.length === 0 ? (
+          <div className="py-8 text-center text-slate-500 space-y-1">
+            <p className="text-xs font-bold">Koi Client Maujood Nahi</p>
+            <p className="text-[11px] text-slate-400">Is service ke mutabiq filhal koi customer lead nahi aayi.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {serviceGroupedLeads.map((group) => (
+              <div key={group.key} className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-slate-800 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-lg flex items-center gap-1.5">
+                    <span>{group.label}</span>
+                    <span className="text-[10px] bg-white px-1.5 py-0.2 rounded-full text-slate-700 font-extrabold border">
+                      {group.leads.length} Clients
+                    </span>
+                  </span>
+                  <div className="flex-1 h-px bg-slate-100" />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  {group.leads.map((l) => {
+                    const sMeta = getServiceMeta(l.serviceInterest);
+                    return (
+                      <div
+                        key={l.id}
+                        className="p-3 bg-slate-50/70 hover:bg-white border border-slate-200/80 hover:border-orange-300 rounded-xl transition-all shadow-2xs space-y-2 group"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h5 className="text-xs font-extrabold text-slate-900 truncate">
+                              {l.name}
+                            </h5>
+                            <span className="font-mono text-[10px] text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200 font-bold block mt-0.5 select-all">
+                              📞 {l.phone}
+                            </span>
+                          </div>
+                          {sMeta && (
+                            <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border shrink-0 flex items-center gap-1 ${sMeta.badgeClass}`}>
+                              <span>{sMeta.icon}</span>
+                              <span className="truncate max-w-[90px]">{sMeta.shortLabel}</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Stage & Tags Badges */}
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <span className={`text-[9px] font-black px-1.5 py-0.2 rounded border ${
+                            l.stage === 'Lost' ? 'bg-rose-100 text-rose-800 border-rose-300' :
+                            l.stage === 'Qualified' ? 'bg-purple-100 text-purple-800 border-purple-200' :
+                            l.stage === 'Deal Won' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' :
+                            'bg-slate-100 text-slate-700 border-slate-200'
+                          }`}>
+                            {l.stage}
+                          </span>
+                          {(l.tags || [])
+                            .filter(t => t !== 'WhatsApp Inbound' && t.toLowerCase() !== l.stage?.toLowerCase())
+                            .map((tag) => (
+                              <span
+                                key={tag}
+                                className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded border ${
+                                  /follow/i.test(tag) ? 'bg-amber-100 text-amber-900 border-amber-300' :
+                                  /meet|zoom/i.test(tag) ? 'bg-sky-100 text-sky-900 border-sky-300' :
+                                  /no respon/i.test(tag) ? 'bg-slate-200 text-slate-800 border-slate-300' :
+                                  'bg-slate-100 text-slate-800 border-slate-200'
+                                }`}
+                              >
+                                {/follow/i.test(tag) && '⏰ '}
+                                {/meet|zoom/i.test(tag) && '🤝 '}
+                                {/no respon/i.test(tag) && '📵 '}
+                                {tag}
+                              </span>
+                            ))}
+                        </div>
+
+                        {/* Last Msg snippet & Action Button */}
+                        <div className="pt-1.5 border-t border-slate-200/60 flex items-center justify-between text-[10px]">
+                          <span className="text-slate-500 font-semibold truncate max-w-[140px]">
+                            {l.lastMessage || 'WhatsApp Chat'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => onOpenChat && onOpenChat(l.id)}
+                            className="px-2 py-0.5 rounded-lg bg-orange-50 hover:bg-orange-500 text-orange-600 hover:text-white font-black border border-orange-200 hover:border-orange-500 transition-all flex items-center gap-1"
+                          >
+                            <span>Chat</span>
+                            <ArrowRight className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 5. INTERACTIVE DRILLDOWN MODAL (When admin clicks ANY metric card) */}

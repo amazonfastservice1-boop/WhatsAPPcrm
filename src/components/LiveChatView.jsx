@@ -2079,16 +2079,6 @@ export default function LiveChatView({
                 <span>Tag</span>
               </button>
             )}
-              <button
-                type="button"
-                onClick={() => setIsAddingTag(true)}
-                className="px-2 py-1 rounded-lg text-xs font-extrabold bg-slate-100 hover:bg-orange-50 text-slate-700 hover:text-orange-600 border border-slate-200 hover:border-orange-200 transition-all shadow-2xs flex items-center gap-1"
-                title="Customer ke liye naya custom tag likhein"
-              >
-                <span>+</span>
-                <span>Tag</span>
-              </button>
-            )}
 
             {/* Direct Free WhatsApp Button */}
             <a

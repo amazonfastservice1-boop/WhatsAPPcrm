@@ -678,17 +678,20 @@ export default function LiveChatView({
       } else {
         const existingTime = new Date(existing.rawLastMessageAt || existing.createdAt || 0).getTime();
         const incomingTime = new Date(l.rawLastMessageAt || l.createdAt || 0).getTime();
-        if (incomingTime > existingTime) {
-          phoneMap.set(key, {
-            ...l,
-            unreadCount: (l.unreadCount || 0) + (existing.unreadCount || 0),
-          });
-        } else {
-          phoneMap.set(key, {
-            ...existing,
-            unreadCount: (existing.unreadCount || 0) + (l.unreadCount || 0),
-          });
-        }
+        const isSelected = l.id === selectedLeadId || existing.id === selectedLeadId;
+        const masterId = isSelected ? (l.id === selectedLeadId ? l.id : existing.id) : (incomingTime > existingTime ? l.id : existing.id);
+        const mergedTags = Array.from(new Set([...(existing.tags || []), ...(l.tags || [])]));
+        const mergedStage = (l.stage && l.stage !== 'New Lead') ? l.stage : (existing.stage || 'New Lead');
+        const mergedService = l.serviceInterest || existing.serviceInterest;
+
+        phoneMap.set(key, {
+          ...(incomingTime > existingTime ? l : existing),
+          id: masterId,
+          tags: mergedTags,
+          stage: mergedStage,
+          serviceInterest: mergedService,
+          unreadCount: (l.unreadCount || 0) + (existing.unreadCount || 0),
+        });
       }
     });
     return Array.from(phoneMap.values());

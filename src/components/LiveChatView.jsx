@@ -1928,9 +1928,79 @@ export default function LiveChatView({
               );
             })()}
 
+            {/* Meeting Multi-Tag Toggle Button */}
+            {(() => {
+              const currentTags = (activeLead.tags || []).filter(t => t !== 'WhatsApp Inbound');
+              const hasMeeting = currentTags.some(t => /meet|zoom|call schedule/i.test(t));
+              return (
+                <button
+                  type="button"
+                  onClick={() => {
+                    let nextTags;
+                    if (hasMeeting) {
+                      nextTags = currentTags.filter(t => !/meet|zoom|call schedule/i.test(t));
+                      setSmartBarToast('🤝 "Meeting" tag hata diya gaya');
+                    } else {
+                      nextTags = [...currentTags, 'Meeting'];
+                      setSmartBarToast('🤝 Lead par "Meeting" tag lag gaya! Dashboard update ✓');
+                    }
+                    onUpdateLead(activeLead.id, { tags: nextTags });
+                    setTimeout(() => setSmartBarToast(null), 3000);
+                  }}
+                  className={`px-2.5 py-1 text-xs font-black transition-all flex items-center gap-1 rounded-lg border shadow-2xs ${
+                    hasMeeting
+                      ? 'bg-sky-600 text-white border-sky-700 hover:bg-sky-700'
+                      : 'bg-sky-50 text-sky-800 hover:bg-sky-100 border-sky-200'
+                  }`}
+                  title={hasMeeting ? "Meeting tag hatayein (Toggle OFF)" : "Customer ke sath Meeting mark karein (Toggle ON)"}
+                >
+                  <span>🤝</span>
+                  <span>Meeting</span>
+                  {hasMeeting && (
+                    <span className="text-[10px] bg-sky-700 hover:bg-sky-800 px-1 rounded-full ml-0.5" title="Hata dein">✕</span>
+                  )}
+                </button>
+              );
+            })()}
+
+            {/* No Response Multi-Tag Toggle Button */}
+            {(() => {
+              const currentTags = (activeLead.tags || []).filter(t => t !== 'WhatsApp Inbound');
+              const hasNoResponse = currentTags.some(t => /no respon|no reply|ghost/i.test(t));
+              return (
+                <button
+                  type="button"
+                  onClick={() => {
+                    let nextTags;
+                    if (hasNoResponse) {
+                      nextTags = currentTags.filter(t => !/no respon|no reply|ghost/i.test(t));
+                      setSmartBarToast('📵 "No Response" tag hata diya gaya');
+                    } else {
+                      nextTags = [...currentTags, 'No Response'];
+                      setSmartBarToast('📵 Lead par "No Response" tag lag gaya! Dashboard update ✓');
+                    }
+                    onUpdateLead(activeLead.id, { tags: nextTags });
+                    setTimeout(() => setSmartBarToast(null), 3000);
+                  }}
+                  className={`px-2.5 py-1 text-xs font-black transition-all flex items-center gap-1 rounded-lg border shadow-2xs ${
+                    hasNoResponse
+                      ? 'bg-slate-700 text-white border-slate-800 hover:bg-slate-800'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300'
+                  }`}
+                  title={hasNoResponse ? "No Response tag hatayein (Toggle OFF)" : "Customer ne reply nahi diya mark karein (Toggle ON)"}
+                >
+                  <span>📵</span>
+                  <span>No Response</span>
+                  {hasNoResponse && (
+                    <span className="text-[10px] bg-slate-800 hover:bg-slate-900 px-1 rounded-full ml-0.5" title="Hata dein">✕</span>
+                  )}
+                </button>
+              );
+            })()}
+
             {/* Other Active Custom Tags Pills with 1-click remove (✕) */}
             {(activeLead.tags || [])
-              .filter(t => t !== 'WhatsApp Inbound' && !/follow/i.test(t) && t.toLowerCase() !== activeLead.stage?.toLowerCase())
+              .filter(t => t !== 'WhatsApp Inbound' && !/follow/i.test(t) && !/meet|zoom/i.test(t) && !/no respon|no reply/i.test(t) && t.toLowerCase() !== activeLead.stage?.toLowerCase())
               .map((tag) => (
                 <span 
                   key={tag}
@@ -1953,27 +2023,59 @@ export default function LiveChatView({
                 </span>
               ))}
 
-            {/* Add Custom Tag Pill */}
-            <button
-              type="button"
-              onClick={() => {
-                const newTag = prompt('Customer ke liye naya tag likhein (maslan: VIP, Urgent, Docs Pending):');
-                if (newTag && newTag.trim()) {
-                  const clean = newTag.trim();
-                  const currentTags = (activeLead.tags || []).filter(t => t !== 'WhatsApp Inbound');
-                  if (!currentTags.includes(clean)) {
-                    const nextTags = [...currentTags, clean];
-                    onUpdateLead(activeLead.id, { tags: nextTags });
-                    setSmartBarToast(`🏷️ Naya Tag "${clean}" shamil ho gaya!`);
-                    setTimeout(() => setSmartBarToast(null), 3000);
+            {/* Inline Add Custom Tag Form (Zero-prompt, no browser popup!) */}
+            {isAddingTag ? (
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (inlineTagInput.trim()) {
+                    const clean = inlineTagInput.trim();
+                    const currentTags = (activeLead.tags || []).filter(t => t !== 'WhatsApp Inbound');
+                    if (!currentTags.some(t => t.toLowerCase() === clean.toLowerCase())) {
+                      const nextTags = [...currentTags, clean];
+                      onUpdateLead(activeLead.id, { tags: nextTags });
+                      setSmartBarToast(`🏷️ Naya Tag "${clean}" shamil ho gaya!`);
+                      setTimeout(() => setSmartBarToast(null), 3000);
+                    }
+                    setInlineTagInput('');
+                    setIsAddingTag(false);
                   }
-                }
-              }}
-              className="px-2 py-1 rounded-lg text-xs font-extrabold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-all shadow-2xs"
-              title="Add a custom tag to this lead"
-            >
-              + Tag
-            </button>
+                }}
+                className="inline-flex items-center gap-1 bg-slate-50 p-0.5 rounded-lg border border-orange-300 shadow-2xs animate-in fade-in"
+              >
+                <input
+                  type="text"
+                  autoFocus
+                  value={inlineTagInput}
+                  onChange={(e) => setInlineTagInput(e.target.value)}
+                  placeholder="Naya tag likhein..."
+                  className="text-xs font-bold px-2 py-0.5 bg-white border border-slate-200 rounded text-slate-800 focus:outline-none focus:border-orange-500 w-32"
+                />
+                <button
+                  type="submit"
+                  className="px-2 py-0.5 text-xs font-black bg-orange-500 hover:bg-orange-600 text-white rounded transition-colors"
+                >
+                  + Add
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setIsAddingTag(false); setInlineTagInput(''); }}
+                  className="px-1 text-xs text-slate-400 hover:text-slate-600 font-bold"
+                >
+                  ✕
+                </button>
+              </form>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsAddingTag(true)}
+                className="px-2 py-1 rounded-lg text-xs font-extrabold bg-slate-100 hover:bg-orange-50 text-slate-700 hover:text-orange-600 border border-slate-200 hover:border-orange-200 transition-all shadow-2xs flex items-center gap-1"
+                title="Customer ke liye naya custom tag likhein"
+              >
+                <span>+</span>
+                <span>Tag</span>
+              </button>
+            )}
 
             {/* Direct Free WhatsApp Button */}
             <a

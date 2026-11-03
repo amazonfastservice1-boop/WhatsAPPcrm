@@ -42,10 +42,10 @@ export default function Sidebar({ activeTab, setActiveTab, unreadTotal = 4, waSt
   ];
 
   return (
-    <aside className="w-64 bg-white border-r border-[#EEF2F6] flex flex-col justify-between h-screen shrink-0 sticky top-0 select-none z-30">
+    <aside className="w-56 xl:w-64 bg-white border-r border-[#EEF2F6] flex flex-col justify-between h-screen shrink-0 sticky top-0 select-none z-30 transition-all">
       {/* Top Brand Logo */}
       <div>
-        <div className="p-5 pb-4 flex items-center justify-between border-b border-[#F1F5F9]">
+        <div className="p-4 xl:p-5 pb-3 xl:pb-4 flex items-center justify-between border-b border-[#F1F5F9]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-400 flex items-center justify-center text-white shadow-md shadow-orange-500/20">
               <MessageSquare className="w-5 h-5 fill-white" />

@@ -18,18 +18,18 @@ export default function Header({
   const userName = currentUser?.name || 'Admin';
 
   return (
-    <header className="bg-white border-b border-[#EEF2F6] px-6 py-3.5 sticky top-0 z-20 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <header className="bg-white border-b border-[#EEF2F6] px-4 lg:px-6 py-2.5 lg:py-3 sticky top-0 z-20 flex flex-col md:flex-row md:items-center md:justify-between gap-3 shrink-0">
       {/* Left: Greeting & Current page title */}
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-lg lg:text-xl font-extrabold text-slate-900 tracking-tight">
             Welcome, {userName} 👋
           </h1>
           <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-orange-100 text-orange-700">
             {currentUser?.role === 'ADMIN' ? 'Super Admin' : currentUser?.role || 'Staff Member'}
           </span>
         </div>
-        <p className="text-xs text-slate-500 font-medium mt-0.5">
+        <p className="text-[11px] lg:text-xs text-slate-500 font-medium mt-0.5">
           {currentUser?.role === 'ADMIN' 
             ? 'AmazFast WhatsApp numbers ka live control portal' 
             : 'Aapke assigned WhatsApp channel ka live customer workspace'}
@@ -37,9 +37,9 @@ export default function Header({
       </div>
 
       {/* Right Controls: Search, Channel Selector, Action Buttons */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2 lg:gap-3">
         {/* Search Bar */}
-        <div className="relative min-w-[240px]">
+        <div className="relative min-w-[180px] sm:min-w-[200px] lg:min-w-[240px]">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"

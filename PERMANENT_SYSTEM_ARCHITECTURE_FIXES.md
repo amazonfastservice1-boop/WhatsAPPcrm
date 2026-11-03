@@ -90,3 +90,4 @@ Before any future change is shipped, verify:
 - [x] Inbound/outbound socket handlers promote active lead to index `0`.
 - [x] Timestamps follow WhatsApp relative date formatting (`01:29 AM`, `Kal`, `31 Oct`).
 - [x] Production build passes cleanly with zero errors (`npm run build`).
+

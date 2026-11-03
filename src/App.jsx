@@ -684,7 +684,7 @@ export default function App() {
       />
 
       {/* 2. Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto h-screen">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         {/* Top Header */}
         <Header
           selectedChannel={selectedChannel}
@@ -701,7 +701,7 @@ export default function App() {
         />
 
         {/* Dynamic Views */}
-        <main className="flex-1 overflow-y-auto">
+        <main className={`flex-1 min-h-0 ${activeTab === 'chat' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}>
           {activeTab === 'dashboard' && (
             <DashboardView
               leads={leads}

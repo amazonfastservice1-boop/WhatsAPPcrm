@@ -1630,6 +1630,21 @@ export default function LiveChatView({
             >
               <Phone className="w-4 h-4" />
             </button>
+
+            {/* Customer CRM Profile Toggle (Gives laptops spacious unzoomed chat width) */}
+            <button 
+              type="button"
+              onClick={() => setShowCustomerDetails(prev => !prev)}
+              className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all ${
+                showCustomerDetails 
+                  ? 'bg-orange-500 text-white border-orange-500 shadow-2xs' 
+                  : 'border-slate-200 hover:bg-slate-50 text-slate-700 bg-white'
+              }`}
+              title={showCustomerDetails ? "Customer Details Chupayein" : "Customer Details Dekhein"}
+            >
+              <Info className="w-4 h-4" />
+              <span className="hidden xl:inline">{showCustomerDetails ? 'Hide Details' : 'Details'}</span>
+            </button>
           </div>
         </div>
 

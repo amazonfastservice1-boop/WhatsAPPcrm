@@ -1466,18 +1466,73 @@ export default function LiveChatView({
                             <span>{formatTo12Hour(pendingRem.time)}</span>
                           </span>
                         )}
-                        <span className={`text-[9px] font-black px-1.5 py-0.2 rounded border shrink-0 ${getStageBadgeStyle(lead.stage)}`}>
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border shrink-0 ${getStageBadgeStyle(lead.stage)}`}>
                           {lead.stage}
                         </span>
-                        {lead.serviceInterest && (
-                          <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0" title={`Service: ${lead.serviceInterest}`}>
-                            💼 {lead.serviceInterest}
-                          </span>
-                        )}
+                        {/* Multi-Tag display on Lead Card (e.g. Follow-up, VIP, etc.) */}
+                        {(lead.tags || [])
+                          .filter(t => t !== 'WhatsApp Inbound' && t.toLowerCase() !== lead.stage?.toLowerCase())
+                          .map((tag) => {
+                            const isFollowup = /follow/i.test(tag);
+                            const isHot = /hot|vip/i.test(tag);
+                            const isCall = /call/i.test(tag);
+                            const tagClass = isFollowup
+                              ? 'bg-amber-100 text-amber-900 border-amber-300'
+                              : isHot
+                              ? 'bg-rose-100 text-rose-900 border-rose-300'
+                              : isCall
+                              ? 'bg-blue-100 text-blue-900 border-blue-300'
+                              : 'bg-slate-100 text-slate-800 border-slate-300';
+                            return (
+                              <span 
+                                key={tag} 
+                                className={`text-[9px] font-black px-1.5 py-0.5 rounded border shrink-0 flex items-center gap-0.5 ${tagClass}`}
+                                title={`Tag: ${tag}`}
+                              >
+                                {isFollowup && <span>⏰</span>}
+                                {isHot && <span>🔥</span>}
+                                {isCall && <span>📞</span>}
+                                <span>{tag}</span>
+                              </span>
+                            );
+                          })}
+                        {lead.serviceInterest && (() => {
+                          const sMeta = getServiceMeta(lead.serviceInterest);
+                          return (
+                            <span 
+                              className={`text-[9px] font-black px-1.5 py-0.5 rounded border shrink-0 flex items-center gap-1 ${
+                                sMeta ? sMeta.badgeClass : 'bg-slate-100 text-slate-800 border-slate-300'
+                              }`} 
+                              title={`Service: ${lead.serviceInterest}`}
+                            >
+                              <span>{sMeta?.icon || '💼'}</span>
+                              <span className="truncate max-w-[110px]">{sMeta?.shortLabel || lead.serviceInterest}</span>
+                            </span>
+                          );
+                        })()}
                       </div>
                       <span className="text-[10px] font-semibold text-slate-600 shrink-0">
                         {lead.lastTime}
                       </span>
+                    </div>
+
+                    {/* Customer Phone & WhatsApp Channel Badge */}
+                    <div className="flex items-center gap-1.5 my-1 flex-wrap">
+                      <span 
+                        className={`font-mono text-[10px] font-extrabold px-1.5 py-0.5 rounded border select-all tracking-tight transition-colors ${
+                          searchMode === 'phone' && searchLeadTerm.trim() && String(lead.phone || '').replace(/\D/g, '').includes(String(searchLeadTerm).replace(/\D/g, ''))
+                            ? 'bg-emerald-100 text-emerald-950 border-emerald-400 font-black ring-1 ring-emerald-400'
+                            : 'bg-slate-100 text-slate-800 border-slate-200'
+                        }`}
+                        title="Customer WhatsApp Phone Number"
+                      >
+                        📞 {lead.phone}
+                      </span>
+                      {lead.channelName && (
+                        <span className="text-[9px] font-semibold text-slate-500 truncate max-w-[130px]">
+                          {lead.channelName.replace('Amazon Fast Services', 'AFS')}
+                        </span>
+                      )}
                     </div>
 
                     {pendingRem && (

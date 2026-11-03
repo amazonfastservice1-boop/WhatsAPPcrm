@@ -25,7 +25,7 @@ import {
   isLeadOnDate,
   getLeadStats 
 } from '../utils/leadFilters';
-import { AMAZFAST_SERVICES } from '../data/servicesList';
+import { AMAZFAST_SERVICES, getServiceMeta } from '../data/servicesList';
 
 // Stage-wise card colors so staff can identify status at a glance
 const STAGE_CARD_STYLES = {
@@ -588,8 +588,22 @@ export default function KanbanView({
                             </span>
                           </div>
 
-                          {/* AmazFast Service Selector Dropdown */}
-                          <div className="mt-2.5" onClick={(e) => e.stopPropagation()}>
+                          {/* AmazFast Service Badge & Selector */}
+                          <div className="mt-2.5 space-y-1" onClick={(e) => e.stopPropagation()}>
+                            {lead.serviceInterest && (() => {
+                              const sMeta = getServiceMeta(lead.serviceInterest);
+                              return (
+                                <div className={`text-[10px] font-black px-2 py-0.5 rounded border flex items-center justify-between ${
+                                  sMeta ? sMeta.badgeClass : 'bg-slate-100 text-slate-800 border-slate-300'
+                                }`}>
+                                  <span className="flex items-center gap-1">
+                                    <span>{sMeta?.icon || '💼'}</span>
+                                    <span>{sMeta?.shortLabel || lead.serviceInterest}</span>
+                                  </span>
+                                  <span className="text-[9px] opacity-70">Active</span>
+                                </div>
+                              );
+                            })()}
                             <select
                               value={lead.serviceInterest || ''}
                               onChange={(e) => onUpdateLead(lead.id, { serviceInterest: e.target.value })}

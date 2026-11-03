@@ -45,7 +45,7 @@ import {
   getLeadDate,
   getLeadStats 
 } from '../utils/leadFilters';
-import { AMAZFAST_SERVICES } from '../data/servicesList';
+import { AMAZFAST_SERVICES, getServiceMeta } from '../data/servicesList';
 import { API_BASE } from '../services/api';
 
 export default function DashboardView({ 
@@ -1860,11 +1860,17 @@ export default function DashboardView({
                                 Kal
                               </span>
                             )}
-                            {lead.serviceInterest && (
-                              <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                💼 {lead.serviceInterest}
-                              </span>
-                            )}
+                            {lead.serviceInterest && (() => {
+                              const sMeta = getServiceMeta(lead.serviceInterest);
+                              return (
+                                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border flex items-center gap-1 ${
+                                  sMeta ? sMeta.badgeClass : 'bg-slate-100 text-slate-800 border-slate-300'
+                                }`}>
+                                  <span>{sMeta?.icon || '💼'}</span>
+                                  <span>{sMeta?.shortLabel || lead.serviceInterest}</span>
+                                </span>
+                              );
+                            })()}
                             <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded border ${
                               lead.stage === 'Lost' ? 'bg-rose-100 text-rose-800 border-rose-300' :
                               lead.stage === 'Qualified' ? 'bg-purple-100 text-purple-800 border-purple-200' :

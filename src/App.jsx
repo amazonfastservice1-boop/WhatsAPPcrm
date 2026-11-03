@@ -114,7 +114,7 @@ export default function App() {
         const trueTime = Math.max(msgTime, lTime) || (l.createdAt ? new Date(l.createdAt).getTime() : Date.now());
         return new Date(trueTime).toISOString();
       })()),
-      tags: l.tags?.map((t) => t.tag?.name) || ['WhatsApp Inbound'],
+      tags: (l.tags || []).map((t) => (typeof t === 'string' ? t : t?.tag?.name || t?.name || '')).filter(Boolean),
       notes: l.notes || [],
       messages: l.messages?.map((m) => ({
         id: m.id,
@@ -145,11 +145,13 @@ export default function App() {
 
             let stage = newLead.stage;
             let serviceInterest = newLead.serviceInterest;
+            let tags = newLead.tags;
 
             // If locally edited within last 12 seconds, lock local user choice against slow DB replication
             if (localUpdate && Date.now() - localUpdate.timestamp < 12000) {
-              if (localUpdate.stage) stage = localUpdate.stage;
+              if (localUpdate.stage !== undefined) stage = localUpdate.stage;
               if (localUpdate.serviceInterest !== undefined) serviceInterest = localUpdate.serviceInterest;
+              if (localUpdate.tags !== undefined) tags = localUpdate.tags;
             }
 
             if (existing && existing.messages && existing.messages.length > 0) {
@@ -157,6 +159,7 @@ export default function App() {
                 ...newLead,
                 stage,
                 serviceInterest,
+                tags: tags !== undefined ? tags : existing.tags,
                 messages: existing.messages,
                 lastMessage: existing.lastMessage || newLead.lastMessage,
                 unreadCount: existing.id === selectedLeadIdRef.current ? 0 : (existing.unreadCount || newLead.unreadCount),
@@ -166,6 +169,7 @@ export default function App() {
               ...newLead,
               stage,
               serviceInterest,
+              tags,
             };
           });
 
@@ -176,7 +180,14 @@ export default function App() {
             for (let i = 0; i < merged.length; i++) {
               const m = merged[i];
               const p = prevMap.get(m.id);
-              if (!p || p.stage !== m.stage || p.serviceInterest !== m.serviceInterest || p.unreadCount !== m.unreadCount || p.lastMessage !== m.lastMessage) {
+              if (
+                !p || 
+                p.stage !== m.stage || 
+                p.serviceInterest !== m.serviceInterest || 
+                p.unreadCount !== m.unreadCount || 
+                p.lastMessage !== m.lastMessage ||
+                JSON.stringify(p.tags || []) !== JSON.stringify(m.tags || [])
+              ) {
                 hasChanged = true;
                 break;
               }

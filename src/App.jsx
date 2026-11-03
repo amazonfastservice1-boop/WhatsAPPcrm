@@ -138,7 +138,7 @@ export default function App() {
         const trueTime = Math.max(msgTime, lTime) || (l.createdAt ? new Date(l.createdAt).getTime() : Date.now());
         return new Date(trueTime).toISOString();
       })()),
-      tags: resolvedTags,
+      tags: normalizeTagList(resolvedTags),
       notes: l.notes || [],
       messages: l.messages?.map((m) => ({
         id: m.id,
@@ -178,12 +178,14 @@ export default function App() {
               if (localUpdate.tags !== undefined) tags = localUpdate.tags;
             }
 
+            const mergedTags = normalizeTagList(tags !== undefined ? tags : existing?.tags);
+
             if (existing && existing.messages && existing.messages.length > 0) {
               return {
                 ...newLead,
                 stage,
                 serviceInterest,
-                tags: tags !== undefined ? tags : existing.tags,
+                tags: mergedTags,
                 messages: existing.messages,
                 lastMessage: existing.lastMessage || newLead.lastMessage,
                 unreadCount: existing.id === selectedLeadIdRef.current ? 0 : (existing.unreadCount || newLead.unreadCount),
@@ -193,11 +195,11 @@ export default function App() {
               ...newLead,
               stage,
               serviceInterest,
-              tags,
+              tags: mergedTags,
             };
           });
 
-          // Map-based equality check: if no lead changed content or timestamp, DO NOT update state (stops list fluctuating!)
+          // Map-based equality check: if no lead changed content or timestamp, DO NOT update state (stops list fluctuating & flickering!)
           if (prev.length === merged.length) {
             let hasChanged = false;
             const prevMap = new Map(prev.map((p) => [p.id, p]));
@@ -210,7 +212,7 @@ export default function App() {
                 p.serviceInterest !== m.serviceInterest || 
                 p.unreadCount !== m.unreadCount || 
                 p.lastMessage !== m.lastMessage ||
-                JSON.stringify(p.tags || []) !== JSON.stringify(m.tags || [])
+                !areTagListsEqual(p.tags, m.tags)
               ) {
                 hasChanged = true;
                 break;

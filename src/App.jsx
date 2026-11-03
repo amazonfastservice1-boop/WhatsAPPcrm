@@ -533,23 +533,36 @@ export default function App() {
       if (!updatedLead || !updatedLead.id) return;
       const displayStage = STAGE_MAP[updatedLead.stage] || updatedLead.stage;
       const updatedTags = Array.isArray(updatedLead.tags) 
-        ? updatedLead.tags.map((t) => t.tag?.name || t.name || t) 
+        ? normalizeTagList(updatedLead.tags) 
         : undefined;
 
-      setLeads((prev) =>
-        prev.map((l) => {
+      setLeads((prev) => {
+        const target = prev.find(l => l.id === updatedLead.id);
+        if (!target) return prev;
+        
+        // Zero-Flicker Guard: If nothing actually changed in this lead, SKIP state update!
+        const stageSame = !displayStage || target.stage === displayStage;
+        const serviceSame = updatedLead.serviceInterest === undefined || target.serviceInterest === updatedLead.serviceInterest;
+        const tagsSame = updatedTags === undefined || areTagListsEqual(target.tags, updatedTags);
+        const nameSame = !updatedLead.fullName || target.name === updatedLead.fullName;
+
+        if (stageSame && serviceSame && tagsSame && nameSame) {
+          return prev; // Skips re-render! Completely stops flickering!
+        }
+
+        return prev.map((l) => {
           if (l.id !== updatedLead.id) return l;
           return {
             ...l,
             name: updatedLead.fullName || l.name,
-            stage: displayStage,
+            stage: displayStage || l.stage,
             serviceInterest: updatedLead.serviceInterest !== undefined ? updatedLead.serviceInterest : l.serviceInterest,
             dealValue: updatedLead.dealValue !== undefined ? updatedLead.dealValue : l.dealValue,
             tags: updatedTags !== undefined ? updatedTags : l.tags,
             updatedAt: new Date().toISOString()
           };
-        })
-      );
+        });
+      });
     };
 
     const handleWaStatus = (data) => {

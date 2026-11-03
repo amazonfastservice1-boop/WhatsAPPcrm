@@ -58,7 +58,7 @@ export default function ScheduleView({
   const [priority, setPriority] = useState('MEDIUM'); // HIGH, MEDIUM, LOW
   const [assignedAgent, setAssignedAgent] = useState('Ali Husni');
   const [reminderNotes, setReminderNotes] = useState('');
-  const [remAutoSend, setRemAutoSend] = useState(true);
+  const [remAutoSend, setRemAutoSend] = useState(false);
 
   // Reminders list persisted in localStorage
   const [reminders, setReminders] = useState(() => {
@@ -99,44 +99,6 @@ export default function ScheduleView({
     };
   }, []);
 
-  // Seed default follow-ups from real leads if reminders list is empty
-  useEffect(() => {
-    if (reminders.length === 0 && leads.length > 0) {
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().slice(0, 10);
-
-      const sampleFollowUps = leads.slice(0, 4).map((l, idx) => ({
-        id: `rem-${Date.now()}-${idx}`,
-        leadId: l.id,
-        leadName: l.name || l.phone,
-        leadPhone: l.phone,
-        channelId: l.channel,
-        title: idx === 0 
-          ? 'Quotation & Pricing Follow-up' 
-          : idx === 1 
-          ? 'WhatsApp Order Confirmation Call' 
-          : idx === 2 
-          ? 'Catalog & Samples Share' 
-          : 'Customer Feedback & Review',
-        date: idx < 2 ? todayStr : tomorrowStr,
-        time: idx === 0 ? '11:30 AM' : idx === 1 ? '02:00 PM' : idx === 2 ? '04:30 PM' : '06:00 PM',
-        priority: idx === 0 ? 'HIGH' : idx === 1 ? 'HIGH' : 'MEDIUM',
-        assignedTo: l.assignedTo || 'Ali Husni',
-        notes: 'Follow-up on WhatsApp discussion regarding pricing and package details.',
-        customMessage: 'Follow-up on WhatsApp discussion regarding pricing and package details.',
-        autoSend: true,
-        completed: false,
-        reminderSent: false,
-        createdAt: new Date().toISOString()
-      }));
-
-      setReminders(sampleFollowUps);
-    }
-  }, [leads]);
-
-  // Open modal for a new reminder
   const handleOpenNewReminderModal = () => {
     setEditingReminderId(null);
     setSelectedLeadId('');
@@ -148,7 +110,7 @@ export default function ScheduleView({
     setPriority('MEDIUM');
     setAssignedAgent('Ali Husni');
     setReminderNotes('');
-    setRemAutoSend(true);
+    setRemAutoSend(false);
     setIsModalOpen(true);
   };
 
@@ -186,7 +148,7 @@ export default function ScheduleView({
     setPriority(rem.priority || 'MEDIUM');
     setAssignedAgent(rem.assignedTo || 'Ali Husni');
     setReminderNotes(rem.notes || rem.customMessage || '');
-    setRemAutoSend(rem.autoSend !== false);
+    setRemAutoSend(false);
     setIsModalOpen(true);
   };
 
@@ -213,7 +175,7 @@ export default function ScheduleView({
               assignedTo: assignedAgent,
               notes: reminderNotes,
               customMessage: reminderNotes,
-              autoSend: remAutoSend,
+              autoSend: false,
               updatedAt: new Date().toISOString()
             };
           }
@@ -238,7 +200,7 @@ export default function ScheduleView({
         assignedTo: assignedAgent,
         notes: reminderNotes,
         customMessage: reminderNotes,
-        autoSend: remAutoSend,
+        autoSend: false,
         completed: false,
         reminderSent: false,
         createdAt: new Date().toISOString()
@@ -839,18 +801,6 @@ export default function ScheduleView({
                 </div>
               </div>
 
-              {/* Auto-send toggle */}
-              <label className="flex items-center gap-2 cursor-pointer select-none bg-orange-50 p-2.5 rounded-xl border border-orange-200">
-                <input
-                  type="checkbox"
-                  checked={remAutoSend}
-                  onChange={(e) => setRemAutoSend(e.target.checked)}
-                  className="w-4 h-4 accent-orange-600 rounded cursor-pointer"
-                />
-                <span className="text-xs font-bold text-orange-950">
-                  ⚡ Muqarrar waqt par automatically WhatsApp bhejein
-                </span>
-              </label>
 
               {/* Notes / WhatsApp Message */}
               <div>

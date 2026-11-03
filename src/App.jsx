@@ -641,6 +641,20 @@ export default function App() {
     }
   };
 
+  // SAFETY PROTOCOL: Wipe any legacy auto-send flags from reminders so NO customer ever receives automated messages
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem('crm_schedule_reminders');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          const sanitized = parsed.map(r => ({ ...r, autoSend: false, completed: true, reminderSent: true }));
+          localStorage.setItem('crm_schedule_reminders', JSON.stringify(sanitized));
+        }
+      }
+    } catch (e) {}
+  }, []);
+
   // Navigate to chat
   const handleOpenChat = (leadId) => {
     if (leadId) setSelectedLeadId(leadId);

@@ -328,7 +328,7 @@ export default function LiveChatView({
   const [newRemMinute, setNewRemMinute] = useState('00');
   const [newRemAmPm, setNewRemAmPm] = useState('PM');
   const [newRemCustomMsg, setNewRemCustomMsg] = useState('');
-  const [newRemAutoSend, setNewRemAutoSend] = useState(true);
+  const [newRemAutoSend, setNewRemAutoSend] = useState(false);
   const [newRemPriority, setNewRemPriority] = useState('HIGH');
   const [sendingReminderId, setSendingReminderId] = useState(null);
   const [reminderToast, setReminderToast] = useState(null);
@@ -620,11 +620,10 @@ export default function LiveChatView({
     leadRemindersRef.current = leadReminders;
   }, [leadReminders]);
 
-  // Background Auto-Sender: Automatically sends WhatsApp message when scheduled time arrives
+  // Internal Agent Alert Only: NEVER automatically sends WhatsApp messages to customers
   React.useEffect(() => {
-    const checkScheduledReminders = async () => {
+    const checkScheduledReminders = () => {
       const currentReminders = leadRemindersRef.current || [];
-      const currentLeads = leadsRef.current || [];
       const now = new Date();
       const currentDate = now.toISOString().slice(0, 10);
       const currentHours = now.getHours();
@@ -636,57 +635,17 @@ export default function LiveChatView({
 
       for (let i = 0; i < updatedList.length; i++) {
         const r = updatedList[i];
-        if (r.completed || r.reminderSent) continue;
-        if (r.autoSend === false) continue; // manual only
+        if (r.completed || r.notified) continue;
 
-        // Check if date has arrived
+        // Check if scheduled time has arrived
         if (r.date <= currentDate) {
           const remTotalMinutes = parseTimeToMinutes(r.time);
-          // If past date, or if today and time reached
           if (r.date < currentDate || remTotalMinutes <= currentTotalMinutes) {
-            console.log(`⏰ Auto-dispatching scheduled reminder for ${r.leadName} (${r.time})`);
             hasChanged = true;
-            r.reminderSent = true;
-            r.reminderSentAt = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            r.completed = true;
-
-            const msgToSend = r.customMessage || `Assalam o Alaikum ${r.leadName || 'Customer'}! Yeh aapke follow-up ke hawale se automated reminder hai: "${r.title}".`;
-
-            if (r.leadPhone && api.sendMessage) {
-              try {
-                await api.sendMessage({
-                  leadId: r.leadId,
-                  phoneNumber: r.leadPhone,
-                  customerName: r.leadName,
-                  channelId: r.channelId,
-                  content: msgToSend,
-                  mediaType: 'TEXT',
-                });
-
-                if (onUpdateLead && r.leadId) {
-                  const targetLead = currentLeads.find(l => l.id === r.leadId);
-                  if (targetLead) {
-                    const newMsg = {
-                      id: `sched-${Date.now()}`,
-                      sender: 'agent',
-                      agentName: 'System (Scheduled Message)',
-                      text: msgToSend,
-                      time: r.reminderSentAt,
-                      status: 'delivered'
-                    };
-                    onUpdateLead(r.leadId, {
-                      messages: [...(targetLead.messages || []), newMsg],
-                      lastMessage: msgToSend,
-                      lastTime: 'Just now'
-                    });
-                  }
-                }
-                setReminderToast(`⚡ Scheduled Message "${r.leadName}" ko WhatsApp par deliver ho gaya! ✓`);
-                setTimeout(() => setReminderToast(null), 5000);
-              } catch (err) {
-                console.error('Failed to auto-send scheduled reminder:', err);
-              }
-            }
+            r.notified = true;
+            // Internal notification for staff only - ZERO automated WhatsApp messages sent!
+            setReminderToast(`🔔 Callback Reminder: "${r.title}" for customer ${r.leadName || ''}!`);
+            setTimeout(() => setReminderToast(null), 6000);
           }
         }
       }
@@ -696,8 +655,7 @@ export default function LiveChatView({
       }
     };
 
-    const interval = setInterval(checkScheduledReminders, 10000); // Check every 10s quietly
-    checkScheduledReminders();
+    const interval = setInterval(checkScheduledReminders, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -2615,18 +2573,6 @@ export default function LiveChatView({
                 </div>
               </div>
 
-              {/* Auto-send toggle */}
-              <label className="flex items-center gap-2 cursor-pointer select-none bg-orange-100/40 p-2 rounded-lg border border-orange-200/60 mt-1">
-                <input
-                  type="checkbox"
-                  checked={newRemAutoSend}
-                  onChange={(e) => setNewRemAutoSend(e.target.checked)}
-                  className="w-3.5 h-3.5 accent-orange-600 rounded"
-                />
-                <span className="text-[11px] font-extrabold text-orange-950">
-                  ⚡ Muqarrar waqt par automatically WhatsApp send karein
-                </span>
-              </label>
 
               <div>
                 <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Priority:</label>

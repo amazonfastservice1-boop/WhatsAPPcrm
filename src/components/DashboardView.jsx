@@ -67,6 +67,29 @@ export default function DashboardView({
     return `${y}-${m}-${day}`;
   });
   const [selectedServiceFilter, setSelectedServiceFilter] = useState('all'); // Filter by AmazFast service
+  const [reminders, setReminders] = useState(() => {
+    try {
+      const saved = localStorage.getItem('crm_schedule_reminders');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    const handleSync = () => {
+      try {
+        const saved = localStorage.getItem('crm_schedule_reminders');
+        if (saved) setReminders(JSON.parse(saved));
+      } catch (e) {}
+    };
+    window.addEventListener('crm_reminders_updated', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('crm_reminders_updated', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, []);
   const [activeGraphTab, setActiveGraphTab] = useState('pipeline'); // 'pipeline' (Stages & Proposals) or 'trend' (7-day Volume)
   const [pipelineViewMode, setPipelineViewMode] = useState('pillars'); // 'pillars' (3D animated bars) or 'funnel' (step pipeline)
   const [hoveredStageKey, setHoveredStageKey] = useState(null);

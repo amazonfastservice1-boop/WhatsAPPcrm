@@ -334,6 +334,8 @@ export default function LiveChatView({
   const [sendingReminderId, setSendingReminderId] = useState(null);
   const [reminderToast, setReminderToast] = useState(null);
   const [smartBarToast, setSmartBarToast] = useState(null);
+  const [inlineTagInput, setInlineTagInput] = useState('');
+  const [isAddingTag, setIsAddingTag] = useState(false);
 
   const saveRemindersToStorage = (updated) => {
     setLeadReminders(updated);
@@ -1474,10 +1476,16 @@ export default function LiveChatView({
                           .filter(t => t !== 'WhatsApp Inbound' && t.toLowerCase() !== lead.stage?.toLowerCase())
                           .map((tag) => {
                             const isFollowup = /follow/i.test(tag);
+                            const isMeeting = /meet|zoom/i.test(tag);
+                            const isNoResponse = /no respon|no reply|ghost/i.test(tag);
                             const isHot = /hot|vip/i.test(tag);
                             const isCall = /call/i.test(tag);
                             const tagClass = isFollowup
                               ? 'bg-amber-100 text-amber-900 border-amber-300'
+                              : isMeeting
+                              ? 'bg-sky-100 text-sky-900 border-sky-300'
+                              : isNoResponse
+                              ? 'bg-slate-200 text-slate-800 border-slate-300'
                               : isHot
                               ? 'bg-rose-100 text-rose-900 border-rose-300'
                               : isCall
@@ -1490,6 +1498,8 @@ export default function LiveChatView({
                                 title={`Tag: ${tag}`}
                               >
                                 {isFollowup && <span>⏰</span>}
+                                {isMeeting && <span>🤝</span>}
+                                {isNoResponse && <span>📵</span>}
                                 {isHot && <span>🔥</span>}
                                 {isCall && <span>📞</span>}
                                 <span>{tag}</span>

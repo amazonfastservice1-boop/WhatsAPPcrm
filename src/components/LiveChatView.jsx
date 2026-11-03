@@ -790,10 +790,10 @@ export default function LiveChatView({
       });
   }, [uniqueLeads, selectedChannel, filterTab, leadReminders, selectedServiceFilter, searchLeadTerm, searchMode]);
 
-  // Selected active lead (Locked to uniqueLeads by selectedLeadId so active chat NEVER jumps to another customer)
+  // Selected active lead (Locked to active lead ID so active chat NEVER jumps to another customer)
   const activeLead = React.useMemo(() => {
-    return uniqueLeads.find((l) => l.id === selectedLeadId) || (displayLeads.length > 0 ? displayLeads[0] : null);
-  }, [uniqueLeads, selectedLeadId, displayLeads]);
+    return leads.find((l) => l.id === selectedLeadId) || uniqueLeads.find((l) => l.id === selectedLeadId) || (displayLeads.length > 0 ? displayLeads[0] : null);
+  }, [leads, uniqueLeads, selectedLeadId, displayLeads]);
 
   // Set initial selectedLeadId only if none selected
   React.useEffect(() => {

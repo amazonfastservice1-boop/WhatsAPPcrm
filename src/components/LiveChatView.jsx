@@ -467,7 +467,6 @@ export default function LiveChatView({
     setNewRemTitle(rem.title || '');
     setNewRemDate(rem.date || new Date().toISOString().slice(0, 10));
     setNewRemCustomMsg(rem.customMessage || rem.notes || '');
-    setNewRemAutoSend(rem.autoSend !== false);
     setNewRemPriority(rem.priority || 'HIGH');
 
     let h = '05', m = '00', ap = 'PM';
@@ -3044,9 +3043,7 @@ export default function LiveChatView({
                           <span className="text-[10px] font-bold text-slate-600 font-mono">
                             {rem.date} @ {formatTo12Hour(rem.time)}
                           </span>
-                          {rem.autoSend !== false && !rem.completed && !rem.reminderSent && (
                             <span className="text-[9px] px-1 py-0.2 rounded font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
-                              ⚡ Auto
                             </span>
                           )}
                         </div>

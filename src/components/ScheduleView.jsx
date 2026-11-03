@@ -549,11 +549,6 @@ export default function ScheduleView({
                       }`}>
                         {rem.priority}
                       </span>
-                      {rem.autoSend !== false && !rem.completed && (
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 flex items-center gap-1 border border-blue-200">
-                          <Zap className="w-3 h-3 fill-blue-600" /> Auto WhatsApp
-                        </span>
-                      )}
                       {isToday && !rem.completed && (
                         <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 animate-pulse">
                           Aaj Ka Task

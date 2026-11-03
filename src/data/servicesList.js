@@ -1,24 +1,97 @@
-// AmazFast Business Services List
+// AmazFast Business Services List (6 Exclusive Core Services)
 export const AMAZFAST_SERVICES = [
-  { id: 'us_llc', label: '🏢 US LLC Formation (Wyoming / Delaware / New Mexico)', shortLabel: 'US LLC Formation', icon: '🏢' },
-  { id: 'uk_ltd', label: '🇬🇧 UK LTD Company Registration', shortLabel: 'UK LTD Formation', icon: '🇬🇧' },
-  { id: 'stripe_gateway', label: '💳 Stripe Payment Gateway (US / UK Verified)', shortLabel: 'Stripe Gateway', icon: '💳' },
-  { id: 'paypal_business', label: '🅿️ PayPal Business Account (International)', shortLabel: 'PayPal Business', icon: '🅿️' },
-  { id: 'bank_account', label: '🏦 Business Bank (Mercury / Relay / Payoneer / Wise)', shortLabel: 'Business Bank', icon: '🏦' },
-  { id: 'amazon_wholesale', label: '📦 Amazon FBA Wholesale & Brand Approval', shortLabel: 'Amazon Wholesale', icon: '📦' },
-  { id: 'amazon_pl', label: '🚀 Amazon Private Label (PL) Launch & PPC', shortLabel: 'Amazon PL', icon: '🚀' },
-  { id: 'amazon_brand_registry', label: '🏷️ Amazon Brand Registry & Trademark', shortLabel: 'Brand Registry', icon: '🏷️' },
-  { id: 'shopify_store', label: '🛍️ Shopify Store Setup & Dropshipping', shortLabel: 'Shopify Store', icon: '🛍️' },
-  { id: 'tiktok_shop', label: '📱 TikTok Shop Setup (USA / UK)', shortLabel: 'TikTok Shop', icon: '📱' },
-  { id: 'itin_ein_tax', label: '📑 ITIN / EIN Tax ID & Compliance Filing', shortLabel: 'ITIN / EIN Tax', icon: '📑' },
-  { id: 'virtual_address', label: '📍 US/UK Virtual Business Address & Mail', shortLabel: 'Virtual Address', icon: '📍' },
-  { id: 'general_inquiry', label: '❓ Other / General Service Inquiry', shortLabel: 'General Inquiry', icon: '❓' },
+  {
+    id: 'amazon_account',
+    label: '🛒 Amazon Account Creation',
+    shortLabel: 'Amazon Account Creation',
+    icon: '🛒',
+    colorName: 'amber',
+    badgeClass: 'bg-amber-100 text-amber-900 border-amber-300',
+    dotColor: 'bg-amber-500',
+  },
+  {
+    id: 'llc',
+    label: '🏢 LLC',
+    shortLabel: 'LLC',
+    icon: '🏢',
+    colorName: 'blue',
+    badgeClass: 'bg-blue-100 text-blue-900 border-blue-300',
+    dotColor: 'bg-blue-500',
+  },
+  {
+    id: 'bank_creation',
+    label: '🏦 Bank Creation',
+    shortLabel: 'Bank Creation',
+    icon: '🏦',
+    colorName: 'emerald',
+    badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+    dotColor: 'bg-emerald-500',
+  },
+  {
+    id: 'combo',
+    label: '⚡ Combo',
+    shortLabel: 'Combo',
+    icon: '⚡',
+    colorName: 'purple',
+    badgeClass: 'bg-purple-100 text-purple-900 border-purple-300',
+    dotColor: 'bg-purple-500',
+  },
+  {
+    id: 'brand_approval',
+    label: '🏷️ Brand Approval',
+    shortLabel: 'Brand Approval',
+    icon: '🏷️',
+    colorName: 'rose',
+    badgeClass: 'bg-rose-100 text-rose-900 border-rose-300',
+    dotColor: 'bg-rose-500',
+  },
+  {
+    id: 'amazon_wholesale',
+    label: '📦 Amazon Wholesale',
+    shortLabel: 'Amazon Wholesale',
+    icon: '📦',
+    colorName: 'teal',
+    badgeClass: 'bg-teal-100 text-teal-900 border-teal-300',
+    dotColor: 'bg-teal-500',
+  },
 ];
 
 export function getServiceMeta(serviceIdOrName) {
   if (!serviceIdOrName) return null;
-  const match = AMAZFAST_SERVICES.find(
-    s => s.id === serviceIdOrName || s.label === serviceIdOrName || s.shortLabel === serviceIdOrName
+  const raw = String(serviceIdOrName).trim().toLowerCase();
+
+  // Smart matching with aliases
+  if (raw.includes('amazon acc') || raw.includes('account creation') || raw.includes('amazon_account')) {
+    return AMAZFAST_SERVICES[0];
+  }
+  if (raw.includes('llc') || raw.includes('us_llc') || raw.includes('wyoming') || raw.includes('delaware')) {
+    return AMAZFAST_SERVICES[1];
+  }
+  if (raw.includes('bank') || raw.includes('mercury') || raw.includes('relay') || raw.includes('bank_account') || raw.includes('bank_creation')) {
+    return AMAZFAST_SERVICES[2];
+  }
+  if (raw.includes('combo')) {
+    return AMAZFAST_SERVICES[3];
+  }
+  if (raw.includes('brand') || raw.includes('approval') || raw.includes('registry') || raw.includes('trademark')) {
+    return AMAZFAST_SERVICES[4];
+  }
+  if (raw.includes('wholesale') || raw.includes('fba') || raw.includes('whols')) {
+    return AMAZFAST_SERVICES[5];
+  }
+
+  const exact = AMAZFAST_SERVICES.find(
+    (s) => s.id === serviceIdOrName || s.label === serviceIdOrName || s.shortLabel === serviceIdOrName
   );
-  return match || { id: 'other', label: serviceIdOrName, shortLabel: serviceIdOrName, icon: '🏷️' };
+  if (exact) return exact;
+
+  return {
+    id: 'other',
+    label: serviceIdOrName,
+    shortLabel: serviceIdOrName,
+    icon: '💼',
+    colorName: 'slate',
+    badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
+    dotColor: 'bg-slate-500',
+  };
 }

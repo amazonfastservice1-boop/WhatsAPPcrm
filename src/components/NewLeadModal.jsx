@@ -22,7 +22,7 @@ export default function NewLeadModal({
   const [channelId, setChannelId] = useState(defaultChannelId);
   const [initialMessage, setInitialMessage] = useState('');
   const [dealValue, setDealValue] = useState('');
-  const [serviceInterest, setServiceInterest] = useState('US LLC Formation');
+  const [serviceInterest, setServiceInterest] = useState('Amazon Account Creation');
   const [assignedTo, setAssignedTo] = useState('Unassigned');
 
   React.useEffect(() => {

@@ -82,8 +82,20 @@ This system processes **1,000+ daily WhatsApp messages across 3 active business 
 
 ---
 
+### Bug 7: Strict Prohibition of Automated WhatsApp Messages (Zero Auto-Messaging Protocol)
+* **Root Cause:** Legacy reminder code in `ScheduleView.jsx` was automatically creating sample reminders with `autoSend: true`, and `LiveChatView.jsx` had a background timer calling `api.sendMessage` automatically.
+* **System-Wide Fix:**
+  1. **Completely wiped the background auto-sender timer.** The system will NEVER initiate an outbound message to any customer automatically.
+  2. Deleted the "Auto-send" checkbox from all modals and UI forms.
+  3. Forced `autoSend: false` globally across both `ScheduleView.jsx` and `LiveChatView.jsx`.
+  4. Reminders are now **STRICTLY internal agent notifications** (on-screen alerts on the CRM dashboard to remind staff to make a phone call or callback). ZERO WhatsApp messages are sent by the system.
+  5. Added auto-sanitization in `App.jsx` on boot to wipe any legacy autoSend flags from browser storage.
+
+---
+
 ## 3. High-Volume Architecture Verification Checklist
 Before any future change is shipped, verify:
+- [x] ZERO automated WhatsApp outbound messages (all messages require explicit human agent click).
 - [x] Zero number-specific conditional logic (`lead.phone === '...'`).
 - [x] Backend API sorts by `MAX(lastMessageAt, latestMsg.createdAt) DESC`.
 - [x] Frontend deduplicates by phone number and combines unread counts.

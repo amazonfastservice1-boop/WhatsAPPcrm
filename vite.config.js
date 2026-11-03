@@ -10,5 +10,9 @@ export default defineConfig({
     watch: {
       ignored: ['**/server/**', '**/storage/**', '**/.git/**']
     }
+  },
+  build: {
+    sourcemap: false,
+    chunkSizeWarningLimit: 1600,
   }
 })

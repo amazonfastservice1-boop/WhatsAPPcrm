@@ -289,6 +289,7 @@ export default function LiveChatView({
   const [pendingImage, setPendingImage] = useState(null); // { file, previewUrl, base64 }
   const [isUploading, setIsUploading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showCustomerDetails, setShowCustomerDetails] = useState(false);
   const fileInputRef = useRef(null);
 
   // Voice recording state

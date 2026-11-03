@@ -895,7 +895,7 @@ export default function DashboardView({
     }
 
     return { title, description, badgeColor, list };
-  }, [drilldownCategory, drilldownSearch, channelLeads, selectedChannel, todayLeadsList, repliedLeadsList, pendingLeadsList, topEngagedLeads, wonLeads, filteredLeads, timeRange, customDayDisplay, customSelectedDate]);
+  }, [drilldownCategory, drilldownSearch, channelLeads, selectedChannel, todayLeadsList, repliedLeadsList, pendingLeadsList, topEngagedLeads, wonLeads, filteredLeads, statusFilteredLeads, reminders, timeRange, customDayDisplay, customSelectedDate]);
 
   return (
     <div className="p-6 space-y-6 max-w-[1600px] mx-auto animate-fade-in">

@@ -103,8 +103,16 @@ export default function App() {
         return null;
       }
     })();
+    const localStage = (() => {
+      try {
+        return localStorage.getItem(`crm_lead_stage_${l.id}`);
+      } catch {
+        return null;
+      }
+    })();
     const apiTags = (l.tags || []).map((t) => (typeof t === 'string' ? t : t?.tag?.name || t?.name || '')).filter(Boolean);
     const resolvedTags = Array.isArray(localTags) ? localTags : apiTags;
+    const resolvedStage = localStage || STAGE_MAP[l.stage] || l.stage || 'New Lead';
 
     return {
       id: l.id,
@@ -116,7 +124,7 @@ export default function App() {
       currency: l.channel?.currency || 'PKR',
       dealValue: l.dealValue ? l.dealValue.toLocaleString() : '0',
       serviceInterest: l.serviceInterest || '',
-      stage: STAGE_MAP[l.stage] || l.stage || 'New Lead',
+      stage: resolvedStage,
       assignedToId: l.assignedToId || null,
       assignedTo: l.assignedTo?.name || 'Unassigned',
       assignedAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',

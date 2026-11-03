@@ -891,7 +891,7 @@ export default function App() {
               const sentTimeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
               rem.reminderSentAt = sentTimeStr;
 
-              const msgText = rem.customMessage || rem.notes || `Assalam o Alaikum ${rem.leadName || 'Customer'}! Yeh aapke follow-up ke hawale se reminder message hai: "${rem.title}". Shukriya!`;
+              const msgText = String(rem.customMessage || rem.notes || rem.title || '').replace(/^["']|["']$/g, '');
 
               console.log(`⏰ [Auto Reminder] Dispatching scheduled follow-up to ${rem.leadName} (${rem.leadPhone}) at ${sentTimeStr}`);
 

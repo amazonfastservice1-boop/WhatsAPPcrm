@@ -157,7 +157,7 @@ export default function ScheduleView({
   const handleSendDirectWhatsApp = async (rem) => {
     if (!rem.leadPhone) return;
     setSendingDirectId(rem.id);
-    const msg = rem.notes || rem.customMessage || `Assalam o Alaikum ${rem.leadName || 'Customer'}! Yeh aapke follow-up ke hawale se reminder message hai: "${rem.title}". Shukriya!`;
+    const msg = String(rem.notes || rem.customMessage || rem.title || '').replace(/^["']|["']$/g, '');
 
     try {
       if (api.sendMessage) {

@@ -33,6 +33,19 @@ const STAGE_MAP = {
   LOST: 'Lost',
 };
 
+// Tag Normalization & Zero-Flicker Equality Checker
+export function normalizeTagList(tags) {
+  if (!Array.isArray(tags)) return [];
+  return Array.from(new Set(tags.map(t => (typeof t === 'string' ? t.trim() : (t?.tag?.name || t?.name || '')).trim()).filter(Boolean))).sort();
+}
+
+export function areTagListsEqual(tagsA, tagsB) {
+  const normA = normalizeTagList(tagsA);
+  const normB = normalizeTagList(tagsB);
+  if (normA.length !== normB.length) return false;
+  return normA.every((t, i) => t === normB[i]);
+}
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState(() => {
     try {

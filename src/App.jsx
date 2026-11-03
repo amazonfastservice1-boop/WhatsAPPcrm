@@ -82,6 +82,17 @@ export default function App() {
     const bg = avatarBgColors[charCode % avatarBgColors.length];
     const generatedAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName || 'U')}&background=${bg}&color=fff&size=128&bold=true&rounded=true`;
 
+    const localTags = (() => {
+      try {
+        const raw = localStorage.getItem(`crm_lead_tags_${l.id}`);
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    })();
+    const apiTags = (l.tags || []).map((t) => (typeof t === 'string' ? t : t?.tag?.name || t?.name || '')).filter(Boolean);
+    const resolvedTags = Array.isArray(localTags) ? localTags : apiTags;
+
     return {
       id: l.id,
       name: displayName,
@@ -114,7 +125,7 @@ export default function App() {
         const trueTime = Math.max(msgTime, lTime) || (l.createdAt ? new Date(l.createdAt).getTime() : Date.now());
         return new Date(trueTime).toISOString();
       })()),
-      tags: (l.tags || []).map((t) => (typeof t === 'string' ? t : t?.tag?.name || t?.name || '')).filter(Boolean),
+      tags: resolvedTags,
       notes: l.notes || [],
       messages: l.messages?.map((m) => ({
         id: m.id,
@@ -568,6 +579,14 @@ export default function App() {
   const handleUpdateLead = (leadId, updates) => {
     const nowIso = new Date().toISOString();
     recentLocalUpdatesRef.current.set(leadId, { ...updates, timestamp: Date.now() });
+
+    if (updates.tags !== undefined) {
+      try {
+        localStorage.setItem(`crm_lead_tags_${leadId}`, JSON.stringify(updates.tags));
+      } catch (e) {
+        console.warn('Failed to cache tags locally', e);
+      }
+    }
 
     setLeads((prev) =>
       prev.map((lead) => {

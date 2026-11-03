@@ -2357,7 +2357,11 @@ export default function LiveChatView({
       </div>
 
       {/* 3. Right Column: Lead CRM Profile & Pipeline Drawer */}
-      <div className="w-80 bg-white border-l border-[#EEF2F6] p-5 overflow-y-auto space-y-6 hidden lg:block shrink-0">
+      <div className={`bg-white border-l border-[#EEF2F6] p-4 lg:p-5 overflow-y-auto space-y-6 shrink-0 transition-all ${
+        showCustomerDetails 
+          ? 'w-72 lg:w-80 block' 
+          : 'hidden 2xl:block 2xl:w-80'
+      }`}>
         <div>
           <h3 className="text-sm font-extrabold text-slate-900 tracking-tight mb-1">Customer Ki Maloomat</h3>
           <p className="text-xs text-slate-500 font-medium">Lead status aur agent assignment</p>

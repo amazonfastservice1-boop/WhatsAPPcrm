@@ -284,6 +284,7 @@ export default function LiveChatView({
   const [isInternalNote, setIsInternalNote] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [searchLeadTerm, setSearchLeadTerm] = useState('');
+  const [searchMode, setSearchMode] = useState('phone'); // 'phone' (Search by WhatsApp Number) or 'all'
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameVal, setEditNameVal] = useState('');
   const [pendingImage, setPendingImage] = useState(null); // { file, previewUrl, base64 }
@@ -748,10 +749,31 @@ export default function LiveChatView({
             return false;
           }
         }
-        // Search
+        // Search (Intelligent Phone Number & Name Search)
         if (searchLeadTerm) {
-          const term = searchLeadTerm.toLowerCase();
-          return (lead.name || '').toLowerCase().includes(term) || (lead.phone || '').includes(term);
+          const rawTerm = searchLeadTerm.trim().toLowerCase();
+          const cleanSearchDigits = rawTerm.replace(/\D/g, '');
+          const cleanLeadPhone = String(lead.phone || '').replace(/\D/g, '');
+
+          // Smart phone number matching (handles local 0332 vs 92332, 054 vs 96654)
+          let matchesPhone = false;
+          if (cleanSearchDigits.length >= 2) {
+            if (cleanLeadPhone.includes(cleanSearchDigits)) {
+              matchesPhone = true;
+            } else {
+              const searchWithoutZero = cleanSearchDigits.startsWith('0') ? cleanSearchDigits.slice(1) : cleanSearchDigits;
+              if (searchWithoutZero.length >= 2 && cleanLeadPhone.includes(searchWithoutZero)) {
+                matchesPhone = true;
+              }
+            }
+          } else if (cleanLeadPhone && cleanSearchDigits && cleanLeadPhone.includes(cleanSearchDigits)) {
+            matchesPhone = true;
+          }
+
+          if (searchMode === 'phone') {
+            return matchesPhone;
+          }
+          return matchesPhone || (lead.name || '').toLowerCase().includes(rawTerm);
         }
         return true;
       })
@@ -761,7 +783,7 @@ export default function LiveChatView({
         if (timeB !== timeA) return timeB - timeA;
         return String(a.id || '').localeCompare(String(b.id || ''));
       });
-  }, [uniqueLeads, selectedChannel, filterTab, leadReminders, selectedServiceFilter, searchLeadTerm]);
+  }, [uniqueLeads, selectedChannel, filterTab, leadReminders, selectedServiceFilter, searchLeadTerm, searchMode]);
 
   // Selected active lead (Locked to uniqueLeads by selectedLeadId so active chat NEVER jumps to another customer)
   const activeLead = React.useMemo(() => {

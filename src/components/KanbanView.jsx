@@ -118,7 +118,7 @@ export default function KanbanView({
 
       return true;
     });
-  }, [leads, selectedChannel, dateFilter, searchQuery]);
+  }, [leads, selectedChannel, dateFilter, searchQuery, selectedServiceFilter, customSelectedDate]);
 
   // Drag and Drop Handlers
   const handleDragStart = (e, leadId) => {

@@ -678,11 +678,21 @@ export default function LiveChatView({
       } else {
         const existingTime = new Date(existing.rawLastMessageAt || existing.createdAt || 0).getTime();
         const incomingTime = new Date(l.rawLastMessageAt || l.createdAt || 0).getTime();
+        const existingStatusTime = existing.statusUpdatedAt ? new Date(existing.statusUpdatedAt).getTime() : 0;
+        const incomingStatusTime = l.statusUpdatedAt ? new Date(l.statusUpdatedAt).getTime() : 0;
         const isSelected = l.id === selectedLeadId || existing.id === selectedLeadId;
         const masterId = isSelected ? (l.id === selectedLeadId ? l.id : existing.id) : (incomingTime > existingTime ? l.id : existing.id);
-        const mergedTags = Array.from(new Set([...(existing.tags || []), ...(l.tags || [])]));
-        const mergedStage = (l.stage && l.stage !== 'New Lead') ? l.stage : (existing.stage || 'New Lead');
-        const mergedService = l.serviceInterest || existing.serviceInterest;
+
+        // Always prefer the record with the most recent explicit status/tag update (or the currently selected lead)
+        const preferIncomingStatus = incomingStatusTime > existingStatusTime || (incomingStatusTime === existingStatusTime && l.id === selectedLeadId);
+        const mergedTags = preferIncomingStatus
+          ? (l.tags || existing.tags || [])
+          : (existingStatusTime > incomingStatusTime ? (existing.tags || l.tags || []) : Array.from(new Set([...(existing.tags || []), ...(l.tags || [])])));
+        const mergedStage = preferIncomingStatus
+          ? (l.stage || existing.stage || 'New Lead')
+          : (existingStatusTime > incomingStatusTime ? (existing.stage || l.stage || 'New Lead') : ((l.stage && l.stage !== 'New Lead') ? l.stage : (existing.stage || 'New Lead')));
+        const mergedService = preferIncomingStatus ? (l.serviceInterest || existing.serviceInterest) : (existing.serviceInterest || l.serviceInterest);
+        const mergedStatusDate = incomingStatusTime >= existingStatusTime ? (l.statusUpdatedAt || existing.statusUpdatedAt) : existing.statusUpdatedAt;
 
         phoneMap.set(key, {
           ...(incomingTime > existingTime ? l : existing),
@@ -690,12 +700,13 @@ export default function LiveChatView({
           tags: mergedTags,
           stage: mergedStage,
           serviceInterest: mergedService,
+          statusUpdatedAt: mergedStatusDate,
           unreadCount: (l.unreadCount || 0) + (existing.unreadCount || 0),
         });
       }
     });
     return Array.from(phoneMap.values());
-  }, [leads, selectedChannel]);
+  }, [leads, selectedChannel, selectedLeadId]);
 
   const stageCounts = React.useMemo(() => {
     const list = selectedChannel === 'all' ? uniqueLeads : uniqueLeads.filter(l => l.channel === selectedChannel);

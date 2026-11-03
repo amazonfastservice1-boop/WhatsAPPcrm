@@ -660,6 +660,8 @@ export default function App() {
     const nowIso = new Date().toISOString();
     const existingLocal = recentLocalUpdatesRef.current.get(leadId) || {};
     const currentLead = leads.find((l) => l.id === leadId);
+    const cleanPhoneKey = String(currentLead?.phone || '').replace(/\D/g, '');
+    const isStatusOrTagChange = updates.stage !== undefined || updates.tags !== undefined || updates.serviceInterest !== undefined || updates.dealValue !== undefined;
 
     const resolvedStage = updates.stage !== undefined 
       ? updates.stage 
@@ -674,34 +676,67 @@ export default function App() {
       ...updates, 
       stage: resolvedStage,
       tags: normalizeTagList(resolvedTags),
+      statusUpdatedAt: isStatusOrTagChange ? nowIso : (existingLocal.statusUpdatedAt || currentLead?.statusUpdatedAt),
       timestamp: Date.now() 
     };
     recentLocalUpdatesRef.current.set(leadId, mergedLocal);
 
-    if (resolvedTags !== undefined) {
-      try {
-        localStorage.setItem(`crm_lead_tags_${leadId}`, JSON.stringify(resolvedTags));
-      } catch (e) {
-        console.warn('Failed to cache tags locally', e);
+    // Find all lead IDs sharing this phone number (so old contacts with multiple records stay 100% in sync)
+    const matchingIds = leads
+      .filter((l) => l.id === leadId || (cleanPhoneKey && String(l.phone || '').replace(/\D/g, '') === cleanPhoneKey))
+      .map((l) => l.id);
+    if (!matchingIds.includes(leadId)) matchingIds.push(leadId);
+
+    matchingIds.forEach((mId) => {
+      recentLocalUpdatesRef.current.set(mId, mergedLocal);
+      if (resolvedTags !== undefined) {
+        try {
+          localStorage.setItem(`crm_lead_tags_${mId}`, JSON.stringify(resolvedTags));
+        } catch (e) {}
       }
-    }
-    if (resolvedStage !== undefined) {
-      try {
-        localStorage.setItem(`crm_lead_stage_${leadId}`, resolvedStage);
-      } catch (e) {
-        console.warn('Failed to cache stage locally', e);
+      if (resolvedStage !== undefined) {
+        try {
+          localStorage.setItem(`crm_lead_stage_${mId}`, resolvedStage);
+        } catch (e) {}
       }
+      if (isStatusOrTagChange) {
+        try {
+          localStorage.setItem(`crm_lead_status_date_${mId}`, nowIso);
+        } catch (e) {}
+      }
+    });
+
+    if (cleanPhoneKey) {
+      try {
+        if (resolvedTags !== undefined) localStorage.setItem(`crm_phone_tags_${cleanPhoneKey}`, JSON.stringify(resolvedTags));
+        if (resolvedStage !== undefined) localStorage.setItem(`crm_phone_stage_${cleanPhoneKey}`, resolvedStage);
+        if (isStatusOrTagChange) localStorage.setItem(`crm_phone_status_date_${cleanPhoneKey}`, nowIso);
+      } catch (e) {}
     }
 
     setLeads((prev) =>
       prev.map((lead) => {
-        if (lead.id === leadId) {
+        const isTarget = lead.id === leadId;
+        const isSamePhone = Boolean(cleanPhoneKey && String(lead.phone || '').replace(/\D/g, '') === cleanPhoneKey);
+        if (isTarget) {
           return { 
             ...lead, 
             ...updates, 
             stage: resolvedStage || lead.stage,
             tags: resolvedTags !== undefined ? normalizeTagList(resolvedTags) : lead.tags,
+            statusUpdatedAt: isStatusOrTagChange ? nowIso : lead.statusUpdatedAt,
             updatedAt: nowIso 
+          };
+        }
+        if (isSamePhone && isStatusOrTagChange) {
+          return {
+            ...lead,
+            stage: resolvedStage || lead.stage,
+            tags: resolvedTags !== undefined ? normalizeTagList(resolvedTags) : lead.tags,
+            serviceInterest: updates.serviceInterest !== undefined ? updates.serviceInterest : lead.serviceInterest,
+            dealValue: updates.dealValue !== undefined ? updates.dealValue : lead.dealValue,
+            statusUpdatedAt: nowIso,
+            updatedAt: nowIso
           };
         }
         return lead;
@@ -736,7 +771,11 @@ export default function App() {
       }
 
       if (Object.keys(apiUpdates).length > 0) {
-        api.updateLead(leadId, apiUpdates).catch((e) => console.warn('Failed to persist lead update:', e));
+        matchingIds.forEach((mId) => {
+          if (mId && typeof mId === 'string' && !mId.startsWith('mock-')) {
+            api.updateLead(mId, apiUpdates).catch((e) => console.warn('Failed to persist lead update:', e));
+          }
+        });
       }
     }
   };

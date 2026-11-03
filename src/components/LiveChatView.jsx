@@ -1621,252 +1621,137 @@ export default function LiveChatView({
         <>
           {/* 2. Middle Column: Active Chat Conversation */}
           <div className="flex-1 flex flex-col bg-[#F4F5F8] border-r border-[#EEF2F6] min-w-0">
-        {/* ⚡ Organized Top Action Header (Laptop Zoom & DPI Safe) */}
-        <div className="bg-white border-b border-slate-200 px-3 py-2 space-y-1.5 shrink-0 shadow-2xs">
-          {/* Row 1: Service Selector + Primary Status Buttons (Qualified, Unqualified, Deal Won) */}
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            {/* Left: Service Dropdown */}
-            <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/80 min-w-0 flex-1 sm:flex-initial">
-              <span className="text-[10px] font-black uppercase text-slate-600 flex items-center gap-1 shrink-0">
-                <span>💼</span>
-                <span>Service:</span>
-              </span>
-              <select
-                value={activeLead.serviceInterest || ''}
-                onChange={(e) => {
-                  const sVal = e.target.value;
-                  onUpdateLead(activeLead.id, { serviceInterest: sVal });
-                  if (sVal) {
-                    setSmartBarToast(`💼 Service "${sVal}" save ho gayi! Dashboard update ✓`);
-                    setTimeout(() => setSmartBarToast(null), 3000);
-                  }
-                }}
-                className="text-[11px] font-bold bg-transparent text-slate-800 focus:outline-none cursor-pointer truncate max-w-[165px]"
-                title="Customer kis AmazFast service mein interested hai (LLC, Stripe, Amazon, Tax, etc.)"
-              >
-                <option value="">-- Service Select Karein --</option>
-                {AMAZFAST_SERVICES.map((s) => (
-                  <option key={s.id} value={s.shortLabel}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Right: Primary Status Buttons */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              {/* Qualified Toggle Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  const isCurrentlyQualified = activeLead.stage === 'Qualified';
-                  const nextStage = isCurrentlyQualified ? 'New Lead' : 'Qualified';
-                  onUpdateLead(activeLead.id, { stage: nextStage, tags: activeLead.tags || [] });
-                  if (isCurrentlyQualified) {
-                    setSmartBarToast('🟣 "Qualified" hata diya gaya');
-                  } else {
-                    setSmartBarToast('🟣 Lead "Qualified" ho gayi!');
-                  }
+        {/* ⚡ Single-Line Clean Dropdown Bar: Service, Status & Tags (Zero Wrapping / Alignment Proof) */}
+        <div className="bg-white border-b border-slate-200 px-3 py-2 flex items-center gap-2 flex-wrap shrink-0 shadow-2xs">
+          {/* 1. Service Dropdown */}
+          <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/80 shrink-0">
+            <span className="text-[10px] font-black uppercase text-slate-600 flex items-center gap-1 shrink-0">
+              <span>💼</span>
+              <span>Service:</span>
+            </span>
+            <select
+              value={activeLead.serviceInterest || ''}
+              onChange={(e) => {
+                const sVal = e.target.value;
+                onUpdateLead(activeLead.id, { serviceInterest: sVal });
+                if (sVal) {
+                  setSmartBarToast(`💼 Service "${sVal}" save ho gayi! Dashboard update ✓`);
                   setTimeout(() => setSmartBarToast(null), 3000);
-                }}
-                className={`px-2 py-1 rounded-lg text-[11px] font-black transition-all flex items-center gap-1 whitespace-nowrap shadow-2xs ${
-                  activeLead.stage === 'Qualified'
-                    ? 'bg-purple-600 text-white ring-2 ring-purple-300 hover:bg-purple-700'
-                    : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
-                }`}
-              >
-                <span>🟣</span>
-                <span>Qualified</span>
-                {activeLead.stage === 'Qualified' && (
-                  <span className="text-[9px] bg-purple-700/80 px-1 rounded-full ml-0.5">✕</span>
-                )}
-              </button>
-
-              {/* Unqualified Toggle Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  const isCurrentlyLost = activeLead.stage === 'Lost';
-                  const nextStage = isCurrentlyLost ? 'New Lead' : 'Lost';
-                  onUpdateLead(activeLead.id, { stage: nextStage, tags: activeLead.tags || [] });
-                  if (isCurrentlyLost) {
-                    setSmartBarToast('🔴 "Unqualified" status hata diya gaya');
-                  } else {
-                    setSmartBarToast('🔴 Lead "Unqualified" mark ho gayi');
-                  }
-                  setTimeout(() => setSmartBarToast(null), 3000);
-                }}
-                className={`px-2 py-1 rounded-lg text-[11px] font-black transition-all flex items-center gap-1 whitespace-nowrap shadow-2xs ${
-                  activeLead.stage === 'Lost'
-                    ? 'bg-rose-600 text-white ring-2 ring-rose-300 hover:bg-rose-700'
-                    : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
-                }`}
-              >
-                <span>🔴</span>
-                <span>Unqualified</span>
-                {activeLead.stage === 'Lost' && (
-                  <span className="text-[9px] bg-rose-700/80 px-1 rounded-full ml-0.5">✕</span>
-                )}
-              </button>
-
-              {/* Deal Won Toggle Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  const isCurrentlyWon = activeLead.stage === 'Deal Won';
-                  const nextStage = isCurrentlyWon ? 'New Lead' : 'Deal Won';
-                  onUpdateLead(activeLead.id, { stage: nextStage, tags: activeLead.tags || [] });
-                  if (isCurrentlyWon) {
-                    setSmartBarToast('🟢 "Deal Won" status hata diya gaya');
-                  } else {
-                    setSmartBarToast('🟢 Mubarak! Deal Won ho gayi!');
-                  }
-                  setTimeout(() => setSmartBarToast(null), 3000);
-                }}
-                className={`px-2 py-1 rounded-lg text-[11px] font-black transition-all flex items-center gap-1 whitespace-nowrap shadow-2xs ${
-                  activeLead.stage === 'Deal Won'
-                    ? 'bg-emerald-600 text-white ring-2 ring-emerald-300 hover:bg-emerald-700'
-                    : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
-                }`}
-              >
-                <span>🟢</span>
-                <span>Deal Won</span>
-                {activeLead.stage === 'Deal Won' && (
-                  <span className="text-[9px] bg-emerald-700/80 px-1 rounded-full ml-0.5">✕</span>
-                )}
-              </button>
-            </div>
+                }
+              }}
+              className="text-[11px] font-bold bg-transparent text-slate-800 focus:outline-none cursor-pointer max-w-[145px]"
+              title="Customer kis AmazFast service mein interested hai"
+            >
+              <option value="">-- Service Select --</option>
+              {AMAZFAST_SERVICES.map((s) => (
+                <option key={s.id} value={s.shortLabel}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Row 2: Organized Tag Buttons Strip (Follow-up, Meeting, No Response, + Tag) */}
-          <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-slate-100">
+          {/* 2. Status Dropdown (Qualified, Unqualified, Deal Won) */}
+          <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/80 shrink-0">
+            <span className="text-[10px] font-black uppercase text-slate-600 flex items-center gap-1 shrink-0">
+              <span>🎯</span>
+              <span>Status:</span>
+            </span>
+            <select
+              value={
+                activeLead.stage === 'Qualified' || activeLead.stage === 'Lost' || activeLead.stage === 'Deal Won' || activeLead.stage === 'Proposal Sent'
+                  ? activeLead.stage
+                  : ''
+              }
+              onChange={(e) => {
+                const val = e.target.value;
+                const nextStage = val || 'New Lead';
+                onUpdateLead(activeLead.id, { stage: nextStage, tags: activeLead.tags || [] });
+                const label = val === 'Lost' ? 'Unqualified' : (val || 'Cleared');
+                setSmartBarToast(`🎯 Lead Status "${label}" update ho gaya!`);
+                setTimeout(() => setSmartBarToast(null), 3000);
+              }}
+              className="text-[11px] font-bold bg-transparent text-slate-800 focus:outline-none cursor-pointer"
+              title="Customer ka status select karein (Qualified, Unqualified, Deal Won)"
+            >
+              <option value="">-- Status Select --</option>
+              <option value="Qualified">🟣 Qualified</option>
+              <option value="Lost">🔴 Unqualified</option>
+              <option value="Deal Won">🟢 Deal Won</option>
+              <option value="Proposal Sent">🟠 Proposal Sent</option>
+            </select>
+          </div>
 
-            {/* Follow-up Multi-Tag Toggle Button (Allows Qualified + Follow-up together) */}
-            {(() => {
-              const currentTags = (activeLead.tags || []).filter(t => t !== 'WhatsApp Inbound');
-              const hasFollowup = currentTags.some(t => /follow/i.test(t));
-              return (
-                <div className="inline-flex items-center rounded-lg shadow-2xs">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      let nextTags;
-                      if (hasFollowup) {
-                        nextTags = currentTags.filter(t => !/follow/i.test(t));
-                        setSmartBarToast('⏰ "Follow-up" tag hata diya gaya');
-                      } else {
-                        nextTags = [...currentTags, 'Follow-up'];
-                        setSmartBarToast('⏰ Lead par "Follow-up" tag lag gaya! (Qualified + Follow-up dono active)');
-                      }
-                      onUpdateLead(activeLead.id, { tags: nextTags, stage: activeLead.stage || 'New Lead' });
-                      setTimeout(() => setSmartBarToast(null), 3000);
-                    }}
-                    className={`px-2.5 py-1 text-xs font-black transition-all flex items-center gap-1 rounded-l-lg border ${
-                      hasFollowup
-                        ? 'bg-amber-500 text-white border-amber-600 hover:bg-amber-600'
-                        : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-200'
-                    }`}
-                    title={hasFollowup ? "Click karein Follow-up tag hatane ke liye (Toggle OFF)" : "Click karein Follow-up tag lagane ke liye (Toggle ON)"}
-                  >
-                    <span>⏰</span>
-                    <span>Follow-up</span>
-                    {hasFollowup ? (
-                      <span className="text-[10px] bg-amber-600 hover:bg-amber-700 px-1 rounded-full ml-0.5" title="Hata dein">✕</span>
-                    ) : null}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddReminderForm(true)}
-                    className={`px-1.5 py-1 text-xs font-black border-y border-r rounded-r-lg transition-all ${
-                      hasFollowup 
-                        ? 'bg-amber-600 hover:bg-amber-700 text-white border-amber-600' 
-                        : 'bg-amber-100/70 hover:bg-amber-200 text-amber-900 border-amber-200'
-                    }`}
-                    title="Follow-up call/alert ka waqt mukhtas karein"
-                  >
-                    📅
-                  </button>
-                </div>
-              );
-            })()}
+          {/* 3. Tag Dropdown (Follow-up, Meeting, No Response, + Custom Tag) */}
+          <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/80 shrink-0">
+            <span className="text-[10px] font-black uppercase text-slate-600 flex items-center gap-1 shrink-0">
+              <span>🏷️</span>
+              <span>Tag:</span>
+            </span>
+            <select
+              value=""
+              onChange={(e) => {
+                const val = e.target.value;
+                if (!val) return;
+                if (val === '__custom__') {
+                  setIsAddingTag(true);
+                  return;
+                }
+                if (val === '__schedule__') {
+                  setShowAddReminderForm(true);
+                  return;
+                }
+                const currentTags = (activeLead.tags || []).filter(t => t !== 'WhatsApp Inbound');
+                const alreadyHas = currentTags.some(t => t.toLowerCase() === val.toLowerCase());
+                let nextTags;
+                if (alreadyHas) {
+                  nextTags = currentTags.filter(t => t.toLowerCase() !== val.toLowerCase());
+                  setSmartBarToast(`🏷️ Tag "${val}" hata diya gaya`);
+                } else {
+                  nextTags = [...currentTags, val];
+                  setSmartBarToast(`🏷️ Tag "${val}" lag gaya! Dashboard update ✓`);
+                }
+                onUpdateLead(activeLead.id, { tags: nextTags, stage: activeLead.stage || 'New Lead' });
+                setTimeout(() => setSmartBarToast(null), 3000);
+              }}
+              className="text-[11px] font-bold bg-transparent text-slate-800 focus:outline-none cursor-pointer"
+              title="Follow-up, Meeting, No Response ya Custom Tag lagayein"
+            >
+              <option value="">-- Tag Select Karein --</option>
+              <option value="Follow-up">⏰ Follow-up</option>
+              <option value="Meeting">🤝 Meeting</option>
+              <option value="No Response">📵 No Response</option>
+              <option value="__schedule__">📅 Reminder Schedule Karein</option>
+              <option value="__custom__">➕ Naya Custom Tag...</option>
+            </select>
+          </div>
 
-            {/* Meeting Multi-Tag Toggle Button */}
-            {(() => {
-              const currentTags = (activeLead.tags || []).filter(t => t !== 'WhatsApp Inbound');
-              const hasMeeting = currentTags.some(t => /meet|zoom|call schedule/i.test(t));
-              return (
+          {/* Active Selected Status & Tag Pills (Compact 1-Click Remove) */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {activeLead.stage && activeLead.stage !== 'New Lead' && activeLead.stage !== 'Contacted' && (
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-black border shadow-2xs ${getStageBadgeStyle(activeLead.stage)}`}>
+                <span>{activeLead.stage === 'Lost' ? '🔴 Unqualified' : activeLead.stage === 'Qualified' ? '🟣 Qualified' : activeLead.stage === 'Deal Won' ? '🟢 Deal Won' : activeLead.stage}</span>
                 <button
                   type="button"
                   onClick={() => {
-                    let nextTags;
-                    if (hasMeeting) {
-                      nextTags = currentTags.filter(t => !/meet|zoom|call schedule/i.test(t));
-                      setSmartBarToast('🤝 "Meeting" tag hata diya gaya');
-                    } else {
-                      nextTags = [...currentTags, 'Meeting'];
-                      setSmartBarToast('🤝 Lead par "Meeting" tag lag gaya! Dashboard update ✓');
-                    }
-                    onUpdateLead(activeLead.id, { tags: nextTags, stage: activeLead.stage || 'New Lead' });
-                    setTimeout(() => setSmartBarToast(null), 3000);
+                    onUpdateLead(activeLead.id, { stage: 'New Lead', tags: activeLead.tags || [] });
+                    setSmartBarToast('Status hata diya gaya');
+                    setTimeout(() => setSmartBarToast(null), 2500);
                   }}
-                  className={`px-2.5 py-1 text-xs font-black transition-all flex items-center gap-1 rounded-lg border shadow-2xs ${
-                    hasMeeting
-                      ? 'bg-sky-600 text-white border-sky-700 hover:bg-sky-700'
-                      : 'bg-sky-50 text-sky-800 hover:bg-sky-100 border-sky-200'
-                  }`}
-                  title={hasMeeting ? "Meeting tag hatayein (Toggle OFF)" : "Customer ke sath Meeting mark karein (Toggle ON)"}
+                  className="hover:opacity-75 text-[10px] font-bold ml-0.5"
+                  title="Status hatayein"
                 >
-                  <span>🤝</span>
-                  <span>Meeting</span>
-                  {hasMeeting && (
-                    <span className="text-[10px] bg-sky-700 hover:bg-sky-800 px-1 rounded-full ml-0.5" title="Hata dein">✕</span>
-                  )}
+                  ✕
                 </button>
-              );
-            })()}
+              </span>
+            )}
 
-            {/* No Response Multi-Tag Toggle Button */}
-            {(() => {
-              const currentTags = (activeLead.tags || []).filter(t => t !== 'WhatsApp Inbound');
-              const hasNoResponse = currentTags.some(t => /no respon|no reply|ghost/i.test(t));
-              return (
-                <button
-                  type="button"
-                  onClick={() => {
-                    let nextTags;
-                    if (hasNoResponse) {
-                      nextTags = currentTags.filter(t => !/no respon|no reply|ghost/i.test(t));
-                      setSmartBarToast('📵 "No Response" tag hata diya gaya');
-                    } else {
-                      nextTags = [...currentTags, 'No Response'];
-                      setSmartBarToast('📵 Lead par "No Response" tag lag gaya! Dashboard update ✓');
-                    }
-                    onUpdateLead(activeLead.id, { tags: nextTags, stage: activeLead.stage || 'New Lead' });
-                    setTimeout(() => setSmartBarToast(null), 3000);
-                  }}
-                  className={`px-2.5 py-1 text-xs font-black transition-all flex items-center gap-1 rounded-lg border shadow-2xs ${
-                    hasNoResponse
-                      ? 'bg-slate-700 text-white border-slate-800 hover:bg-slate-800'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300'
-                  }`}
-                  title={hasNoResponse ? "No Response tag hatayein (Toggle OFF)" : "Customer ne reply nahi diya mark karein (Toggle ON)"}
-                >
-                  <span>📵</span>
-                  <span>No Response</span>
-                  {hasNoResponse && (
-                    <span className="text-[10px] bg-slate-800 hover:bg-slate-900 px-1 rounded-full ml-0.5" title="Hata dein">✕</span>
-                  )}
-                </button>
-              );
-            })()}
-
-            {/* Other Active Custom Tags Pills with 1-click remove (✕) */}
             {(activeLead.tags || [])
-              .filter(t => t !== 'WhatsApp Inbound' && !/follow/i.test(t) && !/meet|zoom/i.test(t) && !/no respon|no reply/i.test(t) && t.toLowerCase() !== activeLead.stage?.toLowerCase())
+              .filter(t => t !== 'WhatsApp Inbound' && t.toLowerCase() !== activeLead.stage?.toLowerCase())
               .map((tag) => (
                 <span 
                   key={tag}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-black bg-slate-100 text-slate-800 border border-slate-300 shadow-2xs animate-in fade-in"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-black bg-amber-50 text-amber-900 border border-amber-200 shadow-2xs"
                 >
                   <span>🏷️ {tag}</span>
                   <button
@@ -1877,7 +1762,7 @@ export default function LiveChatView({
                       setSmartBarToast(`🏷️ Tag "${tag}" hata diya gaya`);
                       setTimeout(() => setSmartBarToast(null), 2500);
                     }}
-                    className="text-slate-400 hover:text-rose-600 text-[11px] font-bold ml-0.5"
+                    className="text-amber-700 hover:text-rose-600 text-[10px] font-bold ml-0.5"
                     title={`Tag "${tag}" hatayein`}
                   >
                     ✕
@@ -1885,8 +1770,8 @@ export default function LiveChatView({
                 </span>
               ))}
 
-            {/* Inline Add Custom Tag Form (Zero-prompt, no browser popup!) */}
-            {isAddingTag ? (
+            {/* Inline Custom Tag Input (When user selects "+ Naya Custom Tag...") */}
+            {isAddingTag && (
               <form 
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -1903,21 +1788,21 @@ export default function LiveChatView({
                     setIsAddingTag(false);
                   }
                 }}
-                className="inline-flex items-center gap-1 bg-slate-50 p-0.5 rounded-lg border border-orange-300 shadow-2xs animate-in fade-in"
+                className="inline-flex items-center gap-1 bg-slate-50 p-0.5 rounded-lg border border-orange-300 shadow-2xs"
               >
                 <input
                   type="text"
                   autoFocus
                   value={inlineTagInput}
                   onChange={(e) => setInlineTagInput(e.target.value)}
-                  placeholder="Naya tag likhein..."
-                  className="text-xs font-bold px-2 py-0.5 bg-white border border-slate-200 rounded text-slate-800 focus:outline-none focus:border-orange-500 w-32"
+                  placeholder="Naya tag..."
+                  className="text-[11px] font-bold px-2 py-0.5 bg-white border border-slate-200 rounded text-slate-800 focus:outline-none focus:border-orange-500 w-28"
                 />
                 <button
                   type="submit"
-                  className="px-2 py-0.5 text-xs font-black bg-orange-500 hover:bg-orange-600 text-white rounded transition-colors"
+                  className="px-2 py-0.5 text-[11px] font-black bg-orange-500 hover:bg-orange-600 text-white rounded transition-colors"
                 >
-                  + Add
+                  Add
                 </button>
                 <button
                   type="button"
@@ -1927,16 +1812,6 @@ export default function LiveChatView({
                   ✕
                 </button>
               </form>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setIsAddingTag(true)}
-                className="px-2 py-1 rounded-lg text-xs font-extrabold bg-white hover:bg-orange-50 text-slate-700 hover:text-orange-600 border border-slate-200 hover:border-orange-200 transition-all shadow-2xs flex items-center gap-1"
-                title="Customer ke liye naya custom tag likhein"
-              >
-                <span>+</span>
-                <span>Tag</span>
-              </button>
             )}
           </div>
         </div>

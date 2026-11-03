@@ -309,23 +309,7 @@ export default function DashboardView({
       return isLeadStatusActiveInPeriod(l, timeRange, customSelectedDate);
     });
 
-    // Deduplicate by phone number when viewing 'all' channels so one contact with multiple records counts once
-    if (selectedChannel !== 'all') return rawList;
-    const phoneMap = new Map();
-    rawList.forEach((l) => {
-      const key = l.phone ? String(l.phone).replace(/\D/g, '') : l.id;
-      const existing = phoneMap.get(key);
-      if (!existing) {
-        phoneMap.set(key, l);
-      } else {
-        const existingStatusTime = existing.statusUpdatedAt ? new Date(existing.statusUpdatedAt).getTime() : 0;
-        const incomingStatusTime = l.statusUpdatedAt ? new Date(l.statusUpdatedAt).getTime() : 0;
-        if (incomingStatusTime >= existingStatusTime) {
-          phoneMap.set(key, l);
-        }
-      }
-    });
-    return Array.from(phoneMap.values());
+    return rawList;
   }, [leads, selectedChannel, timeRange, selectedServiceFilter, customSelectedDate]);
 
   // --- Real Analytical Metrics ---

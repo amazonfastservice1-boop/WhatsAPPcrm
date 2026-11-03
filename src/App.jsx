@@ -95,39 +95,27 @@ export default function App() {
     const bg = avatarBgColors[charCode % avatarBgColors.length];
     const generatedAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName || 'U')}&background=${bg}&color=fff&size=128&bold=true&rounded=true`;
 
-    const cleanPhoneKey = String(l.phoneNumber || '').replace(/\D/g, '');
-    const localTags = (() => {
-      try {
-        const raw = localStorage.getItem(`crm_lead_tags_${l.id}`) || (cleanPhoneKey ? localStorage.getItem(`crm_phone_tags_${cleanPhoneKey}`) : null);
-        return raw ? JSON.parse(raw) : null;
-      } catch {
-        return null;
-      }
-    })();
-    const localStage = (() => {
-      try {
-        return localStorage.getItem(`crm_lead_stage_${l.id}`) || (cleanPhoneKey ? localStorage.getItem(`crm_phone_stage_${cleanPhoneKey}`) : null);
-      } catch {
-        return null;
-      }
-    })();
-    const localStatusDate = (() => {
-      try {
-        const savedDate = localStorage.getItem(`crm_lead_status_date_${l.id}`) || (cleanPhoneKey ? localStorage.getItem(`crm_phone_status_date_${cleanPhoneKey}`) : null);
-        if (savedDate) return savedDate;
-        if (localStage || (Array.isArray(localTags) && localTags.length > 0)) {
-          const fallbackIso = l.updatedAt ? new Date(l.updatedAt).toISOString() : new Date().toISOString();
-          localStorage.setItem(`crm_lead_status_date_${l.id}`, fallbackIso);
-          return fallbackIso;
-        }
-        return null;
-      } catch {
-        return null;
-      }
-    })();
+    const recentLocal = recentLocalUpdatesRef.current.get(l.id);
+    const isRecentlyClickedHere = recentLocal && (Date.now() - recentLocal.timestamp < 20000);
+
     const apiTags = (l.tags || []).map((t) => (typeof t === 'string' ? t : t?.tag?.name || t?.name || '')).filter(Boolean);
-    const resolvedTags = Array.isArray(localTags) ? localTags : apiTags;
-    const resolvedStage = localStage || STAGE_MAP[l.stage] || l.stage || 'New Lead';
+    const dbStage = STAGE_MAP[l.stage] || l.stage || 'New Lead';
+
+    // Database (PostgreSQL) is the single source of truth shared between Staff and Admin,
+    // except during the 20s optimistic lock right after a local button click on this browser.
+    const resolvedTags = isRecentlyClickedHere && Array.isArray(recentLocal.tags)
+      ? recentLocal.tags
+      : apiTags;
+    const resolvedStage = isRecentlyClickedHere && recentLocal.stage
+      ? recentLocal.stage
+      : dbStage;
+
+    const hasActiveStatusOrTags = (resolvedStage && resolvedStage !== 'New Lead' && resolvedStage !== 'Contacted') || resolvedTags.length > 0 || Boolean(l.serviceInterest);
+    const resolvedStatusDate = isRecentlyClickedHere && recentLocal.statusUpdatedAt
+      ? recentLocal.statusUpdatedAt
+      : (hasActiveStatusOrTags
+          ? (l.updatedAt ? new Date(l.updatedAt).toISOString() : new Date().toISOString())
+          : null);
 
     return {
       id: l.id,
@@ -140,7 +128,7 @@ export default function App() {
       dealValue: l.dealValue ? l.dealValue.toLocaleString() : '0',
       serviceInterest: l.serviceInterest || '',
       stage: resolvedStage,
-      statusUpdatedAt: localStatusDate,
+      statusUpdatedAt: resolvedStatusDate,
       assignedToId: l.assignedToId || null,
       assignedTo: l.assignedTo?.name || 'Unassigned',
       assignedAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
@@ -543,26 +531,27 @@ export default function App() {
       });
     };
 
-    const handleStageUpdate = ({ leadId, stage, dealValue, serviceInterest }) => {
+    const handleStageUpdate = ({ leadId, stage, dealValue, serviceInterest, tags }) => {
       const localUpdate = recentLocalUpdatesRef.current.get(leadId);
       const isRecentlyEdited = localUpdate && (Date.now() - localUpdate.timestamp < 20000);
       if (isRecentlyEdited && localUpdate.stage !== undefined) {
         return; // Lock against stale socket stage broadcast!
       }
 
+      const nowIso = new Date().toISOString();
       const displayStage = STAGE_MAP[stage] || stage;
+      const normalizedTags = Array.isArray(tags) ? normalizeTagList(tags) : undefined;
       setLeads((prev) =>
         prev.map((l) => {
           if (l.id !== leadId) return l;
-          if (l.stage === displayStage && (serviceInterest === undefined || l.serviceInterest === serviceInterest)) {
-            return l;
-          }
           return {
             ...l,
-            stage: displayStage,
+            stage: displayStage || l.stage,
+            ...(normalizedTags !== undefined ? { tags: normalizedTags } : {}),
             ...(serviceInterest !== undefined ? { serviceInterest } : {}),
             ...(dealValue !== undefined ? { dealValue } : {}),
-            updatedAt: new Date().toISOString()
+            statusUpdatedAt: nowIso,
+            updatedAt: nowIso
           };
         })
       );
@@ -588,6 +577,8 @@ export default function App() {
         }
       }
 
+      const nowIso = updatedLead.updatedAt ? new Date(updatedLead.updatedAt).toISOString() : new Date().toISOString();
+
       setLeads((prev) => {
         const target = prev.find(l => l.id === updatedLead.id);
         if (!target) return prev;
@@ -598,7 +589,7 @@ export default function App() {
         const tagsSame = updatedTags === undefined || areTagListsEqual(target.tags, updatedTags);
         const nameSame = !updatedLead.fullName || target.name === updatedLead.fullName;
 
-        if (stageSame && serviceSame && tagsSame && nameSame) {
+        if (stageSame && serviceSame && tagsSame && nameSame && target.statusUpdatedAt) {
           return prev; // Skips re-render! Completely stops flickering!
         }
 
@@ -611,7 +602,8 @@ export default function App() {
             serviceInterest: updatedLead.serviceInterest !== undefined ? updatedLead.serviceInterest : l.serviceInterest,
             dealValue: updatedLead.dealValue !== undefined ? updatedLead.dealValue : l.dealValue,
             tags: updatedTags !== undefined ? updatedTags : l.tags,
-            updatedAt: new Date().toISOString()
+            statusUpdatedAt: nowIso,
+            updatedAt: nowIso
           };
         });
       });

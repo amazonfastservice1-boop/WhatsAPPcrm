@@ -280,7 +280,9 @@ router.patch('/:id', authenticateToken, async (req, res) => {
     const { fullName, stage, dealValue, assignedToId, serviceInterest, tags } = req.body;
     const leadId = req.params.id;
 
-    const data = {};
+    const data = {
+      updatedAt: new Date(),
+    };
     if (fullName !== undefined) data.fullName = fullName;
     if (stage !== undefined) {
       const s = String(stage).toUpperCase();
@@ -327,6 +329,10 @@ router.patch('/:id', authenticateToken, async (req, res) => {
       },
     });
 
+    const cleanTags = Array.isArray(updatedLead.tags)
+      ? updatedLead.tags.map(t => (typeof t === 'string' ? t : (t?.tag?.name || t?.name))).filter(Boolean)
+      : [];
+
     req.io?.emit('lead:updated', updatedLead);
     req.io?.emit('lead:stage_updated', {
       leadId: updatedLead.id,
@@ -334,6 +340,8 @@ router.patch('/:id', authenticateToken, async (req, res) => {
       serviceInterest: updatedLead.serviceInterest,
       dealValue: updatedLead.dealValue,
       channelId: updatedLead.channelId,
+      tags: cleanTags,
+      updatedAt: updatedLead.updatedAt,
     });
     res.json({ lead: updatedLead });
   } catch (error) {

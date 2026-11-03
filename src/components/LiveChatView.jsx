@@ -1781,74 +1781,188 @@ export default function LiveChatView({
             </select>
           </div>
 
-          {/* 1-Click Fast Qualification Buttons */}
+          {/* 1-Click Fast Qualification & Multi-Tag Toggle Buttons */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            {/* Qualified Button */}
+            {/* Qualified Toggle Button */}
             <button
               type="button"
               onClick={() => {
-                onUpdateLead(activeLead.id, { stage: 'Qualified' });
-                setSmartBarToast('🟣 Lead "Qualified" ho gayi! Dashboard KPI update ✓');
-                setTimeout(() => setSmartBarToast(null), 3500);
+                const isCurrentlyQualified = activeLead.stage === 'Qualified';
+                if (isCurrentlyQualified) {
+                  onUpdateLead(activeLead.id, { stage: 'New Lead' });
+                  setSmartBarToast('🟣 "Qualified" hata diya gaya (Lead restore to New Lead)');
+                } else {
+                  onUpdateLead(activeLead.id, { stage: 'Qualified' });
+                  setSmartBarToast('🟣 Lead "Qualified" ho gayi! (Dobara click se hat jayegi)');
+                }
+                setTimeout(() => setSmartBarToast(null), 3000);
               }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 shadow-2xs ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-2xs ${
                 activeLead.stage === 'Qualified'
-                  ? 'bg-purple-600 text-white ring-2 ring-purple-300'
+                  ? 'bg-purple-600 text-white ring-2 ring-purple-300 hover:bg-purple-700'
                   : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
               }`}
-              title="Mark as Genuine / Qualified Buyer"
+              title={activeLead.stage === 'Qualified' ? "Click karein Qualified status hatane ke liye (Toggle OFF)" : "Lead ko Qualified mark karein (Toggle ON)"}
             >
               <span>🟣</span>
               <span>Qualified</span>
+              {activeLead.stage === 'Qualified' && (
+                <span className="text-[10px] bg-purple-700/80 hover:bg-purple-800 px-1 rounded-full ml-0.5" title="Hata dein">✕</span>
+              )}
             </button>
 
-            {/* Unqualified / Lost Button */}
+            {/* Unqualified Toggle Button */}
             <button
               type="button"
               onClick={() => {
-                onUpdateLead(activeLead.id, { stage: 'Lost' });
-                setSmartBarToast('🔴 Lead "Unqualified / Rejected" ho gayi! Dashboard update ✓');
-                setTimeout(() => setSmartBarToast(null), 3500);
+                const isCurrentlyLost = activeLead.stage === 'Lost';
+                if (isCurrentlyLost) {
+                  onUpdateLead(activeLead.id, { stage: 'New Lead' });
+                  setSmartBarToast('🔴 "Unqualified" status hata diya gaya (Lead restore ho gayi)');
+                } else {
+                  onUpdateLead(activeLead.id, { stage: 'Lost' });
+                  setSmartBarToast('🔴 Lead "Unqualified / Rejected" mark ho gayi (Dobara click se hat jayegi)');
+                }
+                setTimeout(() => setSmartBarToast(null), 3000);
               }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 shadow-2xs ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-2xs ${
                 activeLead.stage === 'Lost'
-                  ? 'bg-rose-600 text-white ring-2 ring-rose-300'
+                  ? 'bg-rose-600 text-white ring-2 ring-rose-300 hover:bg-rose-700'
                   : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
               }`}
-              title="Mark as Unqualified / Not Interested / Spam"
+              title={activeLead.stage === 'Lost' ? "Click karein Unqualified status hatane ke liye (Toggle OFF)" : "Lead ko Unqualified mark karein (Toggle ON)"}
             >
               <span>🔴</span>
               <span>Unqualified</span>
+              {activeLead.stage === 'Lost' && (
+                <span className="text-[10px] bg-rose-700/80 hover:bg-rose-800 px-1 rounded-full ml-0.5" title="Hata dein">✕</span>
+              )}
             </button>
 
-            {/* Deal Closed / Won Button (Direct One-Click Deal Won) */}
+            {/* Deal Won Toggle Button */}
             <button
               type="button"
               onClick={() => {
-                onUpdateLead(activeLead.id, { stage: 'Deal Won' });
-                setSmartBarToast(`🟢 Mubarak! Deal Won ho gayi! Dashboard update ✓`);
+                const isCurrentlyWon = activeLead.stage === 'Deal Won';
+                if (isCurrentlyWon) {
+                  onUpdateLead(activeLead.id, { stage: 'New Lead' });
+                  setSmartBarToast('🟢 "Deal Won" status hata diya gaya');
+                } else {
+                  onUpdateLead(activeLead.id, { stage: 'Deal Won' });
+                  setSmartBarToast('🟢 Mubarak! Deal Won ho gayi! (Dobara click se hat jayegi)');
+                }
                 setTimeout(() => setSmartBarToast(null), 3000);
               }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 shadow-2xs ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-2xs ${
                 activeLead.stage === 'Deal Won'
-                  ? 'bg-emerald-600 text-white ring-2 ring-emerald-300'
+                  ? 'bg-emerald-600 text-white ring-2 ring-emerald-300 hover:bg-emerald-700'
                   : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
               }`}
-              title="Order Final / Deal Closed"
+              title={activeLead.stage === 'Deal Won' ? "Click karein Deal Won status hatane ke liye (Toggle OFF)" : "Order Final / Deal Closed (Toggle ON)"}
             >
               <span>🟢</span>
               <span>Deal Won</span>
+              {activeLead.stage === 'Deal Won' && (
+                <span className="text-[10px] bg-emerald-700/80 hover:bg-emerald-800 px-1 rounded-full ml-0.5" title="Hata dein">✕</span>
+              )}
             </button>
 
-            {/* Follow-up Reminder Button */}
+            <div className="h-5 w-px bg-slate-200 mx-0.5" />
+
+            {/* Follow-up Multi-Tag Toggle Button (Allows Qualified + Follow-up together) */}
+            {(() => {
+              const currentTags = (activeLead.tags || []).filter(t => t !== 'WhatsApp Inbound');
+              const hasFollowup = currentTags.some(t => /follow/i.test(t));
+              return (
+                <div className="inline-flex items-center rounded-lg shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      let nextTags;
+                      if (hasFollowup) {
+                        nextTags = currentTags.filter(t => !/follow/i.test(t));
+                        setSmartBarToast('⏰ "Follow-up" tag hata diya gaya');
+                      } else {
+                        nextTags = [...currentTags, 'Follow-up'];
+                        setSmartBarToast('⏰ Lead par "Follow-up" tag lag gaya! (Qualified + Follow-up dono active)');
+                      }
+                      onUpdateLead(activeLead.id, { tags: nextTags });
+                      setTimeout(() => setSmartBarToast(null), 3000);
+                    }}
+                    className={`px-2.5 py-1 text-xs font-black transition-all flex items-center gap-1 rounded-l-lg border ${
+                      hasFollowup
+                        ? 'bg-amber-500 text-white border-amber-600 hover:bg-amber-600'
+                        : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-200'
+                    }`}
+                    title={hasFollowup ? "Click karein Follow-up tag hatane ke liye (Toggle OFF)" : "Click karein Follow-up tag lagane ke liye (Toggle ON)"}
+                  >
+                    <span>⏰</span>
+                    <span>Follow-up</span>
+                    {hasFollowup ? (
+                      <span className="text-[10px] bg-amber-600 hover:bg-amber-700 px-1 rounded-full ml-0.5" title="Hata dein">✕</span>
+                    ) : null}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddReminderForm(true)}
+                    className={`px-1.5 py-1 text-xs font-black border-y border-r rounded-r-lg transition-all ${
+                      hasFollowup 
+                        ? 'bg-amber-600 hover:bg-amber-700 text-white border-amber-600' 
+                        : 'bg-amber-100/70 hover:bg-amber-200 text-amber-900 border-amber-200'
+                    }`}
+                    title="Follow-up call/alert ka waqt mukhtas karein"
+                  >
+                    📅
+                  </button>
+                </div>
+              );
+            })()}
+
+            {/* Other Active Custom Tags Pills with 1-click remove (✕) */}
+            {(activeLead.tags || [])
+              .filter(t => t !== 'WhatsApp Inbound' && !/follow/i.test(t) && t.toLowerCase() !== activeLead.stage?.toLowerCase())
+              .map((tag) => (
+                <span 
+                  key={tag}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-black bg-slate-100 text-slate-800 border border-slate-300 shadow-2xs animate-in fade-in"
+                >
+                  <span>🏷️ {tag}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextTags = (activeLead.tags || []).filter(t => t !== tag);
+                      onUpdateLead(activeLead.id, { tags: nextTags });
+                      setSmartBarToast(`🏷️ Tag "${tag}" hata diya gaya`);
+                      setTimeout(() => setSmartBarToast(null), 2500);
+                    }}
+                    className="text-slate-400 hover:text-rose-600 text-[11px] font-bold ml-0.5"
+                    title={`Tag "${tag}" hatayein`}
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+
+            {/* Add Custom Tag Pill */}
             <button
               type="button"
-              onClick={() => setShowAddReminderForm(true)}
-              className="px-2.5 py-1 rounded-lg text-xs font-black bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 transition-all flex items-center gap-1 shadow-2xs"
-              title="Follow-up Call / Message Schedule Karein"
+              onClick={() => {
+                const newTag = prompt('Customer ke liye naya tag likhein (maslan: VIP, Urgent, Docs Pending):');
+                if (newTag && newTag.trim()) {
+                  const clean = newTag.trim();
+                  const currentTags = (activeLead.tags || []).filter(t => t !== 'WhatsApp Inbound');
+                  if (!currentTags.includes(clean)) {
+                    const nextTags = [...currentTags, clean];
+                    onUpdateLead(activeLead.id, { tags: nextTags });
+                    setSmartBarToast(`🏷️ Naya Tag "${clean}" shamil ho gaya!`);
+                    setTimeout(() => setSmartBarToast(null), 3000);
+                  }
+                }
+              }}
+              className="px-2 py-1 rounded-lg text-xs font-extrabold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-all shadow-2xs"
+              title="Add a custom tag to this lead"
             >
-              <span>⏰</span>
-              <span>Follow-up</span>
+              + Tag
             </button>
 
             {/* Direct Free WhatsApp Button */}

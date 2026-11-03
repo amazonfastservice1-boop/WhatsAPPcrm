@@ -564,7 +564,7 @@ export default function LiveChatView({
   const handleSendWhatsAppReminderDirect = async (rem) => {
     if (!rem.leadPhone) return;
     setSendingReminderId(rem.id);
-    const msg = rem.customMessage || `Assalam o Alaikum ${rem.leadName || 'Customer'}! Yeh aapke follow-up ke hawale se reminder message hai: "${rem.title}". Shukriya!`;
+    const msg = (rem.customMessage || rem.title || '').replace(/^["']|["']$/g, '');
 
     try {
       if (api.sendMessage) {

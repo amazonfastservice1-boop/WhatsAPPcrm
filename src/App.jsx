@@ -179,11 +179,20 @@ export default function App() {
             let serviceInterest = newLead.serviceInterest;
             let tags = newLead.tags;
 
-            // If locally edited within last 12 seconds, lock local user choice against slow DB replication
-            if (localUpdate && Date.now() - localUpdate.timestamp < 12000) {
+            // If locally edited within last 15 seconds, lock local user choice against slow DB replication
+            if (localUpdate && Date.now() - localUpdate.timestamp < 15000) {
               if (localUpdate.stage !== undefined) stage = localUpdate.stage;
               if (localUpdate.serviceInterest !== undefined) serviceInterest = localUpdate.serviceInterest;
               if (localUpdate.tags !== undefined) tags = localUpdate.tags;
+            } else if (existing) {
+              // Preserve existing stage if local stage is Qualified or Deal Won or Lost
+              if (existing.stage && existing.stage !== 'New Lead' && newLead.stage === 'New Lead') {
+                stage = existing.stage;
+              }
+              // Preserve existing tags if server returned empty
+              if (Array.isArray(existing.tags) && existing.tags.length > 0 && (!tags || tags.length === 0)) {
+                tags = existing.tags;
+              }
             }
 
             const mergedTags = normalizeTagList(tags !== undefined ? tags : existing?.tags);
@@ -614,13 +623,22 @@ export default function App() {
   // Update lead helper - persists to PostgreSQL database with instant optimistic locking
   const handleUpdateLead = (leadId, updates) => {
     const nowIso = new Date().toISOString();
-    recentLocalUpdatesRef.current.set(leadId, { ...updates, timestamp: Date.now() });
+    const existingLocal = recentLocalUpdatesRef.current.get(leadId) || {};
+    const mergedLocal = { ...existingLocal, ...updates, timestamp: Date.now() };
+    recentLocalUpdatesRef.current.set(leadId, mergedLocal);
 
     if (updates.tags !== undefined) {
       try {
         localStorage.setItem(`crm_lead_tags_${leadId}`, JSON.stringify(updates.tags));
       } catch (e) {
         console.warn('Failed to cache tags locally', e);
+      }
+    }
+    if (updates.stage !== undefined) {
+      try {
+        localStorage.setItem(`crm_lead_stage_${leadId}`, updates.stage);
+      } catch (e) {
+        console.warn('Failed to cache stage locally', e);
       }
     }
 

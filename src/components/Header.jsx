@@ -22,36 +22,30 @@ export default function Header({
       {/* Left: Greeting & Current page title */}
       <div className="shrink-0 min-w-0">
         <div className="flex items-center gap-1.5">
-          <h1 className="text-sm lg:text-base font-extrabold text-slate-900 tracking-tight whitespace-nowrap truncate max-w-[140px] sm:max-w-none">
+          <h1 className="text-sm lg:text-base font-extrabold text-slate-900 tracking-tight whitespace-nowrap truncate max-w-[160px] sm:max-w-none">
             Welcome, {userName} 👋
           </h1>
-          <span className="hidden md:inline-block px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-orange-100 text-orange-700 whitespace-nowrap">
+          <span className="hidden md:inline-block px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-orange-100 text-orange-700 whitespace-nowrap">
             {currentUser?.role === 'ADMIN' ? 'Super Admin' : currentUser?.role || 'Staff'}
           </span>
         </div>
-        <p className="hidden xl:block text-[11px] text-slate-500 font-medium">
-          {currentUser?.role === 'ADMIN' 
-            ? 'AmazFast WhatsApp numbers ka live control portal' 
-            : 'Aapke assigned WhatsApp channel ka live workspace'}
-        </p>
       </div>
 
       {/* Right Controls: Search, Channel Selector, Action Buttons */}
       <div className="flex items-center gap-1.5 lg:gap-2.5 min-w-0 shrink-0">
-        {/* Search Bar */}
-        <div className="relative w-32 sm:w-44 lg:w-52 shrink-0 hidden sm:block">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search leads..."
-            className="w-full pl-8 pr-7 py-1.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white text-xs font-medium text-slate-800 rounded-xl border border-slate-200/80 focus:border-orange-500 focus:outline-none transition-all"
-          />
-          <kbd className="hidden lg:inline-block absolute right-2 top-1/2 -translate-y-1/2 text-[9px] bg-white border border-slate-200 text-slate-400 px-1 py-0.2 rounded font-mono">
-            ⌘K
-          </kbd>
-        </div>
+        {/* Search Bar (Hidden on Chat tab since Chat has its own dedicated search) */}
+        {activeTab !== 'chat' && (
+          <div className="relative w-32 sm:w-44 lg:w-52 shrink-0 hidden sm:block">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search leads..."
+              className="w-full pl-8 pr-7 py-1.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white text-xs font-medium text-slate-800 rounded-xl border border-slate-200/80 focus:border-orange-500 focus:outline-none transition-all"
+            />
+          </div>
+        )}
 
         {/* WhatsApp Channel Switcher Pill */}
         <div className="flex items-center bg-slate-100/90 p-0.5 rounded-xl border border-slate-200/60 shrink-0 gap-0.5">

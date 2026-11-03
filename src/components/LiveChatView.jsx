@@ -284,7 +284,7 @@ export default function LiveChatView({
   const [isInternalNote, setIsInternalNote] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [searchLeadTerm, setSearchLeadTerm] = useState('');
-  const [searchMode, setSearchMode] = useState('phone'); // 'phone' (Search by WhatsApp Number) or 'all'
+  const [searchMode, setSearchMode] = useState('all'); // 'all' searches both phone number & customer name
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameVal, setEditNameVal] = useState('');
   const [pendingImage, setPendingImage] = useState(null); // { file, previewUrl, base64 }
@@ -1125,102 +1125,14 @@ export default function LiveChatView({
     <div className="flex h-full w-full overflow-hidden bg-[#F8F9FC]">
       {/* 1. Left Column: Conversations List (WhatsApp Style) */}
       <div className="w-64 lg:w-72 2xl:w-80 bg-white border-r border-[#EEF2F6] flex flex-col shrink-0">
-        {/* Header & Channel Selector */}
-        <div className="p-2.5 border-b border-[#F1F5F9] space-y-2">
-          <div className="flex items-center justify-between gap-1">
-            <h2 className="text-sm font-extrabold text-slate-900 tracking-tight truncate">Customer Chats</h2>
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                onClick={async () => {
-                  if (onRefreshLeads) {
-                    setIsRefreshing(true);
-                    await onRefreshLeads();
-                    setTimeout(() => setIsRefreshing(false), 500);
-                  }
-                }}
-                title="Refresh customer chats from WhatsApp"
-                className="p-1 rounded-lg text-slate-500 hover:text-orange-600 hover:bg-orange-50 transition-colors"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-orange-500' : ''}`} />
-              </button>
-              <span className="text-[11px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100 whitespace-nowrap">
-                {displayLeads.length} Chats
-              </span>
-            </div>
-          </div>
-
-          {/* Quick Channel Filter inside Inbox */}
-          {Array.isArray(channels) && channels.length > 0 && (
-            <div className="flex items-center gap-1 overflow-x-auto pb-1 text-xs">
-              {channels.map(ch => {
-                const displayName = formatChannelDisplayName(ch);
-                return (
-                  <button
-                    key={ch.id}
-                    onClick={() => setSelectedChannel(ch.id)}
-                    className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all ${
-                      selectedChannel === ch.id 
-                        ? 'bg-orange-500 text-white shadow-2xs' 
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                    title={ch.number || displayName}
-                  >
-                    <span>{ch.flag}</span> <span>{displayName}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Search Mode & Input (Search by Phone Number Option) */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
-                {searchMode === 'phone' ? (
-                  <span className="text-emerald-700 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    📞 Number Se Search
-                  </span>
-                ) : (
-                  <span>🔍 Chat Search</span>
-                )}
-              </span>
-              <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200/70 text-[10px]">
-                <button
-                  type="button"
-                  onClick={() => setSearchMode('phone')}
-                  className={`px-2 py-0.5 rounded-md font-extrabold transition-all flex items-center gap-1 ${
-                    searchMode === 'phone'
-                      ? 'bg-emerald-600 text-white shadow-2xs'
-                      : 'text-slate-600 hover:text-emerald-700'
-                  }`}
-                  title="WhatsApp phone number se client dhoondein"
-                >
-                  <span>📞 Number</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSearchMode('all')}
-                  className={`px-2 py-0.5 rounded-md font-extrabold transition-all ${
-                    searchMode === 'all'
-                      ? 'bg-white text-orange-600 shadow-2xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                  title="Naam aur number dono se dhoondein"
-                >
-                  Sab (All)
-                </button>
-              </div>
-            </div>
-
-            <div className="relative">
-              {searchMode === 'phone' ? (
-                <Phone className="w-3.5 h-3.5 text-emerald-600 absolute left-3 top-1/2 -translate-y-1/2" />
-              ) : (
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              )}
+        {/* Clean, Minimal Inbox Header (Search + Filter) */}
+        <div className="p-3 border-b border-[#F1F5F9] space-y-2.5">
+          {/* Row 1: Single Clean Search Input (Searches both Phone & Name) */}
+          <div className="relative flex items-center gap-1.5">
+            <div className="relative flex-1">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
-                type={searchMode === 'phone' ? 'tel' : 'text'}
+                type="text"
                 value={searchLeadTerm}
                 onChange={(e) => setSearchLeadTerm(e.target.value)}
                 onKeyDown={(e) => {
@@ -1228,16 +1140,8 @@ export default function LiveChatView({
                     setSelectedLeadId(displayLeads[0].id);
                   }
                 }}
-                placeholder={
-                  searchMode === 'phone'
-                    ? "Customer ka number likhein (0332..., +966...)"
-                    : "Customer ka naam ya phone likhein..."
-                }
-                className={`w-full pl-8 pr-7 py-1.5 text-xs font-bold rounded-xl border focus:outline-none transition-all ${
-                  searchMode === 'phone'
-                    ? 'bg-emerald-50/50 border-emerald-300 text-emerald-950 placeholder-emerald-700/60 focus:border-emerald-600 focus:bg-white'
-                    : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-orange-500 focus:bg-white'
-                }`}
+                placeholder="Number ya naam search karein..."
+                className="w-full pl-8 pr-7 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all"
               />
               {searchLeadTerm && (
                 <button
@@ -1250,145 +1154,70 @@ export default function LiveChatView({
                 </button>
               )}
             </div>
+            <button
+              onClick={async () => {
+                if (onRefreshLeads) {
+                  setIsRefreshing(true);
+                  await onRefreshLeads();
+                  setTimeout(() => setIsRefreshing(false), 500);
+                }
+              }}
+              title="Refresh chats"
+              className="p-1.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 hover:text-orange-600 hover:bg-orange-50 transition-colors shrink-0"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-orange-500' : ''}`} />
+            </button>
           </div>
 
-          {/* AmazFast Service Filter Dropdown */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 border border-slate-200/80 rounded-xl">
-            <span className="text-[10px] font-black uppercase text-slate-500 shrink-0">💼 Service:</span>
-            <select
-              value={selectedServiceFilter}
-              onChange={(e) => setSelectedServiceFilter(e.target.value)}
-              className="flex-1 text-[11px] font-bold bg-transparent text-slate-800 focus:outline-none cursor-pointer truncate"
-            >
-              <option value="all">🌐 Saari Services (All)</option>
-              {AMAZFAST_SERVICES.map(s => (
-                <option key={s.id} value={s.shortLabel}>{s.label}</option>
-              ))}
-            </select>
-            {selectedServiceFilter !== 'all' && (
-              <button
+          {/* Row 2: Clean Non-Overflowing Tabs + Stage Filter Dropdown */}
+          <div className="flex items-center justify-between gap-1.5 text-xs">
+            <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200/70">
+              <button 
                 type="button"
-                onClick={() => setSelectedServiceFilter('all')}
-                className="text-[10px] text-orange-600 font-black hover:underline shrink-0"
-                title="Reset service filter"
+                onClick={() => setFilterTab('all')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold whitespace-nowrap transition-all ${
+                  filterTab === 'all' ? 'bg-white text-orange-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
               >
-                ✕ Clear
+                Saari ({stageCounts.all})
               </button>
-            )}
-          </div>
+              <button 
+                type="button"
+                onClick={() => setFilterTab('today')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold whitespace-nowrap transition-all flex items-center gap-1 ${
+                  filterTab === 'today' 
+                    ? 'bg-emerald-600 text-white shadow-2xs' 
+                    : 'text-slate-600 hover:text-emerald-700'
+                }`}
+              >
+                <span>Aaj</span>
+                <span className={`text-[10px] px-1 rounded-full font-black ${
+                  filterTab === 'today' ? 'bg-emerald-700 text-white' : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  {stageCounts.todayNew}
+                </span>
+              </button>
+            </div>
 
-          {/* Filter Tabs / Stage Sections */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 text-xs border-b border-slate-100 pt-1">
-            {/* Tab 1: Aaj Ki Nayi Leads (First time customers after 12 AM) */}
-            <button 
-              type="button"
-              onClick={() => setFilterTab('today')}
-              className={`pb-1 px-2.5 border-b-2 font-black whitespace-nowrap transition-colors flex items-center gap-1.5 ${
-                filterTab === 'today' 
-                  ? 'border-emerald-600 text-emerald-700 bg-emerald-50/70 font-black rounded-t shadow-2xs' 
-                  : 'border-transparent text-slate-500 hover:text-emerald-700 hover:bg-emerald-50/40 rounded-t'
+            {/* Compact Filter Dropdown for Unread, Qualified, Won, Unqualified, Reminders */}
+            <select
+              value={['all', 'today'].includes(filterTab) ? '' : filterTab}
+              onChange={(e) => setFilterTab(e.target.value || 'all')}
+              className={`px-2 py-1 rounded-xl border text-[11px] font-bold focus:outline-none cursor-pointer transition-all max-w-[115px] ${
+                !['all', 'today'].includes(filterTab)
+                  ? 'bg-orange-50 border-orange-300 text-orange-700'
+                  : 'bg-slate-50 border-slate-200 text-slate-700'
               }`}
-              title="Aaj aane wali naye customers ki leads jinka pehla message 12:00 AM ke baad aaya hai"
+              title="Status ya Unread ke mutabiq filter karein"
             >
-              <span>⚡ Aaj Ki Leads</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                filterTab === 'today' ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-800'
-              }`}>
-                {stageCounts.todayNew}
-              </span>
-            </button>
-
-            {/* Tab 2: Saari Chats (Existing returning clients + Aaj ki leads) */}
-            <button 
-              type="button"
-              onClick={() => setFilterTab('all')}
-              className={`pb-1 px-2.5 border-b-2 font-bold whitespace-nowrap transition-colors ${
-                filterTab === 'all' ? 'border-orange-500 text-orange-600 bg-orange-50/40 rounded-t' : 'border-transparent text-slate-500 hover:text-slate-800'
-              }`}
-              title="Tamaam chats — Purane customers aur aaj ki leads dono shamil hain"
-            >
-              Saari Chats ({stageCounts.all})
-            </button>
-            <button 
-              type="button"
-              onClick={() => setFilterTab('unread')}
-              className={`pb-1 px-2 border-b-2 font-bold whitespace-nowrap transition-colors ${
-                filterTab === 'unread' ? 'border-orange-500 text-orange-600' : 'border-transparent text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Unread ({stageCounts.unread})
-            </button>
-            <button 
-              type="button"
-              onClick={() => setFilterTab('reminders')}
-              className={`pb-1 px-2.5 border-b-2 font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
-                filterTab === 'reminders' 
-                  ? 'border-orange-500 text-orange-700 bg-orange-50 font-extrabold rounded-t shadow-2xs' 
-                  : 'border-transparent text-slate-500 hover:text-orange-600 hover:bg-orange-50/40 rounded-t'
-              }`}
-              title="Scheduled Reminders aur Auto-Send Messages"
-            >
-              <span>⏰ Reminders</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                filterTab === 'reminders' ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-700'
-              }`}>
-                {stageCounts.reminders}
-              </span>
-            </button>
-            <button 
-              type="button"
-              onClick={() => setFilterTab('qualified')}
-              className={`pb-1 px-2 border-b-2 font-bold whitespace-nowrap transition-colors ${
-                filterTab === 'qualified' ? 'border-purple-600 text-purple-700 bg-purple-50/50 rounded-t' : 'border-transparent text-slate-500 hover:text-purple-700'
-              }`}
-            >
-              🟣 Qualified ({stageCounts.qualified})
-            </button>
-            <button 
-              type="button"
-              onClick={() => setFilterTab('proposal')}
-              className={`pb-1 px-2 border-b-2 font-bold whitespace-nowrap transition-colors ${
-                filterTab === 'proposal' ? 'border-amber-600 text-amber-700 bg-amber-50/50 rounded-t' : 'border-transparent text-slate-500 hover:text-amber-700'
-              }`}
-            >
-              🟠 Proposal ({stageCounts.proposal})
-            </button>
-            <button 
-              type="button"
-              onClick={() => setFilterTab('won')}
-              className={`pb-1 px-2 border-b-2 font-bold whitespace-nowrap transition-colors ${
-                filterTab === 'won' ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50 rounded-t' : 'border-transparent text-slate-500 hover:text-emerald-700'
-              }`}
-            >
-              🟢 Deal Won ({stageCounts.won})
-            </button>
-            <button 
-              type="button"
-              onClick={() => setFilterTab('contacted')}
-              className={`pb-1 px-2 border-b-2 font-bold whitespace-nowrap transition-colors ${
-                filterTab === 'contacted' ? 'border-blue-600 text-blue-700 bg-blue-50/50 rounded-t' : 'border-transparent text-slate-500 hover:text-blue-700'
-              }`}
-            >
-              🔵 Contacted ({stageCounts.contacted})
-            </button>
-            <button 
-              type="button"
-              onClick={() => setFilterTab('new')}
-              className={`pb-1 px-2 border-b-2 font-bold whitespace-nowrap transition-colors ${
-                filterTab === 'new' ? 'border-yellow-600 text-yellow-700 bg-yellow-50/50 rounded-t' : 'border-transparent text-slate-500 hover:text-yellow-700'
-              }`}
-            >
-              🟡 Naye ({stageCounts.new})
-            </button>
-            <button 
-              type="button"
-              onClick={() => setFilterTab('unqualified')}
-              className={`pb-1 px-2 border-b-2 font-bold whitespace-nowrap transition-colors ${
-                filterTab === 'unqualified' ? 'border-rose-600 text-rose-700 bg-rose-50/50 rounded-t' : 'border-transparent text-slate-500 hover:text-rose-700'
-              }`}
-            >
-              🔴 Unqualified ({stageCounts.unqualified})
-            </button>
+              <option value="">Filter ({displayLeads.length})</option>
+              <option value="unread">🔔 Unread ({stageCounts.unread})</option>
+              <option value="qualified">🟣 Qualified ({stageCounts.qualified})</option>
+              <option value="won">🟢 Deal Won ({stageCounts.won})</option>
+              <option value="unqualified">🔴 Unqualified ({stageCounts.unqualified})</option>
+              <option value="reminders">⏰ Reminders ({stageCounts.reminders})</option>
+              <option value="proposal">🟠 Proposal ({stageCounts.proposal})</option>
+            </select>
           </div>
         </div>
 

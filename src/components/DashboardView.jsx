@@ -1041,48 +1041,48 @@ export default function DashboardView({
       </div>
 
       {/* 2. Top Interactive Pipeline KPI Cards (Clickable Drilldown) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-9 gap-3">
         {/* Card 0: Total Leads (Kul Leads) */}
         <div 
           onClick={() => { setDrilldownCategory('all_leads'); setDrilldownSearch(''); }}
-          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-indigo-400 transition-all border border-slate-200/80 cursor-pointer"
+          className="card-soft p-3.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-indigo-400 transition-all border border-slate-200/80 cursor-pointer"
           title="Click to view all leads in current filter"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8.5 h-8.5 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
               <Layers className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 flex items-center gap-1">
-              <Eye className="w-3 h-3" /> {timeRange === 'today' ? 'Aaj' : timeRange === 'yesterday' ? 'Kal' : timeRange === '7days' ? '7 Din' : 'Kul'} Leads
+              <Eye className="w-3 h-3" /> {timeRange === 'today' ? 'Aaj' : timeRange === 'yesterday' ? 'Kal' : timeRange === '7days' ? '7 Din' : 'Kul'}
             </span>
           </div>
 
-          <div className="mt-3 flex items-baseline gap-2">
-            <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <h3 className="text-xl font-black text-slate-900 tracking-tight">
               {totalLeadsCount}
             </h3>
-            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
-              📊 {timeRange === 'today' ? 'Aaj Ka Total' : timeRange === 'yesterday' ? 'Kal Ka Total' : 'Total Leads'}
+            <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+              📊 Total
             </span>
           </div>
-          <p className="text-[11px] text-slate-500 font-semibold mt-1">
-            {timeRange === 'today' ? 'Aaj Aayi Hui Leads' : timeRange === 'yesterday' ? 'Kal Ki Aayi Hui Leads' : timeRange === '7days' ? 'Pichle 7 Din Ki Leads' : 'Tamaam Aayi Hui Leads'}
+          <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
+            {timeRange === 'today' ? 'Aaj Aayi Hui Leads' : 'Tamaam Aayi Hui Leads'}
           </p>
 
-          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
-            <span className="text-indigo-700">All Customers</span>
-            <span className="text-slate-400 font-medium">Click List →</span>
+          <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
+            <span className="text-indigo-700">All Clients</span>
+            <span className="text-slate-400 font-medium">List →</span>
           </div>
         </div>
 
         {/* Card 1: Naye Customers (New Leads) */}
         <div 
           onClick={() => { setDrilldownCategory('stage_New Lead'); setDrilldownSearch(''); }}
-          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-amber-400 transition-all border border-slate-200/80 cursor-pointer"
+          className="card-soft p-3.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-amber-400 transition-all border border-slate-200/80 cursor-pointer"
           title="Click to view new leads list"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8.5 h-8.5 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
               <Users className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 flex items-center gap-1">
@@ -1090,32 +1090,32 @@ export default function DashboardView({
             </span>
           </div>
 
-          <div className="mt-3 flex items-baseline gap-2">
-            <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <h3 className="text-xl font-black text-slate-900 tracking-tight">
               {newLeadsCount}
             </h3>
-            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
-              🟡 New Leads
+            <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
+              🟡 New
             </span>
           </div>
-          <p className="text-[11px] text-slate-500 font-semibold mt-1">
-            Naye Customers (Pehla Msg)
+          <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
+            Pehla Msg Aaya Hai
           </p>
 
-          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
+          <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
             <span className="text-amber-700">Reply Dena Hai</span>
-            <span className="text-slate-400 font-medium">Click Details →</span>
+            <span className="text-slate-400 font-medium">List →</span>
           </div>
         </div>
 
         {/* Card 2: Contacted (Rabta Hua) */}
         <div 
           onClick={() => { setDrilldownCategory('stage_Contacted'); setDrilldownSearch(''); }}
-          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-blue-400 transition-all border border-slate-200/80 cursor-pointer"
+          className="card-soft p-3.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-blue-400 transition-all border border-slate-200/80 cursor-pointer"
           title="Click to view contacted customers"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8.5 h-8.5 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
               <MessageSquare className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 flex items-center gap-1">
@@ -1123,32 +1123,32 @@ export default function DashboardView({
             </span>
           </div>
 
-          <div className="mt-3 flex items-baseline gap-2">
-            <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <h3 className="text-xl font-black text-slate-900 tracking-tight">
               {contactedCount}
             </h3>
-            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-              🔵 Contacted
+            <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+              🔵 Active
             </span>
           </div>
-          <p className="text-[11px] text-slate-500 font-semibold mt-1">
-            Rabta Hua (Active)
+          <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
+            Rabta Hua (Chat Chalu)
           </p>
 
-          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-600">
+          <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-600">
             <span className="text-blue-700">Baat Chal Rahi</span>
-            <span className="text-slate-400 font-medium">Click List →</span>
+            <span className="text-slate-400 font-medium">List →</span>
           </div>
         </div>
 
         {/* Card 3: Qualified (Quality Leads) */}
         <div 
           onClick={() => { setDrilldownCategory('stage_Qualified'); setDrilldownSearch(''); }}
-          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-purple-400 transition-all border border-slate-200/80 cursor-pointer"
+          className="card-soft p-3.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-purple-400 transition-all border border-slate-200/80 cursor-pointer"
           title="Click to view qualified leads list"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8.5 h-8.5 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+            <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
               <CheckCircle2 className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 flex items-center gap-1">
@@ -1156,32 +1156,131 @@ export default function DashboardView({
             </span>
           </div>
 
-          <div className="mt-3 flex items-baseline gap-2">
-            <h3 className="text-2xl font-black text-purple-900 tracking-tight">
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <h3 className="text-xl font-black text-purple-900 tracking-tight">
               {qualifiedCount}
             </h3>
-            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+            <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
               🟣 Qualified
             </span>
           </div>
-          <p className="text-[11px] text-slate-500 font-semibold mt-1">
+          <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
             Genuine Quality Buyers
           </p>
 
-          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
+          <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
             <span className="text-purple-700">Khareedar Tayyar</span>
-            <span className="text-slate-400 font-medium">Click List →</span>
+            <span className="text-slate-400 font-medium">List →</span>
           </div>
         </div>
 
-        {/* Card 4: Deals Won & Revenue */}
+        {/* Card 4: Follow-up Required Leads (NEW) */}
+        <div 
+          onClick={() => { setDrilldownCategory('followup'); setDrilldownSearch(''); }}
+          className="card-soft p-3.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-amber-400 transition-all border border-slate-200/80 cursor-pointer"
+          title="Click to view follow-up leads"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+              <Clock className="w-4 h-4 text-amber-600" />
+            </div>
+            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 flex items-center gap-1">
+              <Eye className="w-3 h-3" /> Follow-up
+            </span>
+          </div>
+
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <h3 className="text-xl font-black text-amber-900 tracking-tight">
+              {followUpCount}
+            </h3>
+            <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
+              ⏰ Follow-up
+            </span>
+          </div>
+          <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
+            Follow-up Call / Message
+          </p>
+
+          <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
+            <span className="text-amber-700">Follow-up List</span>
+            <span className="text-slate-400 font-medium">List →</span>
+          </div>
+        </div>
+
+        {/* Card 5: Meeting Scheduled (NEW) */}
+        <div 
+          onClick={() => { setDrilldownCategory('meeting'); setDrilldownSearch(''); }}
+          className="card-soft p-3.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-sky-400 transition-all border border-slate-200/80 cursor-pointer"
+          title="Click to view scheduled meetings"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+              <CalendarIcon className="w-4 h-4 text-sky-600" />
+            </div>
+            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 flex items-center gap-1">
+              <Eye className="w-3 h-3" /> Meeting
+            </span>
+          </div>
+
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <h3 className="text-xl font-black text-sky-900 tracking-tight">
+              {meetingCount}
+            </h3>
+            <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-sky-50 text-sky-700 border border-sky-200">
+              🤝 Meeting
+            </span>
+          </div>
+          <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
+            Kin Se Meeting Hai
+          </p>
+
+          <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
+            <span className="text-sky-700">Meetings List</span>
+            <span className="text-slate-400 font-medium">List →</span>
+          </div>
+        </div>
+
+        {/* Card 6: No Response / Ghosted (NEW) */}
+        <div 
+          onClick={() => { setDrilldownCategory('no_response'); setDrilldownSearch(''); }}
+          className="card-soft p-3.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-slate-400 transition-all border border-slate-200/80 cursor-pointer"
+          title="Click to view no response leads"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+              <MessageCircle className="w-4 h-4 text-slate-600" />
+            </div>
+            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-200 text-slate-800 flex items-center gap-1">
+              <Eye className="w-3 h-3" /> Pending
+            </span>
+          </div>
+
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <h3 className="text-xl font-black text-slate-800 tracking-tight">
+              {noResponseCount}
+            </h3>
+            <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-300">
+              📵 No Reply
+            </span>
+          </div>
+          <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
+            Jawab Nahi Aaya
+          </p>
+
+          <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
+            <span className="text-slate-700">No Response</span>
+            <span className="text-slate-400 font-medium">List →</span>
+          </div>
+        </div>
+
+        {/* Card 7: Deals Won & Revenue */}
         <div 
           onClick={() => { setDrilldownCategory('won'); setDrilldownSearch(''); }}
-          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-emerald-400 transition-all border border-slate-200/80 cursor-pointer"
+          className="card-soft p-3.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-emerald-400 transition-all border border-slate-200/80 cursor-pointer"
           title="Click to view won deals"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8.5 h-8.5 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
               <TrendingUp className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1">
@@ -1189,32 +1288,32 @@ export default function DashboardView({
             </span>
           </div>
 
-          <div className="mt-3 flex items-baseline gap-2">
-            <h3 className="text-2xl font-black text-emerald-900 tracking-tight">
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <h3 className="text-xl font-black text-emerald-900 tracking-tight">
               {wonCount}
             </h3>
-            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-              🟢 Deal Won
+            <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+              🟢 Won
             </span>
           </div>
-          <p className="text-[11px] text-slate-500 font-semibold mt-1 truncate">
+          <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
             {totalRevenue > 0 ? `PKR ${totalRevenue.toLocaleString()}` : 'Closed Deals'}
           </p>
 
-          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
-            <span className="text-emerald-700">Kamai / Revenue</span>
-            <span className="text-slate-400 font-medium">Click List →</span>
+          <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
+            <span className="text-emerald-700">Kamai / Sales</span>
+            <span className="text-slate-400 font-medium">List →</span>
           </div>
         </div>
 
-        {/* Card 5: Unqualified / Rejected (Red Card) */}
+        {/* Card 8: Unqualified / Rejected (Red Card) */}
         <div 
           onClick={() => { setDrilldownCategory('stage_Lost'); setDrilldownSearch(''); }}
-          className="card-soft p-4 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-rose-400 transition-all border border-slate-200/80 cursor-pointer"
+          className="card-soft p-3.5 bg-white relative overflow-hidden group hover:shadow-card-hover hover:border-rose-400 transition-all border border-slate-200/80 cursor-pointer"
           title="Click to view unqualified inquiries"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8.5 h-8.5 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
+            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
               <AlertCircle className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 flex items-center gap-1">
@@ -1222,21 +1321,21 @@ export default function DashboardView({
             </span>
           </div>
 
-          <div className="mt-3 flex items-baseline gap-2">
-            <h3 className="text-2xl font-black text-rose-900 tracking-tight">
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <h3 className="text-xl font-black text-rose-900 tracking-tight">
               {unqualifiedCount}
             </h3>
-            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200">
-              🔴 Unqualified
+            <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200">
+              🔴 Lost
             </span>
           </div>
-          <p className="text-[11px] text-slate-500 font-semibold mt-1">
-            Timepass / Rejected
+          <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
+            Timepass / Reject
           </p>
 
-          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
+          <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold">
             <span className="text-rose-700">Rejected List</span>
-            <span className="text-slate-400 font-medium">Click List →</span>
+            <span className="text-slate-400 font-medium">List →</span>
           </div>
         </div>
       </div>

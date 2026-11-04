@@ -122,6 +122,7 @@ export default function App() {
       name: displayName,
       phone: l.phoneNumber,
       channel: channelKey,
+      channelId: l.channelId,
       channelName: l.channel?.name || `${flag} Channel`,
       flag: flag,
       currency: l.channel?.currency || 'PKR',

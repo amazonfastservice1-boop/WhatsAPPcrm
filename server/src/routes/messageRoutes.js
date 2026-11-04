@@ -310,7 +310,42 @@ router.post('/send', authenticateToken, async (req, res) => {
       }
     } else {
       const metaToken = process.env.META_SYSTEM_USER_ACCESS_TOKEN;
-      const channel = lead.channel || await prisma.whatsAppChannel.findUnique({ where: { id: lead.channelId } });
+      let channel = null;
+
+      // 1. Check if frontend explicitly specified a channel (e.g. from active line selection or lead's channel)
+      if (req.body.channelId && req.body.channelId !== 'all') {
+        channel = await prisma.whatsAppChannel.findFirst({
+          where: {
+            OR: [
+              { id: req.body.channelId },
+              { countryCode: req.body.channelId.toUpperCase() }
+            ],
+            isActive: true,
+          },
+        });
+      }
+
+      // 2. If no explicit channel, check which active line this customer has a recent conversation on
+      if (!channel) {
+        const activeRecentLead = await prisma.lead.findFirst({
+          where: {
+            phoneNumber: { contains: cleanRecipientPhone.slice(-9) },
+            channel: { isActive: true },
+            messages: { some: { senderType: 'CUSTOMER' } }
+          },
+          include: { channel: true },
+          orderBy: { lastMessageAt: 'desc' }
+        });
+        if (activeRecentLead?.channel) {
+          channel = activeRecentLead.channel;
+        }
+      }
+
+      // 3. Fallback to lead's own stored channel
+      if (!channel) {
+        channel = lead.channel || await prisma.whatsAppChannel.findUnique({ where: { id: lead.channelId } });
+      }
+
       const phoneId = channel?.phoneIdMeta;
 
       if (!phoneId) {
@@ -487,7 +522,7 @@ router.post('/send', authenticateToken, async (req, res) => {
       },
       create: {
         leadId: lead.id,
-        channelId: lead.channelId,
+        channelId: channel ? channel.id : lead.channelId,
         senderType: 'AGENT',
         senderUserId: user.id,
         content,
@@ -514,7 +549,7 @@ router.post('/send', authenticateToken, async (req, res) => {
     req.io?.emit('message:new', {
       message: savedMessage,
       leadId: lead.id,
-      channelId: lead.channelId,
+      channelId: channel ? channel.id : lead.channelId,
     });
 
     res.status(201).json({ 

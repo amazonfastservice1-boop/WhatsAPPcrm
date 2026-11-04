@@ -711,9 +711,15 @@ export default function App() {
         const isTarget = lead.id === leadId;
         const isSamePhone = Boolean(cleanPhoneKey && String(lead.phone || '').replace(/\D/g, '') === cleanPhoneKey);
         if (isTarget) {
+          let nextMessages = updates.messages !== undefined ? updates.messages : lead.messages;
+          if (updates.messagePatch && Array.isArray(nextMessages)) {
+            const { tempId, changes } = updates.messagePatch;
+            nextMessages = nextMessages.map((m) => (m.id === tempId ? { ...m, ...changes } : m));
+          }
           return { 
             ...lead, 
-            ...updates, 
+            ...updates,
+            messages: nextMessages,
             stage: resolvedStage || lead.stage,
             tags: resolvedTags !== undefined ? normalizeTagList(resolvedTags) : lead.tags,
             statusUpdatedAt: isStatusOrTagChange ? nowIso : lead.statusUpdatedAt,
@@ -744,21 +750,21 @@ export default function App() {
       if (updates.serviceInterest !== undefined) apiUpdates.serviceInterest = updates.serviceInterest;
       if (updates.assignedToId !== undefined) apiUpdates.assignedToId = updates.assignedToId;
 
-      // Always pass the fully resolved tags so backend doesn't overwrite them
-      if (resolvedTags !== undefined) {
-        apiUpdates.tags = normalizeTagList(resolvedTags);
+      // Only pass tags to backend API if tags were explicitly changed in this call
+      if (updates.tags !== undefined) {
+        apiUpdates.tags = normalizeTagList(updates.tags);
       }
 
-      // Always pass the fully resolved stage so backend doesn't overwrite it
-      if (resolvedStage !== undefined) {
-        const s = String(resolvedStage).toLowerCase();
+      // Only pass stage to backend API if stage was explicitly changed in this call
+      if (updates.stage !== undefined) {
+        const s = String(updates.stage).toLowerCase();
         let targetStage = 'NEW_LEAD';
         if (s.includes('lost') || s.includes('unqualif') || s.includes('reject')) targetStage = 'LOST';
         else if (s.includes('qualif')) targetStage = 'QUALIFIED';
         else if (s.includes('propos')) targetStage = 'PROPOSAL_SENT';
         else if (s.includes('won') || s.includes('closed')) targetStage = 'WON';
         else if (s.includes('contact')) targetStage = 'CONTACTED';
-        else targetStage = resolvedStage;
+        else targetStage = updates.stage;
         apiUpdates.stage = targetStage;
       }
 

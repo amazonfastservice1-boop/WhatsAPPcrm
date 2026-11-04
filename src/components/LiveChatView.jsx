@@ -1034,7 +1034,7 @@ export default function LiveChatView({
         mediaType: imageToSend ? 'IMAGE' : 'TEXT',
         mediaUrl: imageToSend ? imageToSend.previewUrl : null, // local preview while uploading
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        status: 'sending'
+        status: 'sent'
       };
       const updatedMessages = [...(activeLead.messages || []), newMsg];
       onUpdateLead(activeLead.id, { messages: updatedMessages, lastTime: 'Just now', unreadCount: 0 });
@@ -1987,10 +1987,10 @@ export default function LiveChatView({
                           <span title={msg.errorReason || "WhatsApp deliver nahi hua (Customer care session closed ya Meta restriction)"} className="inline-flex items-center gap-0.5 text-red-200">
                             <AlertCircle className="w-3.5 h-3.5 text-red-300 stroke-[2.5]" />
                           </span>
-                        ) : msg.status === 'sending' ? (
-                          <Clock className="w-3.5 h-3.5 text-orange-200 animate-spin" />
+                        ) : msg.status === 'sending' || msg.status === 'sent' ? (
+                          <Check className="w-3.5 h-3.5 text-orange-200 stroke-[2.5]" title="Sent" />
                         ) : (
-                          <CheckCheck className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+                          <CheckCheck className="w-3.5 h-3.5 text-white stroke-[2.5]" title="Delivered" />
                         )
                       )}
                     </div>

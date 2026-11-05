@@ -33,10 +33,25 @@ const STAGE_MAP = {
   LOST: 'Lost',
 };
 
-// Tag Normalization & Zero-Flicker Equality Checker
+// Tag Normalization & Zero-Flicker Equality Checker (Enforces Single Latest Follow-up Tag)
 export function normalizeTagList(tags) {
   if (!Array.isArray(tags)) return [];
-  return Array.from(new Set(tags.map(t => (typeof t === 'string' ? t.trim() : (t?.tag?.name || t?.name || '')).trim()).filter(Boolean))).sort();
+  const cleanList = Array.from(
+    new Set(
+      tags
+        .map((t) => (typeof t === 'string' ? t.trim() : (t?.tag?.name || t?.name || '').trim()))
+        .filter(Boolean)
+    )
+  );
+
+  // Enforce single latest follow-up tag rule: never stack multiple follow-up status tags
+  const followUpTags = cleanList.filter((t) => /^follow-?up/i.test(t));
+  if (followUpTags.length > 1) {
+    const keepTag = followUpTags[followUpTags.length - 1];
+    return cleanList.filter((t) => !/^follow-?up/i.test(t) || t === keepTag).sort();
+  }
+
+  return cleanList.sort();
 }
 
 export function areTagListsEqual(tagsA, tagsB) {

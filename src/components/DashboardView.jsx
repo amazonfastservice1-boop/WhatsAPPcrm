@@ -2397,9 +2397,17 @@ export default function DashboardView({
                           </div>
                         )}
 
-                        {/* 2. Follow-up / Pending / No Response Status Dropdown */}
-                        {(drilldownCategory === 'followup' || drilldownCategory === 'pending' || drilldownCategory === 'no_response' || lead.tags?.some((t) => /follow|no respon|pending/i.test(t))) && (() => {
-                          const activeFollowup = (lead.tags || []).find((t) => /^follow-up/i.test(t)) || '';
+                        {/* 2. Follow-up / Pending / No Response / Qualified Status Dropdown */}
+                        {(drilldownCategory === 'followup' || 
+                          drilldownCategory === 'pending' || 
+                          drilldownCategory === 'no_response' || 
+                          drilldownCategory === 'stage_Qualified' || 
+                          drilldownCategory === 'qualified' || 
+                          lead.stage === 'Qualified' || 
+                          lead.tags?.some((t) => /follow|no respon|pending|qualif/i.test(typeof t === 'string' ? t : t?.tag?.name || ''))) && (() => {
+                          const tagStrings = (lead.tags || []).map((t) => (typeof t === 'string' ? t.trim() : (t?.tag?.name || t?.name || '').trim())).filter(Boolean);
+                          const followUpTags = tagStrings.filter((t) => /^follow-?up/i.test(t));
+                          const activeFollowup = followUpTags.length > 0 ? followUpTags[followUpTags.length - 1] : '';
                           return (
                             <select
                               value={activeFollowup}

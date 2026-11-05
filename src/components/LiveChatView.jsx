@@ -1548,8 +1548,6 @@ export default function LiveChatView({
             >
               <option value="">-- Tag Select Karein --</option>
               <option value="Follow-up">⏰ Follow-up</option>
-              <option value="Follow-up Done (No Response)">📵 Follow-up Done (No Response)</option>
-              <option value="Follow-up Done (Response Aaya)">💬 Follow-up Done (Response Aaya)</option>
               <option value="Meeting">🤝 Meeting</option>
               <option value="Showed Up">✅ Show Up</option>
               <option value="No Show">❌ No Show</option>

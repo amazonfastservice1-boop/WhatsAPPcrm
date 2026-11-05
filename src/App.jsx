@@ -1022,6 +1022,7 @@ export default function App() {
               onOpenChat={handleOpenChat}
               onOpenNewLead={() => setIsNewLeadModalOpen(true)}
               onRefreshLeads={fetchRealLeads}
+              onUpdateLead={handleUpdateLead}
               currentUser={currentUser}
             />
           )}

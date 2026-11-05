@@ -1548,7 +1548,14 @@ export default function LiveChatView({
             >
               <option value="">-- Tag Select Karein --</option>
               <option value="Follow-up">⏰ Follow-up</option>
+              <option value="Follow-up 1">⏰ Follow-up 1</option>
+              <option value="Follow-up 2">⏰ Follow-up 2</option>
+              <option value="Follow-up 3">⏰ Follow-up 3</option>
+              <option value="Follow-up Done (No Response)">📵 Follow-up Done (No Response)</option>
+              <option value="Follow-up Done (Response Aaya)">💬 Follow-up Done (Response Aaya)</option>
               <option value="Meeting">🤝 Meeting</option>
+              <option value="Showed Up">✅ Show Up</option>
+              <option value="No Show">❌ No Show</option>
               <option value="No Response">📵 No Response</option>
               <option value="__schedule__">📅 Reminder Schedule Karein</option>
               <option value="__custom__">➕ Naya Custom Tag...</option>

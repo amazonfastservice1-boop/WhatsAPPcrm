@@ -57,6 +57,7 @@ export default function DashboardView({
   onOpenChat, 
   onOpenNewLead,
   onRefreshLeads,
+  onUpdateLead,
   currentUser
 }) {
   const [timeRange, setTimeRange] = useState('today'); // Default: 'today' (Aaj ki leads by default)
@@ -107,6 +108,27 @@ export default function DashboardView({
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Handle Meeting Show Up / No Show status toggles
+  const handleToggleMeetingStatus = (lead, targetStatus) => {
+    const currentTags = Array.isArray(lead.tags) ? lead.tags : [];
+    const isAlready = currentTags.includes(targetStatus);
+    const cleaned = currentTags.filter((t) => t !== 'Showed Up' && t !== 'No Show' && t !== 'Show Up');
+    const newTags = isAlready ? cleaned : [...cleaned, targetStatus];
+    if (onUpdateLead) {
+      onUpdateLead(lead.id, { tags: newTags });
+    }
+  };
+
+  // Handle Follow-up tag selection for Follow-up / Pending / No Response leads
+  const handleSetFollowupTag = (lead, tagValue) => {
+    const currentTags = Array.isArray(lead.tags) ? lead.tags : [];
+    const cleaned = currentTags.filter((t) => !/^follow-up/i.test(t));
+    const newTags = tagValue ? [...cleaned, tagValue] : cleaned;
+    if (onUpdateLead) {
+      onUpdateLead(lead.id, { tags: newTags });
+    }
+  };
 
   const [networkStatus, setNetworkStatus] = useState({
     isOnline: typeof navigator !== 'undefined' ? navigator.onLine !== false : true,
@@ -2267,6 +2289,31 @@ export default function DashboardView({
                             }`}>
                               {lead.stage === 'Lost' ? '🔴 Unqualified' : lead.stage}
                             </span>
+                            {/* Tags display in modal */}
+                            {(lead.tags || [])
+                              .filter((t) => t !== 'WhatsApp Inbound' && t.toLowerCase() !== lead.stage?.toLowerCase())
+                              .map((tag) => (
+                                <span
+                                  key={tag}
+                                  className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded border ${
+                                    tag === 'Showed Up' || tag === 'Show Up' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+                                    tag === 'No Show' ? 'bg-rose-100 text-rose-800 border-rose-300' :
+                                    /response aaya/i.test(tag) ? 'bg-teal-100 text-teal-800 border-teal-300' :
+                                    /no response/i.test(tag) ? 'bg-slate-200 text-slate-800 border-slate-300' :
+                                    /^follow-up/i.test(tag) ? 'bg-amber-100 text-amber-900 border-amber-300' :
+                                    /meet|zoom/i.test(tag) ? 'bg-sky-100 text-sky-900 border-sky-300' :
+                                    'bg-slate-100 text-slate-800 border-slate-200'
+                                  }`}
+                                >
+                                  {(tag === 'Showed Up' || tag === 'Show Up') && '✅ '}
+                                  {tag === 'No Show' && '❌ '}
+                                  {/response aaya/i.test(tag) && '💬 '}
+                                  {/no response/i.test(tag) && '📵 '}
+                                  {/^follow-up/i.test(tag) && '⏰ '}
+                                  {/meet|zoom/i.test(tag) && '🤝 '}
+                                  {tag}
+                                </span>
+                              ))}
                           </div>
                           <p className="text-xs font-mono text-slate-700 font-bold mt-0.5">
                             <span className="text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded font-black">{lead.phone}</span> • <span className="text-slate-500 font-normal">{lead.channelName}</span> • <span className="font-bold text-slate-700">Deal: {lead.dealValue ? `${lead.dealValue} PKR` : 'Pending'}</span>
@@ -2286,7 +2333,66 @@ export default function DashboardView({
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                        {/* 1. Meeting Attendance: Show Up / No Show Options */}
+                        {(drilldownCategory === 'meeting' || lead.tags?.some((t) => /meet/i.test(t))) && (
+                          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleMeetingStatus(lead, 'Showed Up');
+                              }}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 ${
+                                lead.tags?.includes('Showed Up') || lead.tags?.includes('Show Up')
+                                  ? 'bg-emerald-600 text-white shadow-xs'
+                                  : 'bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200'
+                              }`}
+                              title="Customer meeting mein aya"
+                            >
+                              <span>✓ Show Up</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleMeetingStatus(lead, 'No Show');
+                              }}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 ${
+                                lead.tags?.includes('No Show')
+                                  ? 'bg-rose-600 text-white shadow-xs'
+                                  : 'bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 border border-slate-200'
+                              }`}
+                              title="Customer meeting mein nahi aya"
+                            >
+                              <span>✕ No Show</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {/* 2. Follow-up / Pending / No Response Status Dropdown */}
+                        {(drilldownCategory === 'followup' || drilldownCategory === 'pending' || drilldownCategory === 'no_response' || lead.tags?.some((t) => /follow|no respon|pending/i.test(t))) && (() => {
+                          const activeFollowup = (lead.tags || []).find((t) => /^follow-up/i.test(t)) || '';
+                          return (
+                            <select
+                              value={activeFollowup}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                handleSetFollowupTag(lead, e.target.value);
+                              }}
+                              className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100/80 border border-amber-300 rounded-xl text-xs font-extrabold text-amber-900 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer shadow-2xs"
+                              title="Follow-up status mark karein"
+                            >
+                              <option value="">⏰ Follow-up Tag...</option>
+                              <option value="Follow-up 1">⏰ Follow-up 1</option>
+                              <option value="Follow-up 2">⏰ Follow-up 2</option>
+                              <option value="Follow-up 3">⏰ Follow-up 3</option>
+                              <option value="Follow-up Done (No Response)">📵 Follow-up Done (No Response)</option>
+                              <option value="Follow-up Done (Response Aaya)">💬 Follow-up Done (Response Aaya)</option>
+                            </select>
+                          );
+                        })()}
+
                         <button
                           type="button"
                           onClick={() => {

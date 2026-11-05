@@ -2154,24 +2154,32 @@ export default function DashboardView({
                           }`}>
                             {l.stage}
                           </span>
-                          {(l.tags || [])
-                            .filter(t => t !== 'WhatsApp Inbound' && t.toLowerCase() !== l.stage?.toLowerCase())
-                            .map((tag) => (
-                              <span
-                                key={tag}
-                                className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded border ${
-                                  /follow/i.test(tag) ? 'bg-amber-100 text-amber-900 border-amber-300' :
-                                  /meet|zoom/i.test(tag) ? 'bg-sky-100 text-sky-900 border-sky-300' :
-                                  /no respon/i.test(tag) ? 'bg-slate-200 text-slate-800 border-slate-300' :
-                                  'bg-slate-100 text-slate-800 border-slate-200'
-                                }`}
-                              >
-                                {/follow/i.test(tag) && '⏰ '}
-                                {/meet|zoom/i.test(tag) && '🤝 '}
-                                {/no respon/i.test(tag) && '📵 '}
-                                {tag}
-                              </span>
-                            ))}
+                          {(() => {
+                              const allTags2 = (l.tags || []).filter(
+                                (t) => t !== 'WhatsApp Inbound' && t.toLowerCase() !== l.stage?.toLowerCase()
+                              );
+                              const fuTags2 = allTags2.filter((t) => /^follow-?up/i.test(t));
+                              const latestFu2 = fuTags2.length > 0 ? fuTags2[fuTags2.length - 1] : null;
+                              const displayTags2 = allTags2.filter(
+                                (t) => !/^follow-?up/i.test(t) || t === latestFu2
+                              );
+                              return displayTags2.map((tag) => (
+                                <span
+                                  key={tag}
+                                  className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded border ${
+                                    /^follow-?up/i.test(tag) ? 'bg-amber-100 text-amber-900 border-amber-300' :
+                                    /meet|zoom/i.test(tag) ? 'bg-sky-100 text-sky-900 border-sky-300' :
+                                    /no respon/i.test(tag) ? 'bg-slate-200 text-slate-800 border-slate-300' :
+                                    'bg-slate-100 text-slate-800 border-slate-200'
+                                  }`}
+                                >
+                                  {/^follow-?up/i.test(tag) && '⏰ '}
+                                  {/meet|zoom/i.test(tag) && '🤝 '}
+                                  {/no respon/i.test(tag) && '📵 '}
+                                  {tag}
+                                </span>
+                              ));
+                            })()}
                         </div>
 
                         {/* Last Msg snippet & Action Button */}
@@ -2292,10 +2300,18 @@ export default function DashboardView({
                             }`}>
                               {lead.stage === 'Lost' ? '🔴 Unqualified' : lead.stage}
                             </span>
-                            {/* Tags display in modal */}
-                            {(lead.tags || [])
-                              .filter((t) => t !== 'WhatsApp Inbound' && t.toLowerCase() !== lead.stage?.toLowerCase())
-                              .map((tag) => (
+                            {/* Tags display in modal — only latest follow-up tag shown */}
+                            {(() => {
+                              const allTags = (lead.tags || []).filter(
+                                (t) => t !== 'WhatsApp Inbound' && t.toLowerCase() !== lead.stage?.toLowerCase()
+                              );
+                              // Deduplicate: keep only the LAST follow-up tag if multiple exist
+                              const followUpTags = allTags.filter((t) => /^follow-?up/i.test(t));
+                              const latestFollowUp = followUpTags.length > 0 ? followUpTags[followUpTags.length - 1] : null;
+                              const displayTags = allTags.filter(
+                                (t) => !/^follow-?up/i.test(t) || t === latestFollowUp
+                              );
+                              return displayTags.map((tag) => (
                                 <span
                                   key={tag}
                                   className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded border ${
@@ -2303,7 +2319,7 @@ export default function DashboardView({
                                     tag === 'No Show' ? 'bg-rose-100 text-rose-800 border-rose-300' :
                                     /response aaya/i.test(tag) ? 'bg-teal-100 text-teal-800 border-teal-300' :
                                     /no response/i.test(tag) ? 'bg-slate-200 text-slate-800 border-slate-300' :
-                                    /^follow-up/i.test(tag) ? 'bg-amber-100 text-amber-900 border-amber-300' :
+                                    /^follow-?up/i.test(tag) ? 'bg-amber-100 text-amber-900 border-amber-300' :
                                     /meet|zoom/i.test(tag) ? 'bg-sky-100 text-sky-900 border-sky-300' :
                                     'bg-slate-100 text-slate-800 border-slate-200'
                                   }`}
@@ -2312,11 +2328,12 @@ export default function DashboardView({
                                   {tag === 'No Show' && '❌ '}
                                   {/response aaya/i.test(tag) && '💬 '}
                                   {/no response/i.test(tag) && '📵 '}
-                                  {/^follow-up/i.test(tag) && '⏰ '}
+                                  {/^follow-?up/i.test(tag) && '⏰ '}
                                   {/meet|zoom/i.test(tag) && '🤝 '}
                                   {tag}
                                 </span>
-                              ))}
+                              ));
+                            })()}
                           </div>
                           <p className="text-xs font-mono text-slate-700 font-bold mt-0.5">
                             <span className="text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded font-black">{lead.phone}</span> • <span className="text-slate-500 font-normal">{lead.channelName}</span> • <span className="font-bold text-slate-700">Deal: {lead.dealValue ? `${lead.dealValue} PKR` : 'Pending'}</span>

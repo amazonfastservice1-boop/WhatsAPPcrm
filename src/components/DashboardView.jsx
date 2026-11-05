@@ -489,9 +489,10 @@ export default function DashboardView({
   }, [statusFilteredLeads]);
 
   const followUpCount = useMemo(() => {
-    return statusFilteredLeads.filter(l => 
-      l.tags?.some(t => /follow/i.test(t)) || 
-      /follow/i.test(l.stage || '') ||
+    return statusFilteredLeads.filter(l =>
+      // Only exact "Follow-up" tag counts — NOT Follow-up 1/2/3 or Follow-up Done
+      l.tags?.some(t => t.trim().toLowerCase() === 'follow-up') ||
+      /^follow-?up$/i.test(l.stage || '') ||
       reminders.some(r => !r.completed && r.leadId === l.id)
     ).length;
   }, [statusFilteredLeads, reminders]);
@@ -868,9 +869,10 @@ export default function DashboardView({
       title = '⏰ Follow-up Required Leads';
       description = 'Jin customers par Follow-up tag laga hai ya follow-up call/alert pending hai.';
       badgeColor = 'bg-amber-100 text-amber-900 border-amber-300';
-      list = statusFilteredLeads.filter(l => 
-        l.tags?.some(t => /follow/i.test(t)) || 
-        /follow/i.test(l.stage || '') ||
+      list = statusFilteredLeads.filter(l =>
+        // Only exact "Follow-up" tag — NOT Follow-up 1/2/3 or Follow-up Done
+        l.tags?.some(t => t.trim().toLowerCase() === 'follow-up') ||
+        /^follow-?up$/i.test(l.stage || '') ||
         reminders.some(r => !r.completed && r.leadId === l.id)
       );
     } else if (drilldownCategory === 'meeting') {

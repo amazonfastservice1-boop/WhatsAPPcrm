@@ -2260,31 +2260,33 @@ export default function DashboardView({
                   return (
                     <div 
                       key={lead.id}
-                      className="p-3 bg-white hover:bg-orange-50/50 border border-slate-100 hover:border-orange-200 rounded-xl flex items-center justify-between gap-3 transition-all"
+                      className="p-3 bg-white hover:bg-orange-50/50 border border-slate-100 hover:border-orange-200 rounded-xl flex items-start justify-between gap-3 transition-all"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
+                      {/* LEFT: Avatar + Info */}
+                      <div className="flex items-start gap-3 min-w-0 flex-1 overflow-hidden">
                         <img 
                           src={lead.avatar} 
                           alt={lead.name} 
-                          className="w-10 h-10 rounded-full object-cover bg-slate-200 shrink-0" 
+                          className="w-9 h-9 rounded-full object-cover bg-slate-200 shrink-0 mt-0.5" 
                         />
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="text-xs font-extrabold text-slate-900 truncate">{lead.name}</h4>
+                        <div className="min-w-0 overflow-hidden">
+                          {/* Row 1: Name + date badge + service + stage + tags */}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="text-xs font-extrabold text-slate-900 truncate max-w-[120px]">{lead.name}</h4>
                             {isToday && (
-                              <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-700">
+                              <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-700 shrink-0">
                                 Aaj
                               </span>
                             )}
                             {isYesterday && (
-                              <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-blue-100 text-blue-700">
+                              <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-blue-100 text-blue-700 shrink-0">
                                 Kal
                               </span>
                             )}
                             {lead.serviceInterest && (() => {
                               const sMeta = getServiceMeta(lead.serviceInterest);
                               return (
-                                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border flex items-center gap-1 ${
+                                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border flex items-center gap-1 shrink-0 ${
                                   sMeta ? sMeta.badgeClass : 'bg-slate-100 text-slate-800 border-slate-300'
                                 }`}>
                                   <span>{sMeta?.icon || '💼'}</span>
@@ -2292,7 +2294,7 @@ export default function DashboardView({
                                 </span>
                               );
                             })()}
-                            <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded border ${
+                            <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded border shrink-0 ${
                               lead.stage === 'Lost' ? 'bg-rose-100 text-rose-800 border-rose-300' :
                               lead.stage === 'Qualified' ? 'bg-purple-100 text-purple-800 border-purple-200' :
                               lead.stage === 'Deal Won' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' :
@@ -2300,12 +2302,11 @@ export default function DashboardView({
                             }`}>
                               {lead.stage === 'Lost' ? '🔴 Unqualified' : lead.stage}
                             </span>
-                            {/* Tags display in modal — only latest follow-up tag shown */}
+                            {/* Tags — only latest follow-up tag shown */}
                             {(() => {
                               const allTags = (lead.tags || []).filter(
                                 (t) => t !== 'WhatsApp Inbound' && t.toLowerCase() !== lead.stage?.toLowerCase()
                               );
-                              // Deduplicate: keep only the LAST follow-up tag if multiple exist
                               const followUpTags = allTags.filter((t) => /^follow-?up/i.test(t));
                               const latestFollowUp = followUpTags.length > 0 ? followUpTags[followUpTags.length - 1] : null;
                               const displayTags = allTags.filter(
@@ -2314,7 +2315,7 @@ export default function DashboardView({
                               return displayTags.map((tag) => (
                                 <span
                                   key={tag}
-                                  className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded border ${
+                                  className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded border shrink-0 ${
                                     tag === 'Showed Up' || tag === 'Show Up' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
                                     tag === 'No Show' ? 'bg-rose-100 text-rose-800 border-rose-300' :
                                     /response aaya/i.test(tag) ? 'bg-teal-100 text-teal-800 border-teal-300' :
@@ -2335,10 +2336,14 @@ export default function DashboardView({
                               ));
                             })()}
                           </div>
-                          <p className="text-xs font-mono text-slate-700 font-bold mt-0.5">
-                            <span className="text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded font-black">{lead.phone}</span> • <span className="text-slate-500 font-normal">{lead.channelName}</span> • <span className="font-bold text-slate-700">Deal: {lead.dealValue ? `${lead.dealValue} PKR` : 'Pending'}</span>
+                          {/* Row 2: Phone • Channel • Deal */}
+                          <p className="text-[10px] font-mono text-slate-600 font-bold mt-0.5 truncate">
+                            <span className="text-slate-900 bg-slate-100 px-1 py-0.5 rounded font-black">{lead.phone}</span>
+                            {' • '}<span className="text-slate-500 font-normal truncate">{lead.channelName}</span>
+                            {' • '}<span className="font-bold text-slate-700">Deal: {lead.dealValue ? `${lead.dealValue} PKR` : '0 PKR'}</span>
                           </p>
-                          <p className="text-[10px] text-slate-400 font-medium">
+                          {/* Row 3: Date • Time */}
+                          <p className="text-[10px] text-slate-400 font-medium truncate">
                             📅 {(() => {
                               const d = getLeadDate(lead);
                               if (!d) return 'Date unavailable';
@@ -2347,13 +2352,15 @@ export default function DashboardView({
                               return `${dayStr} • ${timeStr}`;
                             })()}
                           </p>
-                          <p className="text-[11px] text-slate-600 truncate max-w-sm mt-0.5">
+                          {/* Row 4: Last message */}
+                          <p className="text-[10px] text-slate-500 truncate mt-0.5">
                             "{lead.lastMessage || 'No conversation yet'}"
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                      {/* RIGHT: Action buttons — shrink-0 so they never wrap into left column */}
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end max-w-[260px]">
                         {/* 1. Meeting Attendance: Show Up / No Show Options */}
                         {(drilldownCategory === 'meeting' || lead.tags?.some((t) => /meet/i.test(t))) && (
                           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">

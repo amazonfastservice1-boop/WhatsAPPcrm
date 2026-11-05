@@ -123,7 +123,8 @@ export default function DashboardView({
   // Handle Follow-up tag selection for Follow-up / Pending / No Response leads
   const handleSetFollowupTag = (lead, tagValue) => {
     const currentTags = Array.isArray(lead.tags) ? lead.tags : [];
-    const cleaned = currentTags.filter((t) => !/^follow-up/i.test(t));
+    // Remove ALL follow-up related tags (Follow-up, Follow-up 1, Follow-up 2, Follow-up 3, Follow-up Done...)
+    const cleaned = currentTags.filter((t) => !/^follow-?up/i.test(t));
     const newTags = tagValue ? [...cleaned, tagValue] : cleaned;
     if (onUpdateLead) {
       onUpdateLead(lead.id, { tags: newTags });

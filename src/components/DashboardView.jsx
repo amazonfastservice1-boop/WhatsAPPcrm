@@ -58,17 +58,30 @@ export default function DashboardView({
   onOpenNewLead,
   onRefreshLeads,
   onUpdateLead,
-  currentUser
+  currentUser,
+  timeRange: controlledTimeRange,
+  setTimeRange: setControlledTimeRange,
+  customSelectedDate: controlledCustomDate,
+  setCustomSelectedDate: setControlledCustomDate,
+  selectedServiceFilter: controlledServiceFilter,
+  setSelectedServiceFilter: setControlledServiceFilter,
 }) {
-  const [timeRange, setTimeRange] = useState('today'); // Default: 'today' (Aaj ki leads by default)
-  const [customSelectedDate, setCustomSelectedDate] = useState(() => {
+  const [localTimeRange, setLocalTimeRange] = useState('today');
+  const [localCustomSelectedDate, setLocalCustomSelectedDate] = useState(() => {
     const d = new Date();
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
   });
-  const [selectedServiceFilter, setSelectedServiceFilter] = useState('all'); // Filter by AmazFast service
+  const [localSelectedServiceFilter, setLocalSelectedServiceFilter] = useState('all');
+
+  const timeRange = controlledTimeRange !== undefined ? controlledTimeRange : localTimeRange;
+  const setTimeRange = setControlledTimeRange || setLocalTimeRange;
+  const customSelectedDate = controlledCustomDate !== undefined ? controlledCustomDate : localCustomSelectedDate;
+  const setCustomSelectedDate = setControlledCustomDate || setLocalCustomSelectedDate;
+  const selectedServiceFilter = controlledServiceFilter !== undefined ? controlledServiceFilter : localSelectedServiceFilter;
+  const setSelectedServiceFilter = setControlledServiceFilter || setLocalSelectedServiceFilter;
   const [reminders, setReminders] = useState(() => {
     try {
       const saved = localStorage.getItem('crm_schedule_reminders');
@@ -905,6 +918,36 @@ export default function DashboardView({
 
     return { title, description, badgeColor, list };
   }, [drilldownCategory, drilldownSearch, channelLeads, selectedChannel, todayLeadsList, repliedLeadsList, pendingLeadsList, topEngagedLeads, wonLeads, filteredLeads, statusFilteredLeads, reminders, timeRange, customDayDisplay, customSelectedDate]);
+
+  // Helper to build exact Dashboard filter/section context when opening Chat
+  const buildChatContext = (sectionCategory = null, sectionTitle = '', sectionList = null) => {
+    const timeLabels = {
+      today: '📅 Aaj Ki Leads',
+      yesterday: '⏪ Kal Ki Leads',
+      custom: `📆 ${customDayDisplay || customSelectedDate}`,
+      '7days': '🗓️ Is Hafte (7 Din)',
+      '30days': '📊 Is Mahine (30 Din)',
+      '6months': '📆 Pichlay 6 Mahine',
+      year: '📅 Is Saal',
+      all: '🌐 Saara Data (Kul Leads)',
+    };
+    const dateLabel = timeLabels[timeRange] || '📅 Aaj Ki Leads';
+    const isDateOnlySection = !sectionCategory || sectionCategory === 'main_leads' || sectionCategory === 'all_leads' || sectionCategory === 'today';
+    const label = sectionCategory === 'today'
+      ? '📅 Aaj Ki Leads'
+      : (isDateOnlySection ? dateLabel : `${dateLabel} • ${sectionTitle || sectionCategory}`);
+
+    return {
+      source: 'dashboard',
+      timeRange,
+      customDate: customSelectedDate,
+      serviceFilter: selectedServiceFilter,
+      section: sectionCategory,
+      sectionTitle: sectionTitle || '',
+      label,
+      leadIds: Array.isArray(sectionList) ? sectionList.map((x) => x.id) : null,
+    };
+  };
 
   return (
     <div className="p-6 space-y-6 max-w-[1600px] mx-auto animate-fade-in">
@@ -2189,7 +2232,7 @@ export default function DashboardView({
                           </span>
                           <button
                             type="button"
-                            onClick={() => onOpenChat && onOpenChat(l.id)}
+                            onClick={() => onOpenChat && onOpenChat(l.id, buildChatContext(null))}
                             className="px-2 py-0.5 rounded-lg bg-orange-50 hover:bg-orange-500 text-orange-600 hover:text-white font-black border border-orange-200 hover:border-orange-500 transition-all flex items-center gap-1"
                           >
                             <span>Chat</span>
@@ -2431,8 +2474,9 @@ export default function DashboardView({
                         <button
                           type="button"
                           onClick={() => {
+                            const ctx = buildChatContext(drilldownCategory, drilldownData.title, drilldownData.list);
                             setDrilldownCategory(null);
-                            if (onOpenChat) onOpenChat(lead.id);
+                            if (onOpenChat) onOpenChat(lead.id, ctx);
                           }}
                           className="px-3.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-2xs transition-all flex items-center gap-1.5"
                         >

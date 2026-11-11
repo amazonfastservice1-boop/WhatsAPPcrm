@@ -86,6 +86,20 @@ export default function App() {
   const [connectionToast, setConnectionToast] = useState(null);
   const [isAppLoading, setIsAppLoading] = useState(false);
 
+  // Persistent Dashboard filter state (preserved when navigating to Chat & returning back)
+  const [dashboardTimeRange, setDashboardTimeRange] = useState('today');
+  const [dashboardCustomDate, setDashboardCustomDate] = useState(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  });
+  const [dashboardServiceFilter, setDashboardServiceFilter] = useState('all');
+
+  // Context carried from Dashboard -> Chat when user opens a chat from a specific section/date
+  const [chatFilterContext, setChatFilterContext] = useState(null);
+
   const selectedLeadIdRef = React.useRef(selectedLeadId);
   const recentLocalUpdatesRef = React.useRef(new Map());
   useEffect(() => {
@@ -967,9 +981,12 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // Navigate to chat
-  const handleOpenChat = (leadId) => {
+  // Navigate to chat (optionally carrying Dashboard section/date filter context)
+  const handleOpenChat = (leadId, context = null) => {
     if (leadId) setSelectedLeadId(leadId);
+    if (context) {
+      setChatFilterContext({ ...context, appliedAt: Date.now() });
+    }
     setActiveTab('chat');
   };
 
@@ -1039,6 +1056,12 @@ export default function App() {
               onRefreshLeads={fetchRealLeads}
               onUpdateLead={handleUpdateLead}
               currentUser={currentUser}
+              timeRange={dashboardTimeRange}
+              setTimeRange={setDashboardTimeRange}
+              customSelectedDate={dashboardCustomDate}
+              setCustomSelectedDate={setDashboardCustomDate}
+              selectedServiceFilter={dashboardServiceFilter}
+              setSelectedServiceFilter={setDashboardServiceFilter}
             />
           )}
 
@@ -1054,6 +1077,8 @@ export default function App() {
               onRefreshLeads={fetchRealLeads}
               onOpenNewLead={() => setIsNewLeadModalOpen(true)}
               currentUser={currentUser}
+              chatFilterContext={chatFilterContext}
+              setChatFilterContext={setChatFilterContext}
             />
           )}
 

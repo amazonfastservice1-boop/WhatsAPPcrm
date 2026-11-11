@@ -276,9 +276,28 @@ export default function LiveChatView({
   channels = [],
   onUpdateLead,
   onRefreshLeads,
-  onOpenNewLead
+  onOpenNewLead,
+  chatFilterContext = null,
+  setChatFilterContext
 }) {
-  const [filterTab, setFilterTab] = useState('all'); // all, unassigned, mine, unread
+  const [filterTab, setFilterTab] = useState('all'); // all, today, yesterday, dashboard_context, unread, etc.
+
+  // Sync Dashboard section/date context automatically when user opens a chat from Dashboard
+  React.useEffect(() => {
+    if (!chatFilterContext || !chatFilterContext.appliedAt) return;
+    const { timeRange, section, serviceFilter } = chatFilterContext;
+    const isDateOnly = !section || section === 'main_leads' || section === 'all_leads';
+    if (section === 'today') {
+      setFilterTab('today');
+    } else if (isDateOnly && (!serviceFilter || serviceFilter === 'all')) {
+      if (timeRange === 'today') setFilterTab('today');
+      else if (timeRange === 'yesterday') setFilterTab('yesterday');
+      else if (timeRange === 'all') setFilterTab('all');
+      else setFilterTab('dashboard_context');
+    } else {
+      setFilterTab('dashboard_context');
+    }
+  }, [chatFilterContext?.appliedAt]);
   const [selectedServiceFilter, setSelectedServiceFilter] = useState('all'); // 'all' or service id
   const [inputText, setInputText] = useState('');
   const [isInternalNote, setIsInternalNote] = useState(false);

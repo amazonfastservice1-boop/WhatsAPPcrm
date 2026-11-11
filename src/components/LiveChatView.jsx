@@ -905,7 +905,7 @@ export default function LiveChatView({
         if (timeB !== timeA) return timeB - timeA;
         return String(a.id || '').localeCompare(String(b.id || ''));
       });
-  }, [uniqueLeads, selectedChannel, filterTab, leadReminders, selectedServiceFilter, searchLeadTerm, searchMode]);
+  }, [uniqueLeads, selectedChannel, filterTab, leadReminders, selectedServiceFilter, searchLeadTerm, searchMode, chatFilterContext]);
 
   // Selected active lead (Locked to active lead ID so active chat NEVER jumps to another customer)
   const activeLead = React.useMemo(() => {
@@ -1275,13 +1275,16 @@ export default function LiveChatView({
             </button>
           </div>
 
-          {/* Row 2: Clean Non-Overflowing Tabs + Stage Filter Dropdown */}
-          <div className="flex items-center justify-between gap-1.5 text-xs">
-            <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200/70">
+          {/* Row 2: Clean Non-Overflowing Tabs (Saari, Aaj, Kal) + Stage Filter Dropdown */}
+          <div className="flex items-center justify-between gap-1 text-xs">
+            <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded-xl border border-slate-200/70 min-w-0">
               <button 
                 type="button"
-                onClick={() => setFilterTab('all')}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold whitespace-nowrap transition-all ${
+                onClick={() => {
+                  setFilterTab('all');
+                  if (setChatFilterContext) setChatFilterContext(null);
+                }}
+                className={`px-1.5 lg:px-2 py-1 rounded-lg text-[10.5px] font-extrabold whitespace-nowrap transition-all ${
                   filterTab === 'all' ? 'bg-white text-orange-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -1289,28 +1292,54 @@ export default function LiveChatView({
               </button>
               <button 
                 type="button"
-                onClick={() => setFilterTab('today')}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold whitespace-nowrap transition-all flex items-center gap-1 ${
+                onClick={() => {
+                  setFilterTab('today');
+                  if (setChatFilterContext) setChatFilterContext(null);
+                }}
+                className={`px-1.5 lg:px-2 py-1 rounded-lg text-[10.5px] font-extrabold whitespace-nowrap transition-all flex items-center gap-1 ${
                   filterTab === 'today' 
                     ? 'bg-emerald-600 text-white shadow-2xs' 
                     : 'text-slate-600 hover:text-emerald-700'
                 }`}
               >
                 <span>Aaj</span>
-                <span className={`text-[10px] px-1 rounded-full font-black ${
+                <span className={`text-[9.5px] px-1 rounded-full font-black ${
                   filterTab === 'today' ? 'bg-emerald-700 text-white' : 'bg-emerald-100 text-emerald-800'
                 }`}>
                   {stageCounts.todayNew}
+                </span>
+              </button>
+              <button 
+                type="button"
+                onClick={() => {
+                  setFilterTab('yesterday');
+                  if (setChatFilterContext) setChatFilterContext(null);
+                }}
+                className={`px-1.5 lg:px-2 py-1 rounded-lg text-[10.5px] font-extrabold whitespace-nowrap transition-all flex items-center gap-1 ${
+                  filterTab === 'yesterday' 
+                    ? 'bg-blue-600 text-white shadow-2xs' 
+                    : 'text-slate-600 hover:text-blue-700'
+                }`}
+                title="Kal Ki Leads dekhein"
+              >
+                <span>Kal</span>
+                <span className={`text-[9.5px] px-1 rounded-full font-black ${
+                  filterTab === 'yesterday' ? 'bg-blue-700 text-white' : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {stageCounts.yesterdayNew}
                 </span>
               </button>
             </div>
 
             {/* Compact Filter Dropdown for Unread, Qualified, Won, Unqualified, Reminders */}
             <select
-              value={['all', 'today'].includes(filterTab) ? '' : filterTab}
-              onChange={(e) => setFilterTab(e.target.value || 'all')}
-              className={`px-2 py-1 rounded-xl border text-[11px] font-bold focus:outline-none cursor-pointer transition-all max-w-[115px] ${
-                !['all', 'today'].includes(filterTab)
+              value={['all', 'today', 'yesterday', 'dashboard_context'].includes(filterTab) ? '' : filterTab}
+              onChange={(e) => {
+                setFilterTab(e.target.value || 'all');
+                if (setChatFilterContext) setChatFilterContext(null);
+              }}
+              className={`px-1.5 lg:px-2 py-1 rounded-xl border text-[10.5px] font-bold focus:outline-none cursor-pointer transition-all max-w-[76px] lg:max-w-[92px] 2xl:max-w-[110px] shrink-0 ${
+                !['all', 'today', 'yesterday', 'dashboard_context'].includes(filterTab)
                   ? 'bg-orange-50 border-orange-300 text-orange-700'
                   : 'bg-slate-50 border-slate-200 text-slate-700'
               }`}
@@ -1325,6 +1354,36 @@ export default function LiveChatView({
               <option value="proposal">🟠 Proposal ({stageCounts.proposal})</option>
             </select>
           </div>
+
+          {/* Active Section / Date Label Banner (e.g. "⏪ Kal Ki Leads", "📅 Aaj Ki Leads", or Dashboard Section) */}
+          {(filterTab === 'yesterday' || filterTab === 'today' || (filterTab === 'dashboard_context' && chatFilterContext?.label)) && (
+            <div className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl border text-[11px] font-extrabold ${
+              filterTab === 'yesterday' || chatFilterContext?.timeRange === 'yesterday'
+                ? 'bg-blue-50 border-blue-200 text-blue-800'
+                : filterTab === 'today' || chatFilterContext?.timeRange === 'today'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                : 'bg-orange-50 border-orange-200 text-orange-800'
+            }`}>
+              <span className="truncate">
+                {filterTab === 'yesterday'
+                  ? `⏪ Kal Ki Leads (${displayLeads.length})`
+                  : filterTab === 'today'
+                  ? `📅 Aaj Ki Leads (${displayLeads.length})`
+                  : `${chatFilterContext.label} (${displayLeads.length})`}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterTab('all');
+                  if (setChatFilterContext) setChatFilterContext(null);
+                }}
+                className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-white/80 hover:bg-white border border-current/20 shrink-0 transition-colors"
+                title="Saari chats par wapis jayein"
+              >
+                ✕ Saari
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Conversation Items List */}
@@ -1338,7 +1397,7 @@ export default function LiveChatView({
               {filterTab !== 'all' && (
                 <button
                   type="button"
-                  onClick={() => { setFilterTab('all'); setSearchLeadTerm(''); }}
+                  onClick={() => { setFilterTab('all'); setSearchLeadTerm(''); if (setChatFilterContext) setChatFilterContext(null); }}
                   className="px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 text-xs font-bold rounded-lg border border-orange-200 transition-colors inline-block"
                 >
                   Saari Chats Dekhein

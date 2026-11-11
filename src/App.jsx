@@ -1105,9 +1105,9 @@ export default function App() {
               onUpdateLead={handleUpdateLead}
               currentUser={currentUser}
               timeRange={dashboardTimeRange}
-              setTimeRange={setDashboardTimeRange}
+              setTimeRange={handleDashboardTimeRangeChange}
               customSelectedDate={dashboardCustomDate}
-              setCustomSelectedDate={setDashboardCustomDate}
+              setCustomSelectedDate={handleDashboardCustomDateChange}
               selectedServiceFilter={dashboardServiceFilter}
               setSelectedServiceFilter={setDashboardServiceFilter}
             />

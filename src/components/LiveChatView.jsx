@@ -734,10 +734,12 @@ export default function LiveChatView({
     ).length;
 
     const todayNewCount = list.filter(l => isLeadToday(l)).length;
+    const yesterdayNewCount = list.filter(l => isLeadYesterday(l)).length;
 
     return {
       all: list.length,
       todayNew: todayNewCount,
+      yesterdayNew: yesterdayNewCount,
       unread: list.filter(l => l.unreadCount > 0).length,
       reminders: scheduledRemCount,
       qualified: list.filter(l => /qualif/i.test(l.stage || '') || l.tags?.some(t => /qualif/i.test(t))).length,
@@ -760,6 +762,91 @@ export default function LiveChatView({
         if (filterTab === 'today') {
           // Strictly brand-new inbound leads of today (first customer message after 12:00 AM)
           if (!isLeadToday(lead)) return false;
+        }
+        if (filterTab === 'yesterday') {
+          // Strictly leads from Kal (Yesterday)
+          if (!isLeadYesterday(lead)) return false;
+        }
+        if (filterTab === 'dashboard_context' && chatFilterContext) {
+          const { timeRange: ctxRange = 'all', customDate: ctxCustom = '', serviceFilter: ctxSvc = 'all', section: ctxSec = null, leadIds: ctxIds = null } = chatFilterContext;
+
+          if (ctxSvc && ctxSvc !== 'all') {
+            const s = lead.serviceInterest || '';
+            if (!s.toLowerCase().includes(ctxSvc.toLowerCase())) return false;
+          }
+
+          let arrivedInPeriod = true;
+          if (ctxRange === 'today') arrivedInPeriod = isLeadToday(lead);
+          else if (ctxRange === 'yesterday') arrivedInPeriod = isLeadYesterday(lead);
+          else if (ctxRange === 'custom') arrivedInPeriod = isLeadOnDate(lead, ctxCustom);
+          else if (ctxRange === '7days') arrivedInPeriod = isLeadWithinDays(lead, 7);
+          else if (ctxRange === '30days') arrivedInPeriod = isLeadWithinDays(lead, 30);
+          else if (ctxRange === '6months') arrivedInPeriod = isLeadWithinDays(lead, 180);
+          else if (ctxRange === 'year') arrivedInPeriod = isLeadWithinDays(lead, 365);
+
+          const getCat = (stg) => {
+            const s = String(stg || '').toLowerCase();
+            if (s.includes('lost') || s.includes('unqualif') || s.includes('reject')) return 'Lost';
+            if (s.includes('propos')) return 'Proposal Sent';
+            if (s.includes('qualif')) return 'Qualified';
+            if (s.includes('won') || s.includes('closed')) return 'Deal Won';
+            if (s.includes('contact')) return 'Contacted';
+            return 'New Lead';
+          };
+
+          const isStatusInPeriod = arrivedInPeriod || isLeadStatusActiveInPeriod(lead, ctxRange, ctxCustom);
+
+          if (ctxSec === 'today') {
+            if (!isLeadToday(lead)) return false;
+          } else if (ctxSec === 'top' && Array.isArray(ctxIds)) {
+            if (!ctxIds.includes(lead.id)) return false;
+          } else if (!ctxSec || ctxSec === 'main_leads' || ctxSec === 'all_leads') {
+            if (!arrivedInPeriod) return false;
+          } else if (ctxSec === 'replied') {
+            if (!arrivedInPeriod) return false;
+            const hasAgentMsg = lead.messages?.some((m) => m.sender === 'agent');
+            const isPastNew = lead.stage && lead.stage !== 'New Lead';
+            if (!(hasAgentMsg || isPastNew)) return false;
+          } else if (ctxSec === 'pending') {
+            if (!arrivedInPeriod) return false;
+            const msgs = lead.messages || [];
+            const lastMsg = msgs[msgs.length - 1];
+            const waitingCustomer = lastMsg && lastMsg.sender === 'customer';
+            const isUnread = lead.unreadCount > 0;
+            const isFreshNew = lead.stage === 'New Lead' && !msgs.some((m) => m.sender === 'agent');
+            if (!(waitingCustomer || isUnread || isFreshNew)) return false;
+          } else if (ctxSec === 'stage_New Lead') {
+            if (!arrivedInPeriod || getCat(lead.stage) !== 'New Lead') return false;
+          } else if (ctxSec === 'stage_Contacted') {
+            if (!arrivedInPeriod || getCat(lead.stage) !== 'Contacted') return false;
+          } else if (ctxSec === 'won' || ctxSec === 'stage_Deal Won') {
+            const s = String(lead.stage || '').toLowerCase();
+            if (!isStatusInPeriod || !(s.includes('won') || s.includes('closed'))) return false;
+          } else if (ctxSec === 'stage_Qualified' || ctxSec === 'qualified') {
+            if (!isStatusInPeriod || getCat(lead.stage) !== 'Qualified') return false;
+          } else if (ctxSec === 'stage_Proposal Sent') {
+            if (!isStatusInPeriod || getCat(lead.stage) !== 'Proposal Sent') return false;
+          } else if (ctxSec === 'stage_Lost' || ctxSec === 'unqualified') {
+            if (!isStatusInPeriod || !(getCat(lead.stage) === 'Lost' || /unqualif|lost/i.test(lead.stage || ''))) return false;
+          } else if (ctxSec === 'followup') {
+            const matchFu =
+              lead.tags?.some((t) => String(t).trim().toLowerCase() === 'follow-up') ||
+              /^follow-?up$/i.test(lead.stage || '') ||
+              leadReminders.some((r) => !r.completed && r.leadId === lead.id);
+            if (!isStatusInPeriod || !matchFu) return false;
+          } else if (ctxSec === 'meeting') {
+            const matchMeet =
+              lead.tags?.some((t) => /meet|zoom|call schedule/i.test(t)) ||
+              /meet/i.test(lead.stage || '');
+            if (!isStatusInPeriod || !matchMeet) return false;
+          } else if (ctxSec === 'no_response') {
+            const matchNr =
+              lead.tags?.some((t) => /no respon|no reply|ghost/i.test(t)) ||
+              /no respon/i.test(lead.stage || '');
+            if (!isStatusInPeriod || !matchNr) return false;
+          } else if (!arrivedInPeriod) {
+            return false;
+          }
         }
         if (filterTab === 'reminders') {
           const hasRem = leadReminders.some((r) => 

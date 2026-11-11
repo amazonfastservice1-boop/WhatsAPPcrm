@@ -1067,7 +1067,7 @@ export default function App() {
       {/* 1. Left Sidebar Navigation */}
       <Sidebar 
         activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
+        setActiveTab={handleTabChange} 
         unreadTotal={unreadChatsCount}
         waStatus={waStatus}
         currentUser={currentUser}

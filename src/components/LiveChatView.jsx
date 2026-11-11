@@ -43,7 +43,7 @@ import {
 import { AGENTS, PIPELINE_STAGES, QUICK_REPLIES } from '../data/mockData';
 import { AMAZFAST_SERVICES, getServiceMeta } from '../data/servicesList';
 import { api, SERVER_BASE } from '../services/api';
-import { formatChannelDisplayName, formatSafeTime, isLeadToday } from '../utils/leadFilters';
+import { formatChannelDisplayName, formatSafeTime, isLeadToday, isLeadYesterday, isLeadOnDate, isLeadWithinDays, isLeadStatusActiveInPeriod } from '../utils/leadFilters';
 import { convertBlobToMp3 } from '../utils/audioEncoder';
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];

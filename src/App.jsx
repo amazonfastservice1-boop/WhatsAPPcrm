@@ -99,6 +99,17 @@ export default function App() {
 
   // Context carried from Dashboard -> Chat when user opens a chat from a specific section/date
   const [chatFilterContext, setChatFilterContext] = useState(null);
+  const dashboardDateTouchedRef = React.useRef(false);
+
+  const handleDashboardTimeRangeChange = (nextRange) => {
+    dashboardDateTouchedRef.current = true;
+    setDashboardTimeRange(nextRange);
+  };
+
+  const handleDashboardCustomDateChange = (nextDate) => {
+    dashboardDateTouchedRef.current = true;
+    setDashboardCustomDate(nextDate);
+  };
 
   const selectedLeadIdRef = React.useRef(selectedLeadId);
   const recentLocalUpdatesRef = React.useRef(new Map());
@@ -981,11 +992,48 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
+  // Build date context from Dashboard filters when switching to Chat
+  const buildDashboardDateContext = () => {
+    const timeLabels = {
+      today: '📅 Aaj Ki Leads',
+      yesterday: '⏪ Kal Ki Leads',
+      custom: `📆 ${dashboardCustomDate}`,
+      '7days': '🗓️ Is Hafte (7 Din)',
+      '30days': '📊 Is Mahine (30 Din)',
+      '6months': '📆 Pichlay 6 Mahine',
+      year: '📅 Is Saal',
+      all: '🌐 Saara Data (Kul Leads)',
+    };
+    return {
+      source: 'dashboard',
+      timeRange: dashboardTimeRange,
+      customDate: dashboardCustomDate,
+      serviceFilter: dashboardServiceFilter,
+      section: null,
+      sectionTitle: '',
+      label: timeLabels[dashboardTimeRange] || '📅 Aaj Ki Leads',
+      leadIds: null,
+      appliedAt: Date.now(),
+    };
+  };
+
+  // Handle Sidebar tab navigation — sync Dashboard selected day to Chat when coming from Dashboard
+  const handleTabChange = (nextTab) => {
+    if (activeTab === 'dashboard' && nextTab === 'chat') {
+      if (dashboardDateTouchedRef.current || dashboardTimeRange !== 'today' || dashboardServiceFilter !== 'all') {
+        setChatFilterContext(buildDashboardDateContext());
+      }
+    }
+    setActiveTab(nextTab);
+  };
+
   // Navigate to chat (optionally carrying Dashboard section/date filter context)
   const handleOpenChat = (leadId, context = null) => {
     if (leadId) setSelectedLeadId(leadId);
     if (context) {
       setChatFilterContext({ ...context, appliedAt: Date.now() });
+    } else if (dashboardDateTouchedRef.current || dashboardTimeRange !== 'today' || dashboardServiceFilter !== 'all') {
+      setChatFilterContext(buildDashboardDateContext());
     }
     setActiveTab('chat');
   };

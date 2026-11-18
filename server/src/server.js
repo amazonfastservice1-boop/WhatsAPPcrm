@@ -62,7 +62,7 @@ app.use('/media', express.static(MEDIA_DIR));
 // -----------------------------------------------------------------------------
 const generalLimiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '150', 10),
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1000', 10),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please slow down.' },

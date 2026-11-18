@@ -43,7 +43,7 @@ import {
 import { AGENTS, PIPELINE_STAGES, QUICK_REPLIES } from '../data/mockData';
 import { AMAZFAST_SERVICES, getServiceMeta } from '../data/servicesList';
 import { api, SERVER_BASE } from '../services/api';
-import { formatChannelDisplayName, formatSafeTime, isLeadToday, isLeadYesterday, isLeadOnDate, isLeadWithinDays, isLeadStatusActiveInPeriod } from '../utils/leadFilters';
+import { formatChannelDisplayName, formatSafeTime, isLeadToday, isLeadLastMessageToday, isLeadYesterday, isLeadOnDate, isLeadWithinDays, isLeadStatusActiveInPeriod } from '../utils/leadFilters';
 import { convertBlobToMp3 } from '../utils/audioEncoder';
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
@@ -759,8 +759,9 @@ export default function LiveChatView({
         if (selectedChannel !== 'all' && lead.channel !== selectedChannel) return false;
         // Tab filter
         if (filterTab === 'today') {
-          // Strictly brand-new inbound leads of today (first customer message after 12:00 AM)
-          if (!isLeadToday(lead)) return false;
+          // Show brand-new leads of today PLUS any existing leads whose latest message arrived today
+          // (Badge count stageCounts.todayNew strictly counts only true new leads of today!)
+          if (!isLeadToday(lead) && !isLeadLastMessageToday(lead)) return false;
         }
         if (filterTab === 'yesterday') {
           // Strictly leads from Kal (Yesterday)

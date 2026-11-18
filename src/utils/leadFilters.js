@@ -186,6 +186,16 @@ export function isLeadToday(lead) {
   return d >= startOfToday && d <= endOfToday;
 }
 
+export function isLeadLastMessageToday(lead) {
+  if (!lead) return false;
+  const d = parseLeadDate(lead.rawLastMessageAt || lead.lastMessageAt);
+  if (!d) return false;
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  return d >= startOfToday && d <= endOfToday;
+}
+
 export function isLeadYesterday(lead) {
   if (!lead) return false;
   const d = getLeadFirstDate(lead);

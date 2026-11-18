@@ -7,6 +7,14 @@ const router = express.Router();
 // Memory cache for immutable first customer message timestamp per lead (0ms instant lookup)
 const firstCustomerMsgCache = new Map();
 
+// Fast response cache for GET /api/leads to prevent database overload during high WhatsApp traffic
+const leadsResponseCache = new Map();
+const CACHE_TTL_MS = 2500; // 2.5 seconds cache window
+
+export function invalidateLeadsCache() {
+  leadsResponseCache.clear();
+}
+
 /**
  * GET /api/leads
  * List leads with channel, stage, and search query filters
@@ -16,11 +24,17 @@ router.get('/', authenticateToken, async (req, res) => {
     const user = req.user;
     const { channelId, stage, search } = req.query;
 
+    // Fast Cache Check: If requested within CACHE_TTL_MS, serve instantly (0-1ms)
+    const cacheKey = `${user.id}_${user.role}_${channelId || 'all'}_${stage || 'all'}_${search || ''}`;
+    const cachedEntry = leadsResponseCache.get(cacheKey);
+    if (cachedEntry && (Date.now() - cachedEntry.timestamp < CACHE_TTL_MS)) {
+      return res.json(cachedEntry.data);
+    }
+
     const where = {};
 
     // 1. Strict Role-Based Lead Isolation
     if (user.role === 'ADMIN') {
-      // ADMIN: Full system access across all active channels
       // ADMIN: Full system access across all active channels
       if (channelId && channelId !== 'all') {
         where.channelId = channelId;
@@ -29,11 +43,7 @@ router.get('/', authenticateToken, async (req, res) => {
       }
     } else {
       // STAFF / AGENT / MANAGER:
-      // Staff member ko unke ALLOWED CHANNELS (jaise Line 3: 03710327973) ka pura data nazar aayega!
-      // Agar kisi specific lead par assignedToId set hai to wo bhi show hogi.
-      // STAFF / AGENT / MANAGER:
-      // Staff member ko unke ALLOWED CHANNELS (jaise Line 3: 03710327973) ka pura data nazar aayega!
-      // Agar kisi specific lead par assignedToId set hai to wo bhi show hogi.
+      // Staff member ko unke ALLOWED CHANNELS ka pura data nazar aayega!
       if (channelId && channelId !== 'all') {
         if (!user.allowedChannelIds.includes(channelId)) {
           return res.status(403).json({ error: 'Access denied for this WhatsApp channel.' });
@@ -83,17 +93,29 @@ router.get('/', authenticateToken, async (req, res) => {
     // Only leads whose FIRST EVER message arrived after 12:00 AM count as today's new lead!
     const missingLeadIds = leads.map(l => l.id).filter(id => !firstCustomerMsgCache.has(id));
     if (missingLeadIds.length > 0) {
-      const newMins = await prisma.message.groupBy({
-        by: ['leadId'],
-        where: {
-          leadId: { in: missingLeadIds },
-          senderType: 'CUSTOMER'
-        },
-        _min: { createdAt: true }
-      });
-      newMins.forEach(item => {
-        if (item.leadId && item._min.createdAt) {
-          firstCustomerMsgCache.set(item.leadId, item._min.createdAt);
+      try {
+        const newMins = await prisma.message.groupBy({
+          by: ['leadId'],
+          where: {
+            leadId: { in: missingLeadIds },
+            senderType: 'CUSTOMER'
+          },
+          _min: { createdAt: true }
+        });
+        newMins.forEach(item => {
+          if (item.leadId && item._min.createdAt) {
+            firstCustomerMsgCache.set(item.leadId, item._min.createdAt);
+          }
+        });
+      } catch (grpErr) {
+        console.warn('Group by query notice:', grpErr.message);
+      }
+
+      // Populate any remaining leads so we NEVER re-run groupBy on them again!
+      missingLeadIds.forEach(id => {
+        if (!firstCustomerMsgCache.has(id)) {
+          const l = leads.find(item => item.id === id);
+          firstCustomerMsgCache.set(id, l?.createdAt || new Date());
         }
       });
     }
@@ -116,7 +138,10 @@ router.get('/', authenticateToken, async (req, res) => {
         return timeB - timeA;
       });
 
-    res.json({ leads: enrichedLeads });
+    const responsePayload = { leads: enrichedLeads };
+    leadsResponseCache.set(cacheKey, { data: responsePayload, timestamp: Date.now() });
+
+    res.json(responsePayload);
   } catch (error) {
     console.error('Error fetching leads:', error);
     res.status(500).json({ error: 'Failed to retrieve leads.' });
@@ -333,6 +358,7 @@ router.patch('/:id', authenticateToken, async (req, res) => {
       ? updatedLead.tags.map(t => (typeof t === 'string' ? t : (t?.tag?.name || t?.name))).filter(Boolean)
       : [];
 
+    invalidateLeadsCache();
     req.io?.emit('lead:updated', updatedLead);
     req.io?.emit('lead:stage_updated', {
       leadId: updatedLead.id,

@@ -339,10 +339,8 @@ export default function DashboardView({
       else if (timeRange === '6months') arrivedInPeriod = isLeadWithinDays(l, 180);
       else if (timeRange === 'year') arrivedInPeriod = isLeadWithinDays(l, 365);
 
-      if (arrivedInPeriod) return true;
-
-      // Also include old leads if their status/tags were explicitly updated during this time period
-      return isLeadStatusActiveInPeriod(l, timeRange, customSelectedDate);
+      // Strict day boundary: leads belong to their arrival date; updating an older lead's tags/status does NOT move it into Today
+      return arrivedInPeriod;
     });
 
     return rawList;

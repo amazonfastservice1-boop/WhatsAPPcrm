@@ -793,7 +793,7 @@ export default function LiveChatView({
             return 'New Lead';
           };
 
-          const isStatusInPeriod = arrivedInPeriod || isLeadStatusActiveInPeriod(lead, ctxRange, ctxCustom);
+          const isStatusInPeriod = arrivedInPeriod;
 
           if (ctxSec === 'today') {
             if (!isLeadToday(lead)) return false;

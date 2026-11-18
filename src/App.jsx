@@ -154,7 +154,7 @@ export default function App() {
     const resolvedStatusDate = isRecentlyClickedHere && recentLocal.statusUpdatedAt
       ? recentLocal.statusUpdatedAt
       : (hasActiveStatusOrTags
-          ? (l.updatedAt ? new Date(l.updatedAt).toISOString() : new Date().toISOString())
+          ? (l.createdAt ? new Date(l.createdAt).toISOString() : new Date().toISOString())
           : null);
 
     return {
@@ -310,8 +310,12 @@ export default function App() {
     setSelectedLeadId(null);
 
     try {
-      // 1. Fetch assigned channels for this specific authenticated user
-      const chRes = await api.getChannels();
+      // 1. Fetch assigned channels & WhatsApp status in parallel for lightning-fast CRM loading
+      const [chRes, statusRes] = await Promise.all([
+        api.getChannels().catch((e) => { console.warn('Channels load err:', e); return { channels: [] }; }),
+        api.getWhatsAppStatus().catch(() => null),
+      ]);
+
       const rawChannels = chRes?.channels || [];
       const dbChannels = rawChannels.map((ch) => {
         const code = (ch.countryCode || 'PK').toLowerCase();
@@ -344,15 +348,13 @@ export default function App() {
         }
       }
 
-      // 2. Fetch leads strictly isolated for this user (hard reset)
-      await fetchRealLeads(true);
-
-      // 3. Status check
-      const statusRes = await api.getWhatsAppStatus();
       if (statusRes?.status) {
         setWaStatus(statusRes.status);
         if (statusRes.user) setWaUser(statusRes.user);
       }
+
+      // 2. Fetch leads strictly isolated for this user (hard reset)
+      await fetchRealLeads(true);
     } catch (err) {
       console.error('Failed to init user data:', err);
     } finally {
@@ -662,7 +664,6 @@ export default function App() {
             setTimeout(() => setConnectionToast(null), 8000);
             // Refresh all chats & leads immediately from database!
             fetchRealLeads();
-            setTimeout(fetchRealLeads, 2500);
           }
           return data.status;
         });

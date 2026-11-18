@@ -218,7 +218,12 @@ export function isLeadStatusActiveInPeriod(lead, timeRange = 'today', customSele
   if (!lead) return false;
   if (timeRange === 'all') return true;
 
-  // Check explicit statusUpdatedAt timestamp (set whenever agent clicks Deal Won, Qualified, Follow-up, etc.)
+  // STRICT GUARD: An older lead must never bleed into Today or Yesterday!
+  if (timeRange === 'today' && !isLeadToday(lead)) return false;
+  if (timeRange === 'yesterday' && !isLeadYesterday(lead)) return false;
+  if (timeRange === 'custom' && customSelectedDate && !isLeadOnDate(lead, customSelectedDate)) return false;
+
+  // Check explicit statusUpdatedAt timestamp
   const d = parseLeadDate(lead.statusUpdatedAt);
   if (!d) return false;
 

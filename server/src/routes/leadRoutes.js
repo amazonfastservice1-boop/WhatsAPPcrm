@@ -409,6 +409,7 @@ router.patch('/:id/stage', authenticateToken, async (req, res) => {
       },
     });
 
+    invalidateLeadsCache();
     // Broadcast stage change to real-time boards
     req.io?.emit('lead:stage_updated', {
       leadId: updatedLead.id,

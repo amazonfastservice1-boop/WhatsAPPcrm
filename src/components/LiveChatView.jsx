@@ -1706,7 +1706,7 @@ export default function LiveChatView({
                             type="button"
                             onClick={() => {
                               const nextStage = opt.value || 'New Lead';
-                              onUpdateLead(activeLead.id, { stage: nextStage, tags: activeLead.tags || [] });
+                              onUpdateLead(activeLead.id, { stage: nextStage });
                               const label = opt.value === 'Lost' ? 'Unqualified' : (opt.value || 'Cleared');
                               setSmartBarToast(`🎯 Lead Status "${label}" update ho gaya!`);
                               setTimeout(() => setSmartBarToast(null), 3000);

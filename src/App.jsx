@@ -813,7 +813,13 @@ export default function App() {
       if (Object.keys(apiUpdates).length > 0) {
         matchingIds.forEach((mId) => {
           if (mId && typeof mId === 'string' && !mId.startsWith('mock-')) {
-            api.updateLead(mId, apiUpdates).catch((e) => console.warn('Failed to persist lead update:', e));
+            api.updateLead(mId, apiUpdates).then((res) => {
+              if (!res) {
+                setTimeout(() => {
+                  api.updateLead(mId, apiUpdates).catch((e) => console.warn('Retry failed for lead update:', e));
+                }, 800);
+              }
+            }).catch((e) => console.warn('Failed to persist lead update:', e));
           }
         });
       }

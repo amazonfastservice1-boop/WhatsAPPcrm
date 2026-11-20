@@ -493,7 +493,8 @@ export default function DashboardView({
   }, [filteredLeads]);
 
   const newLeadsCount = useMemo(() => {
-    return filteredLeads.filter(l => getStageCategory(l.stage) === 'New Lead').length;
+    // Fixed count of all leads that arrived in the selected period so marking Qualified/Lost/Won in Chat never shrinks this total
+    return filteredLeads.length;
   }, [filteredLeads]);
 
   const unqualifiedCount = useMemo(() => {
@@ -853,10 +854,10 @@ export default function DashboardView({
       badgeColor = 'bg-emerald-100 text-emerald-800';
       list = wonLeads;
     } else if (drilldownCategory === 'stage_New Lead') {
-      title = 'Naye Leads (New Customers)';
-      description = 'Wo leads jo abhi new register huin aur preliminary review mein hain.';
+      title = 'Naye Leads (Total Aayi Hui Leads)';
+      description = 'Selected din/period mein aane wali tamaam leads aur unka maujooda status.';
       badgeColor = 'bg-amber-100 text-amber-800';
-      list = filteredLeads.filter(l => getStageCategory(l.stage) === 'New Lead');
+      list = filteredLeads;
     } else if (drilldownCategory === 'stage_Contacted') {
       title = 'Rabta Hua (Contacted Leads)';
       description = 'Jin customers se pehla rabta ya initial chat shuru ho chuki hai.';

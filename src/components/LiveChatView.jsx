@@ -354,6 +354,26 @@ export default function LiveChatView({
   const [smartBarToast, setSmartBarToast] = useState(null);
   const [inlineTagInput, setInlineTagInput] = useState('');
   const [isAddingTag, setIsAddingTag] = useState(false);
+  const [openBarMenu, setOpenBarMenu] = useState(null); // 'service' | 'status' | 'tag' | null
+  const smartBarRef = useRef(null);
+
+  React.useEffect(() => {
+    if (!openBarMenu) return;
+    const handleClickOutside = (e) => {
+      if (smartBarRef.current && !smartBarRef.current.contains(e.target)) {
+        setOpenBarMenu(null);
+      }
+    };
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') setOpenBarMenu(null);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, [openBarMenu]);
 
   const saveRemindersToStorage = (updated) => {
     setLeadReminders(updated);
@@ -1589,111 +1609,190 @@ export default function LiveChatView({
         <>
           {/* 2. Middle Column: Active Chat Conversation */}
           <div className="flex-1 flex flex-col bg-[#F4F5F8] border-r border-[#EEF2F6] min-w-0">
-        {/* ⚡ Single-Line Clean Dropdown Bar: Service, Status & Tags (Zero Wrapping / Alignment Proof) */}
-        <div className="bg-white border-b border-slate-200 px-3 py-2 flex items-center gap-2 flex-wrap shrink-0 shadow-2xs">
+        {/* ⚡ Single-Line Clean Dropdown Bar: Service, Status & Tags (Custom Popovers — Never Blank on Windows/Chrome) */}
+        <div ref={smartBarRef} className="bg-white border-b border-slate-200 px-3 py-2 flex items-center gap-2 flex-wrap shrink-0 shadow-2xs relative z-30">
           {/* 1. Service Dropdown */}
-          <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/80 shrink-0">
-            <span className="text-[10px] font-black uppercase text-slate-600 flex items-center gap-1 shrink-0">
-              <span>💼</span>
-              <span>Service:</span>
-            </span>
-            <select
-              value={activeLead.serviceInterest || ''}
-              onChange={(e) => {
-                const sVal = e.target.value;
-                onUpdateLead(activeLead.id, { serviceInterest: sVal });
-                if (sVal) {
-                  setSmartBarToast(`💼 Service "${sVal}" save ho gayi! Dashboard update ✓`);
-                  setTimeout(() => setSmartBarToast(null), 3000);
-                }
-              }}
-              className="text-[11px] font-bold bg-transparent text-slate-800 focus:outline-none cursor-pointer max-w-[145px]"
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setOpenBarMenu(prev => prev === 'service' ? null : 'service')}
+              className="flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/80 text-[11px] font-bold text-slate-800 cursor-pointer transition-colors"
               title="Customer kis AmazFast service mein interested hai"
             >
-              <option value="">-- Service Select --</option>
-              {AMAZFAST_SERVICES.map((s) => (
-                <option key={s.id} value={s.shortLabel}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
+              <span className="text-[10px] font-black uppercase text-slate-600 flex items-center gap-1 shrink-0">
+                <span>💼</span>
+                <span>Service:</span>
+              </span>
+              <span className="max-w-[135px] truncate">{activeLead.serviceInterest || '-- Service Select --'}</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform ${openBarMenu === 'service' ? 'rotate-180' : ''}`} />
+            </button>
+            {openBarMenu === 'service' && (
+              <div className="absolute left-0 top-full mt-1.5 z-50 min-w-[230px] max-h-72 overflow-y-auto bg-white rounded-xl border border-slate-200 shadow-xl py-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onUpdateLead(activeLead.id, { serviceInterest: '' });
+                    setOpenBarMenu(null);
+                  }}
+                  className={`w-full text-left px-3 py-1.5 text-[11px] font-bold flex items-center justify-between hover:bg-slate-50 ${
+                    !activeLead.serviceInterest ? 'text-orange-600 bg-orange-50/60' : 'text-slate-600'
+                  }`}
+                >
+                  <span>-- Service Select --</span>
+                  {!activeLead.serviceInterest && <Check className="w-3.5 h-3.5 text-orange-600" />}
+                </button>
+                {AMAZFAST_SERVICES.map((s) => {
+                  const isSelected = activeLead.serviceInterest === s.shortLabel;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => {
+                        onUpdateLead(activeLead.id, { serviceInterest: s.shortLabel });
+                        setSmartBarToast(`💼 Service "${s.shortLabel}" save ho gayi! Dashboard update ✓`);
+                        setTimeout(() => setSmartBarToast(null), 3000);
+                        setOpenBarMenu(null);
+                      }}
+                      className={`w-full text-left px-3 py-1.5 text-[11px] font-bold flex items-center justify-between gap-2 hover:bg-orange-50 hover:text-orange-700 ${
+                        isSelected ? 'bg-orange-50 text-orange-700' : 'text-slate-800'
+                      }`}
+                    >
+                      <span className="truncate">{s.label}</span>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-orange-600 shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          {/* 2. Status Dropdown (Qualified, Unqualified, Deal Won) */}
-          <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/80 shrink-0">
-            <span className="text-[10px] font-black uppercase text-slate-600 flex items-center gap-1 shrink-0">
-              <span>🎯</span>
-              <span>Status:</span>
-            </span>
-            <select
-              value={
+          {/* 2. Status Dropdown (Qualified, Unqualified, Deal Won, Proposal Sent) */}
+          <div className="relative shrink-0">
+            {(() => {
+              const currentStatusVal =
                 activeLead.stage === 'Qualified' || activeLead.stage === 'Lost' || activeLead.stage === 'Deal Won' || activeLead.stage === 'Proposal Sent'
                   ? activeLead.stage
-                  : ''
-              }
-              onChange={(e) => {
-                const val = e.target.value;
-                const nextStage = val || 'New Lead';
-                onUpdateLead(activeLead.id, { stage: nextStage, tags: activeLead.tags || [] });
-                const label = val === 'Lost' ? 'Unqualified' : (val || 'Cleared');
-                setSmartBarToast(`🎯 Lead Status "${label}" update ho gaya!`);
-                setTimeout(() => setSmartBarToast(null), 3000);
-              }}
-              className="text-[11px] font-bold bg-transparent text-slate-800 focus:outline-none cursor-pointer"
-              title="Customer ka status select karein (Qualified, Unqualified, Deal Won)"
-            >
-              <option value="">-- Status Select --</option>
-              <option value="Qualified">🟣 Qualified</option>
-              <option value="Lost">🔴 Unqualified</option>
-              <option value="Deal Won">🟢 Deal Won</option>
-              <option value="Proposal Sent">🟠 Proposal Sent</option>
-            </select>
+                  : '';
+              const statusOptions = [
+                { value: '', label: '-- Status Select --' },
+                { value: 'Qualified', label: '🟣 Qualified' },
+                { value: 'Lost', label: '🔴 Unqualified' },
+                { value: 'Deal Won', label: '🟢 Deal Won' },
+                { value: 'Proposal Sent', label: '🟠 Proposal Sent' },
+              ];
+              const currentStatusLabel = statusOptions.find(o => o.value === currentStatusVal)?.label || '-- Status Select --';
+              return (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setOpenBarMenu(prev => prev === 'status' ? null : 'status')}
+                    className="flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/80 text-[11px] font-bold text-slate-800 cursor-pointer transition-colors"
+                    title="Customer ka status select karein (Qualified, Unqualified, Deal Won)"
+                  >
+                    <span className="text-[10px] font-black uppercase text-slate-600 flex items-center gap-1 shrink-0">
+                      <span>🎯</span>
+                      <span>Status:</span>
+                    </span>
+                    <span>{currentStatusLabel}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform ${openBarMenu === 'status' ? 'rotate-180' : ''}`} />
+                  </button>
+                  {openBarMenu === 'status' && (
+                    <div className="absolute left-0 top-full mt-1.5 z-50 min-w-[195px] bg-white rounded-xl border border-slate-200 shadow-xl py-1">
+                      {statusOptions.map((opt) => {
+                        const isSelected = currentStatusVal === opt.value;
+                        return (
+                          <button
+                            key={opt.value || 'clear'}
+                            type="button"
+                            onClick={() => {
+                              const nextStage = opt.value || 'New Lead';
+                              onUpdateLead(activeLead.id, { stage: nextStage, tags: activeLead.tags || [] });
+                              const label = opt.value === 'Lost' ? 'Unqualified' : (opt.value || 'Cleared');
+                              setSmartBarToast(`🎯 Lead Status "${label}" update ho gaya!`);
+                              setTimeout(() => setSmartBarToast(null), 3000);
+                              setOpenBarMenu(null);
+                            }}
+                            className={`w-full text-left px-3 py-1.5 text-[11px] font-bold flex items-center justify-between gap-2 hover:bg-orange-50 hover:text-orange-700 ${
+                              isSelected ? 'bg-orange-50 text-orange-700' : 'text-slate-800'
+                            }`}
+                          >
+                            <span>{opt.label}</span>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-orange-600 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
 
           {/* 3. Tag Dropdown (Follow-up, Meeting, No Response, + Custom Tag) */}
-          <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/80 shrink-0">
-            <span className="text-[10px] font-black uppercase text-slate-600 flex items-center gap-1 shrink-0">
-              <span>🏷️</span>
-              <span>Tag:</span>
-            </span>
-            <select
-              value=""
-              onChange={(e) => {
-                const val = e.target.value;
-                if (!val) return;
-                if (val === '__custom__') {
-                  setIsAddingTag(true);
-                  return;
-                }
-                if (val === '__schedule__') {
-                  setShowAddReminderForm(true);
-                  return;
-                }
-                const currentTags = (activeLead.tags || []).filter(t => t !== 'WhatsApp Inbound');
-                const alreadyHas = currentTags.some(t => t.toLowerCase() === val.toLowerCase());
-                let nextTags;
-                if (alreadyHas) {
-                  nextTags = currentTags.filter(t => t.toLowerCase() !== val.toLowerCase());
-                  setSmartBarToast(`🏷️ Tag "${val}" hata diya gaya`);
-                } else {
-                  nextTags = [...currentTags, val];
-                  setSmartBarToast(`🏷️ Tag "${val}" lag gaya! Dashboard update ✓`);
-                }
-                onUpdateLead(activeLead.id, { tags: nextTags, stage: activeLead.stage || 'New Lead' });
-                setTimeout(() => setSmartBarToast(null), 3000);
-              }}
-              className="text-[11px] font-bold bg-transparent text-slate-800 focus:outline-none cursor-pointer"
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setOpenBarMenu(prev => prev === 'tag' ? null : 'tag')}
+              className="flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/80 text-[11px] font-bold text-slate-800 cursor-pointer transition-colors"
               title="Follow-up, Meeting, No Response ya Custom Tag lagayein"
             >
-              <option value="">-- Tag Select Karein --</option>
-              <option value="Follow-up">⏰ Follow-up</option>
-              <option value="Meeting">🤝 Meeting</option>
-              <option value="Showed Up">✅ Show Up</option>
-              <option value="No Show">❌ No Show</option>
-              <option value="No Response">📵 No Response</option>
-              <option value="__schedule__">📅 Reminder Schedule Karein</option>
-              <option value="__custom__">➕ Naya Custom Tag...</option>
-            </select>
+              <span className="text-[10px] font-black uppercase text-slate-600 flex items-center gap-1 shrink-0">
+                <span>🏷️</span>
+                <span>Tag:</span>
+              </span>
+              <span>-- Tag Select Karein --</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform ${openBarMenu === 'tag' ? 'rotate-180' : ''}`} />
+            </button>
+            {openBarMenu === 'tag' && (
+              <div className="absolute left-0 top-full mt-1.5 z-50 min-w-[215px] bg-white rounded-xl border border-slate-200 shadow-xl py-1">
+                {[
+                  { value: 'Follow-up', label: '⏰ Follow-up' },
+                  { value: 'Meeting', label: '🤝 Meeting' },
+                  { value: 'Showed Up', label: '✅ Show Up' },
+                  { value: 'No Show', label: '❌ No Show' },
+                  { value: 'No Response', label: '📵 No Response' },
+                  { value: '__schedule__', label: '📅 Reminder Schedule Karein' },
+                  { value: '__custom__', label: '➕ Naya Custom Tag...' },
+                ].map((opt) => {
+                  const hasTag = !opt.value.startsWith('__') && (activeLead.tags || []).some(t => t.toLowerCase() === opt.value.toLowerCase());
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        setOpenBarMenu(null);
+                        if (opt.value === '__custom__') {
+                          setIsAddingTag(true);
+                          return;
+                        }
+                        if (opt.value === '__schedule__') {
+                          setShowAddReminderForm(true);
+                          return;
+                        }
+                        const currentTags = (activeLead.tags || []).filter(t => t !== 'WhatsApp Inbound');
+                        const alreadyHas = currentTags.some(t => t.toLowerCase() === opt.value.toLowerCase());
+                        let nextTags;
+                        if (alreadyHas) {
+                          nextTags = currentTags.filter(t => t.toLowerCase() !== opt.value.toLowerCase());
+                          setSmartBarToast(`🏷️ Tag "${opt.value}" hata diya gaya`);
+                        } else {
+                          nextTags = [...currentTags, opt.value];
+                          setSmartBarToast(`🏷️ Tag "${opt.value}" lag gaya! Dashboard update ✓`);
+                        }
+                        onUpdateLead(activeLead.id, { tags: nextTags, stage: activeLead.stage || 'New Lead' });
+                        setTimeout(() => setSmartBarToast(null), 3000);
+                      }}
+                      className={`w-full text-left px-3 py-1.5 text-[11px] font-bold flex items-center justify-between gap-2 hover:bg-orange-50 hover:text-orange-700 ${
+                        hasTag ? 'bg-amber-50/70 text-amber-900' : 'text-slate-800'
+                      }`}
+                    >
+                      <span>{opt.label}</span>
+                      {hasTag && <Check className="w-3.5 h-3.5 text-amber-600 shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Active Selected Status & Tag Pills (Compact 1-Click Remove) */}

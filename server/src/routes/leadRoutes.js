@@ -7,12 +7,132 @@ const router = express.Router();
 // Memory cache for immutable first customer message timestamp per lead (0ms instant lookup)
 const firstCustomerMsgCache = new Map();
 
-// Fast response cache for GET /api/leads to prevent database overload during high WhatsApp traffic
+// Fast Stale-While-Revalidate cache + in-flight deduplication for GET /api/leads
+// Guarantees 0-1ms instant response on CRM reload and prevents concurrent DB overload
 const leadsResponseCache = new Map();
-const CACHE_TTL_MS = 2500; // 2.5 seconds cache window
+const inflightLeadsQueries = new Map();
+const FRESH_TTL_MS = 10000; // 10s fresh window
+const STALE_TTL_MS = 120000; // 120s stale-while-revalidate window (serves instantly while refreshing in background)
 
-export function invalidateLeadsCache() {
-  leadsResponseCache.clear();
+export function invalidateLeadsCache(updatedLead = null) {
+  if (updatedLead && updatedLead.id) {
+    // Surgically patch cached lead in 0ms instead of wiping cache and causing a 10s cold DB query!
+    for (const [key, entry] of leadsResponseCache.entries()) {
+      if (entry?.data?.leads) {
+        entry.data.leads = entry.data.leads.map((l) =>
+          l.id === updatedLead.id
+            ? {
+                ...l,
+                ...updatedLead,
+                channel: updatedLead.channel || l.channel,
+                assignedTo: updatedLead.assignedTo !== undefined ? updatedLead.assignedTo : l.assignedTo,
+                tags: updatedLead.tags !== undefined ? updatedLead.tags : l.tags,
+                messages: l.messages,
+              }
+            : l
+        );
+      }
+    }
+    return;
+  }
+  // Even on generic invalidation, mark entries slightly older so next request serves stale in 0ms & refreshes in background
+  for (const [, entry] of leadsResponseCache.entries()) {
+    if (entry) entry.timestamp = Date.now() - FRESH_TTL_MS - 100;
+  }
+}
+
+async function fetchEnrichedLeadsFromDb(where) {
+  // Run lead fetch (without slow per-row lateral message subquery) + DISTINCT ON latest message in parallel
+  const [leads, latestMsgs] = await Promise.all([
+    prisma.lead.findMany({
+      where,
+      include: {
+        channel: {
+          select: { id: true, name: true, countryCode: true, currency: true },
+        },
+        assignedTo: {
+          select: { id: true, name: true, email: true },
+        },
+        tags: {
+          include: { tag: true },
+        },
+      },
+      orderBy: { lastMessageAt: 'desc' },
+    }),
+    prisma.$queryRaw`
+      SELECT DISTINCT ON ("leadId") "leadId", "content", "createdAt", "senderType", "status"
+      FROM "Message"
+      ORDER BY "leadId", "createdAt" DESC
+    `.catch(() => []),
+  ]);
+
+  const latestMsgMap = new Map();
+  if (Array.isArray(latestMsgs)) {
+    latestMsgs.forEach((m) => {
+      if (m && m.leadId) latestMsgMap.set(m.leadId, m);
+    });
+  }
+
+  // Strict First Customer Message Resolution (runs once per lead ID across server lifetime)
+  const missingLeadIds = leads.map((l) => l.id).filter((id) => !firstCustomerMsgCache.has(id));
+  if (missingLeadIds.length > 0) {
+    try {
+      const newMins = await prisma.message.groupBy({
+        by: ['leadId'],
+        where: {
+          leadId: { in: missingLeadIds },
+          senderType: 'CUSTOMER',
+        },
+        _min: { createdAt: true },
+      });
+      newMins.forEach((item) => {
+        if (item.leadId && item._min.createdAt) {
+          firstCustomerMsgCache.set(item.leadId, item._min.createdAt);
+        }
+      });
+    } catch (grpErr) {
+      console.warn('Group by query notice:', grpErr.message);
+    }
+
+    missingLeadIds.forEach((id) => {
+      if (!firstCustomerMsgCache.has(id)) {
+        const l = leads.find((item) => item.id === id);
+        firstCustomerMsgCache.set(id, l?.createdAt || new Date());
+      }
+    });
+  }
+
+  const enrichedLeads = leads
+    .map((l) => {
+      const latestMsg = latestMsgMap.get(l.id);
+      const messagesArr = latestMsg
+        ? [
+            {
+              content: latestMsg.content,
+              createdAt: latestMsg.createdAt,
+              senderType: latestMsg.senderType,
+              status: latestMsg.status,
+            },
+          ]
+        : [];
+      const msgTime = latestMsg?.createdAt ? new Date(latestMsg.createdAt).getTime() : 0;
+      const lTime = l.lastMessageAt ? new Date(l.lastMessageAt).getTime() : 0;
+      const trueLastMessageAt = msgTime > lTime ? latestMsg.createdAt : l.lastMessageAt;
+
+      return {
+        ...l,
+        messages: messagesArr,
+        lastMessageAt: trueLastMessageAt,
+        firstMessageAt: firstCustomerMsgCache.get(l.id) || l.createdAt,
+      };
+    })
+    .sort((a, b) => {
+      const timeA = new Date(a.lastMessageAt || a.createdAt || 0).getTime() || 0;
+      const timeB = new Date(b.lastMessageAt || b.createdAt || 0).getTime() || 0;
+      return timeB - timeA;
+    });
+
+  return { leads: enrichedLeads };
 }
 
 /**
@@ -68,85 +188,62 @@ router.get('/', authenticateToken, async (req, res) => {
       ];
     }
 
-    const leads = await prisma.lead.findMany({
-      where,
-      include: {
-        channel: {
-          select: { id: true, name: true, countryCode: true, currency: true },
-        },
-        assignedTo: {
-          select: { id: true, name: true, email: true },
-        },
-        tags: {
-          include: { tag: true },
-        },
-        messages: {
-          take: 1,
-          orderBy: { createdAt: 'desc' },
-          select: { content: true, createdAt: true, senderType: true, status: true },
-        },
-      },
-      orderBy: { lastMessageAt: 'desc' },
-    });
+    const cacheKey = `${user.role === 'ADMIN' ? 'ADMIN' : user.id}_${channelId || 'all'}_${stage || 'all'}_${search || ''}`;
+    const cachedEntry = leadsResponseCache.get(cacheKey);
+    const now = Date.now();
 
-    // Strict First Customer Message Resolution:
-    // Only leads whose FIRST EVER message arrived after 12:00 AM count as today's new lead!
-    const missingLeadIds = leads.map(l => l.id).filter(id => !firstCustomerMsgCache.has(id));
-    if (missingLeadIds.length > 0) {
-      try {
-        const newMins = await prisma.message.groupBy({
-          by: ['leadId'],
-          where: {
-            leadId: { in: missingLeadIds },
-            senderType: 'CUSTOMER'
-          },
-          _min: { createdAt: true }
-        });
-        newMins.forEach(item => {
-          if (item.leadId && item._min.createdAt) {
-            firstCustomerMsgCache.set(item.leadId, item._min.createdAt);
-          }
-        });
-      } catch (grpErr) {
-        console.warn('Group by query notice:', grpErr.message);
-      }
-
-      // Populate any remaining leads so we NEVER re-run groupBy on them again!
-      missingLeadIds.forEach(id => {
-        if (!firstCustomerMsgCache.has(id)) {
-          const l = leads.find(item => item.id === id);
-          firstCustomerMsgCache.set(id, l?.createdAt || new Date());
-        }
-      });
+    // 1. Fresh cache hit -> return immediately in 0ms
+    if (cachedEntry && now - cachedEntry.timestamp < FRESH_TTL_MS) {
+      return res.json(cachedEntry.data);
     }
 
-    const enrichedLeads = leads
-      .map(l => {
-        const msgTime = l.messages?.[0]?.createdAt ? new Date(l.messages[0].createdAt).getTime() : 0;
-        const lTime = l.lastMessageAt ? new Date(l.lastMessageAt).getTime() : 0;
-        const trueLastMessageAt = msgTime > lTime ? l.messages[0].createdAt : l.lastMessageAt;
+    // 2. Stale-While-Revalidate hit -> return cached data immediately in 0ms and refresh in background!
+    if (cachedEntry && now - cachedEntry.timestamp < STALE_TTL_MS) {
+      if (!inflightLeadsQueries.has(cacheKey)) {
+        const bgPromise = fetchEnrichedLeadsFromDb(where)
+          .then((payload) => {
+            leadsResponseCache.set(cacheKey, { data: payload, timestamp: Date.now() });
+          })
+          .catch((e) => console.warn('Background leads refresh error:', e.message))
+          .finally(() => inflightLeadsQueries.delete(cacheKey));
+        inflightLeadsQueries.set(cacheKey, bgPromise);
+      }
+      return res.json(cachedEntry.data);
+    }
 
-        return {
-          ...l,
-          lastMessageAt: trueLastMessageAt,
-          firstMessageAt: firstCustomerMsgCache.get(l.id) || l.createdAt,
-        };
-      })
-      .sort((a, b) => {
-        const timeA = new Date(a.lastMessageAt || a.createdAt || 0).getTime() || 0;
-        const timeB = new Date(b.lastMessageAt || b.createdAt || 0).getTime() || 0;
-        return timeB - timeA;
-      });
+    // 3. Cold cache -> deduplicate concurrent in-flight requests so DB only runs ONE query
+    let queryPromise = inflightLeadsQueries.get(cacheKey);
+    if (!queryPromise) {
+      queryPromise = fetchEnrichedLeadsFromDb(where)
+        .then((payload) => {
+          leadsResponseCache.set(cacheKey, { data: payload, timestamp: Date.now() });
+          return payload;
+        })
+        .finally(() => inflightLeadsQueries.delete(cacheKey));
+      inflightLeadsQueries.set(cacheKey, queryPromise);
+    }
 
-    const responsePayload = { leads: enrichedLeads };
-    leadsResponseCache.set(cacheKey, { data: responsePayload, timestamp: Date.now() });
-
+    const responsePayload = await queryPromise;
     res.json(responsePayload);
   } catch (error) {
     console.error('Error fetching leads:', error);
     res.status(500).json({ error: 'Failed to retrieve leads.' });
   }
 });
+
+// Pre-warm ADMIN all-channels cache on server startup so first CRM load is 0ms instant!
+setTimeout(() => {
+  const adminKey = 'ADMIN_all_all_';
+  if (!leadsResponseCache.has(adminKey) && !inflightLeadsQueries.has(adminKey)) {
+    const p = fetchEnrichedLeadsFromDb({ channel: { isActive: true } })
+      .then((payload) => {
+        leadsResponseCache.set(adminKey, { data: payload, timestamp: Date.now() });
+      })
+      .catch(() => {})
+      .finally(() => inflightLeadsQueries.delete(adminKey));
+    inflightLeadsQueries.set(adminKey, p);
+  }
+}, 200);
 
 /**
  * GET /api/leads/:id

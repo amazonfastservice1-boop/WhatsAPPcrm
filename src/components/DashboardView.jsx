@@ -111,7 +111,12 @@ export default function DashboardView({
   const [hoveredStageKey, setHoveredStageKey] = useState(null);
   const [drilldownCategory, setDrilldownCategory] = useState(null); // 'main_leads', 'all_leads', 'today', 'replied', 'pending', 'top', 'won'
   const [drilldownSearch, setDrilldownSearch] = useState('');
-  const [openModalDropdown, setOpenModalDropdown] = useState(null); // { leadId, type: 'status' | 'tag' } | null
+  const [openModalDropdown, setOpenModalDropdown] = useState(null); // { leadId, type: 'status' | 'tag' | 'service' } | null
+  const [modalCustomTagLeadId, setModalCustomTagLeadId] = useState(null);
+  const [modalCustomTagText, setModalCustomTagText] = useState('');
+  const [modalReminderLeadId, setModalReminderLeadId] = useState(null);
+  const [modalReminderTitle, setModalReminderTitle] = useState('');
+  const [modalReminderTime, setModalReminderTime] = useState('05:00 PM');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshToast, setRefreshToast] = useState(null);
   const [currentTime, setCurrentTime] = useState(() => new Date());
@@ -2530,22 +2535,26 @@ export default function DashboardView({
                           );
                         })()}
 
-                        {/* 3. Follow-up & Tag Custom Popover Dropdown (Available on ALL drilldown lists!) */}
+                        {/* 3. Full Tag & Follow-up Custom Popover Dropdown (Matches Chat Tag Menu + Follow-up 1/2/3!) */}
                         {(() => {
                           const isTagOpen = openModalDropdown?.leadId === lead.id && openModalDropdown?.type === 'tag';
                           const tagStrings = (lead.tags || []).map((t) => (typeof t === 'string' ? t.trim() : (t?.tag?.name || t?.name || '').trim())).filter(Boolean);
                           const followUpTags = tagStrings.filter((t) => /^follow-?up/i.test(t));
                           const activeFollowup = followUpTags.length > 0 ? followUpTags[followUpTags.length - 1] : '';
                           const tagOpts = [
-                            { value: '', label: '🧹 Follow-up Hatayein', type: 'followup' },
-                            { value: 'Follow-up', label: '⏰ Follow-up Required', type: 'followup' },
+                            { value: 'Follow-up', label: '⏰ Follow-up', type: 'followup' },
+                            { value: 'Meeting', label: '🤝 Meeting', type: 'toggle' },
+                            { value: 'Showed Up', label: '✅ Show Up', type: 'meeting_status' },
+                            { value: 'No Show', label: '❌ No Show', type: 'meeting_status' },
+                            { value: 'No Response', label: '📵 No Response', type: 'toggle' },
                             { value: 'Follow-up 1', label: '⏰ Follow-up 1', type: 'followup' },
                             { value: 'Follow-up 2', label: '⏰ Follow-up 2', type: 'followup' },
                             { value: 'Follow-up 3', label: '⏰ Follow-up 3', type: 'followup' },
                             { value: 'Follow-up Done (No Response)', label: '📵 Follow-up Done (No Response)', type: 'followup' },
                             { value: 'Follow-up Done (Response Aaya)', label: '💬 Follow-up Done (Response Aaya)', type: 'followup' },
-                            { value: 'Meeting', label: '🤝 Meeting Tag', type: 'toggle' },
-                            { value: 'No Response', label: '📵 No Response Tag', type: 'toggle' },
+                            { value: '', label: '🧹 Follow-up Hatayein', type: 'followup' },
+                            { value: '__schedule__', label: '📅 Reminder Schedule Karein', type: 'action' },
+                            { value: '__custom__', label: '➕ Naya Custom Tag...', type: 'action' },
                           ];
                           return (
                             <div data-modal-dropdown className="relative">
@@ -2556,25 +2565,41 @@ export default function DashboardView({
                                   setOpenModalDropdown(isTagOpen ? null : { leadId: lead.id, type: 'tag' });
                                 }}
                                 className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100/80 border border-amber-300 rounded-xl text-xs font-extrabold text-amber-900 flex items-center gap-1 cursor-pointer shadow-2xs transition-colors"
-                                title="Follow-up ya Tag mark karein"
+                                title="Follow-up, Meeting, Show Up, No Response ya Custom Tag lagayein"
                               >
-                                <span className="max-w-[140px] truncate">{activeFollowup ? `⏰ ${activeFollowup}` : '⏰ Follow-up / Tag'}</span>
+                                <span className="max-w-[140px] truncate">{activeFollowup ? `⏰ ${activeFollowup}` : '🏷️ Tag Select Karein'}</span>
                                 <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isTagOpen ? 'rotate-180' : ''}`} />
                               </button>
                               {isTagOpen && (
-                                <div className="absolute right-0 top-full mt-1 z-50 min-w-[235px] bg-white rounded-xl border border-slate-200 shadow-2xl py-1">
+                                <div className="absolute right-0 top-full mt-1 z-50 min-w-[235px] max-h-72 overflow-y-auto bg-white rounded-xl border border-slate-200 shadow-2xl py-1">
                                   {tagOpts.map((opt) => {
-                                    const isSelected = opt.type === 'followup'
-                                      ? activeFollowup === opt.value
-                                      : tagStrings.some((t) => t.toLowerCase() === opt.value.toLowerCase());
+                                    const isSelected =
+                                      opt.type === 'followup'
+                                        ? activeFollowup === opt.value
+                                        : opt.type === 'meeting_status' || opt.type === 'toggle'
+                                        ? tagStrings.some((t) => t.toLowerCase() === opt.value.toLowerCase())
+                                        : false;
                                     return (
                                       <button
                                         key={opt.value || 'clear_fu'}
                                         type="button"
                                         onClick={(e) => {
                                           e.stopPropagation();
+                                          setOpenModalDropdown(null);
+                                          if (opt.value === '__custom__') {
+                                            setModalCustomTagLeadId(lead.id);
+                                            setModalCustomTagText('');
+                                            return;
+                                          }
+                                          if (opt.value === '__schedule__') {
+                                            setModalReminderLeadId(lead.id);
+                                            setModalReminderTitle(`Follow-up: ${lead.name}`);
+                                            return;
+                                          }
                                           if (opt.type === 'followup') {
                                             handleSetFollowupTag(lead, opt.value);
+                                          } else if (opt.type === 'meeting_status') {
+                                            handleToggleMeetingStatus(lead, opt.value);
                                           } else if (onUpdateLead) {
                                             const currentClean = tagStrings.filter((t) => t !== 'WhatsApp Inbound');
                                             const hasIt = currentClean.some((t) => t.toLowerCase() === opt.value.toLowerCase());
@@ -2583,7 +2608,6 @@ export default function DashboardView({
                                               : [...currentClean, opt.value];
                                             onUpdateLead(lead.id, { tags: nextTags });
                                           }
-                                          setOpenModalDropdown(null);
                                         }}
                                         className={`w-full text-left px-3 py-1.5 text-xs font-bold flex items-center justify-between gap-2 hover:bg-amber-50 hover:text-amber-900 ${
                                           isSelected && opt.value ? 'bg-amber-50 text-amber-900' : 'text-slate-800'
@@ -2599,6 +2623,92 @@ export default function DashboardView({
                             </div>
                           );
                         })()}
+
+                        {/* Inline Custom Tag Input in Modal */}
+                        {modalCustomTagLeadId === lead.id && (
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const clean = modalCustomTagText.trim();
+                              if (clean && onUpdateLead) {
+                                const currentClean = (lead.tags || [])
+                                  .map((t) => (typeof t === 'string' ? t.trim() : (t?.tag?.name || t?.name || '').trim()))
+                                  .filter((t) => t && t !== 'WhatsApp Inbound');
+                                if (!currentClean.some((t) => t.toLowerCase() === clean.toLowerCase())) {
+                                  onUpdateLead(lead.id, { tags: [...currentClean, clean] });
+                                }
+                              }
+                              setModalCustomTagLeadId(null);
+                              setModalCustomTagText('');
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-1 bg-white border border-orange-300 rounded-xl px-2 py-1 shadow-xs"
+                          >
+                            <input
+                              type="text"
+                              autoFocus
+                              value={modalCustomTagText}
+                              onChange={(e) => setModalCustomTagText(e.target.value)}
+                              placeholder="Naya tag likhein..."
+                              className="text-xs font-bold text-slate-800 focus:outline-none w-28"
+                            />
+                            <button type="submit" className="text-xs font-black text-emerald-600 hover:text-emerald-700 px-1">✓</button>
+                            <button type="button" onClick={() => setModalCustomTagLeadId(null)} className="text-xs font-black text-slate-400 hover:text-rose-600 px-0.5">✕</button>
+                          </form>
+                        )}
+
+                        {/* Inline Quick Reminder Scheduler in Modal */}
+                        {modalReminderLeadId === lead.id && (
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const newRem = {
+                                id: `rem-${Date.now()}`,
+                                leadId: lead.id,
+                                leadName: lead.name,
+                                leadPhone: lead.phone,
+                                channelId: lead.channel,
+                                title: modalReminderTitle.trim() || `Follow-up with ${lead.name}`,
+                                date: new Date().toISOString().slice(0, 10),
+                                time: modalReminderTime || '05:00 PM',
+                                priority: 'HIGH',
+                                completed: false,
+                                autoSend: false,
+                              };
+                              const nextRems = [newRem, ...reminders];
+                              setReminders(nextRems);
+                              try {
+                                localStorage.setItem('crm_schedule_reminders', JSON.stringify(nextRems));
+                                window.dispatchEvent(new Event('crm_reminders_updated'));
+                              } catch (err) {}
+                              setModalReminderLeadId(null);
+                              setRefreshToast(`📅 Reminder "${newRem.title}" (${newRem.time}) schedule ho gaya!`);
+                              setTimeout(() => setRefreshToast(null), 3000);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-1 bg-white border border-indigo-300 rounded-xl px-2 py-1 shadow-xs"
+                          >
+                            <input
+                              type="text"
+                              autoFocus
+                              value={modalReminderTitle}
+                              onChange={(e) => setModalReminderTitle(e.target.value)}
+                              placeholder="Reminder note..."
+                              className="text-xs font-bold text-slate-800 focus:outline-none w-28"
+                            />
+                            <input
+                              type="text"
+                              value={modalReminderTime}
+                              onChange={(e) => setModalReminderTime(e.target.value)}
+                              placeholder="05:00 PM"
+                              className="text-xs font-bold text-indigo-700 bg-indigo-50 rounded px-1.5 py-0.5 focus:outline-none w-20"
+                            />
+                            <button type="submit" className="text-xs font-black text-emerald-600 hover:text-emerald-700 px-1">✓</button>
+                            <button type="button" onClick={() => setModalReminderLeadId(null)} className="text-xs font-black text-slate-400 hover:text-rose-600 px-0.5">✕</button>
+                          </form>
+                        )}
 
                         <button
                           type="button"

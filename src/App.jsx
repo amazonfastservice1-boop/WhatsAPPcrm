@@ -148,11 +148,11 @@ export default function App() {
     }
 
     const avatarBgColors = ['128C7E', '075E54', '25D366', '34B7F1', 'E542A3', '7C4DFF', 'FF5722', '00897B'];
-    const charCode = (displayName || 'U').charCodeAt(0);
+    const safeAlphaMatch = String(displayName || 'U').match(/[A-Za-z0-9]/);
+    const initialChar = safeAlphaMatch ? safeAlphaMatch[0].toUpperCase() : 'U';
+    const charCode = initialChar.charCodeAt(0) || 85;
     const bg = avatarBgColors[charCode % avatarBgColors.length];
-    const initialChar = String(displayName || 'U').trim().charAt(0).toUpperCase().replace(/[<>&"']/g, '') || 'U';
-    // Instant 0ms inline SVG avatar — eliminates 670+ external HTTP requests to ui-avatars.com!
-    const generatedAvatar = `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="48" fill="#${bg}"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="40" font-weight="bold">${initialChar}</text></svg>`)}`;
+    const generatedAvatar = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="48" fill="%23${bg}"/><text x="50%25" y="54%25" dominant-baseline="middle" text-anchor="middle" fill="%23ffffff" font-family="Arial,sans-serif" font-size="40" font-weight="bold">${initialChar}</text></svg>`;
 
     const recentLocal = recentLocalUpdatesRef.current.get(l.id);
     const isRecentlyClickedHere = recentLocal && (Date.now() - recentLocal.timestamp < 20000);

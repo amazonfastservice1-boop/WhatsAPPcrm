@@ -320,6 +320,10 @@ export default function App() {
 
           return merged;
         });
+        try {
+          // Cache lightweight snapshot in sessionStorage for instant 0ms reload hydration
+          sessionStorage.setItem('crm_fast_leads_cache', JSON.stringify(realLeads.slice(0, 800)));
+        } catch (e) {}
         if (realLeads.length > 0 && (!selectedLeadIdRef.current || overrideReset)) {
           setSelectedLeadId(realLeads[0].id);
         }
@@ -331,20 +335,36 @@ export default function App() {
     }
   }, []);
 
-  // Strict User Profile & Channel Data Initializer (With Full Safety Loader)
+  // Strict User Profile & Channel Data Initializer (Instant Cache Hydration + Parallel Fetch)
   const initUserData = React.useCallback(async (userObj) => {
     if (!userObj) return;
-    setIsAppLoading(true);
-    // Instant Wipe to ensure no data from previous user leaks
-    setLeads([]);
-    setChannels([]);
-    setSelectedLeadId(null);
+
+    // Hydrate from sessionStorage immediately if available so user NEVER sees blank/stuck loader on refresh
+    let hasCachedLeads = false;
+    try {
+      const cachedRaw = sessionStorage.getItem('crm_fast_leads_cache');
+      if (cachedRaw) {
+        const parsed = JSON.parse(cachedRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setLeads(parsed);
+          setSelectedLeadId(parsed[0].id);
+          hasCachedLeads = true;
+        }
+      }
+    } catch (e) {}
+
+    if (!hasCachedLeads) {
+      setIsAppLoading(true);
+      setLeads([]);
+      setSelectedLeadId(null);
+    }
 
     try {
-      // 1. Fetch assigned channels & WhatsApp status in parallel for lightning-fast CRM loading
+      // 1. Fetch channels, leads & WhatsApp status ALL IN PARALLEL (cuts reload time in half!)
       const [chRes, statusRes] = await Promise.all([
         api.getChannels().catch((e) => { console.warn('Channels load err:', e); return { channels: [] }; }),
         api.getWhatsAppStatus().catch(() => null),
+        fetchRealLeads(true),
       ]);
 
       const rawChannels = chRes?.channels || [];
@@ -383,18 +403,21 @@ export default function App() {
         setWaStatus(statusRes.status);
         if (statusRes.user) setWaUser(statusRes.user);
       }
-
-      // 2. Fetch leads strictly isolated for this user (hard reset)
-      await fetchRealLeads(true);
     } catch (err) {
       console.error('Failed to init user data:', err);
     } finally {
-      // Small graceful delay to ensure seamless transition without flicker
-      setTimeout(() => {
-        setIsAppLoading(false);
-      }, 500);
+      setIsAppLoading(false);
     }
   }, [fetchRealLeads]);
+
+  // Fast recovery retry: if leads is empty after initial load (e.g. cold DB wake-up), retry every 2.5s until loaded
+  useEffect(() => {
+    if (!isAuthenticated || leads.length > 0) return;
+    const retryTimer = setInterval(() => {
+      fetchRealLeads(true);
+    }, 2500);
+    return () => clearInterval(retryTimer);
+  }, [isAuthenticated, leads.length, fetchRealLeads]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');

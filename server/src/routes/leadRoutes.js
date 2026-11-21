@@ -1,9 +1,47 @@
 import express from 'express';
 import zlib from 'zlib';
+import fs from 'fs';
+import path from 'path';
 import { prisma } from '../config/db.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
+
+const BACKUP_DIR = path.resolve(process.cwd(), 'storage/backups');
+const BACKUP_FILE = path.join(BACKUP_DIR, 'leads_backup_latest.json');
+let lastBackupSavedAt = 0;
+
+function saveLocalLeadsBackup(leadsArr) {
+  if (!Array.isArray(leadsArr) || leadsArr.length === 0) return;
+  const now = Date.now();
+  if (now - lastBackupSavedAt < 5 * 60 * 1000 && fs.existsSync(BACKUP_FILE)) return;
+  lastBackupSavedAt = now;
+  setTimeout(() => {
+    try {
+      if (!fs.existsSync(BACKUP_DIR)) {
+        fs.mkdirSync(BACKUP_DIR, { recursive: true });
+      }
+      fs.writeFileSync(
+        BACKUP_FILE,
+        JSON.stringify({ savedAt: new Date().toISOString(), count: leadsArr.length, leads: leadsArr })
+      );
+    } catch (e) {
+      console.warn('Leads backup write notice:', e.message);
+    }
+  }, 50);
+}
+
+function readLocalLeadsBackup() {
+  try {
+    if (fs.existsSync(BACKUP_FILE)) {
+      const parsed = JSON.parse(fs.readFileSync(BACKUP_FILE, 'utf8'));
+      if (Array.isArray(parsed?.leads) && parsed.leads.length > 0) {
+        return { leads: parsed.leads };
+      }
+    }
+  } catch (e) {}
+  return null;
+}
 
 // Send JSON with fast built-in GZIP compression (shrinks 2.2MB leads payload to ~140KB for 10x faster download!)
 function sendCompressedJson(req, res, payloadObj) {
@@ -148,6 +186,10 @@ async function fetchEnrichedLeadsFromDb(where) {
       return timeB - timeA;
     });
 
+  if (!where.channelId && !where.stage && !where.OR) {
+    saveLocalLeadsBackup(enrichedLeads);
+  }
+
   return { leads: enrichedLeads };
 }
 
@@ -236,6 +278,10 @@ router.get('/', authenticateToken, async (req, res) => {
     return sendCompressedJson(req, res, responsePayload);
   } catch (error) {
     console.error('Error fetching leads:', error);
+    const backupPayload = readLocalLeadsBackup();
+    if (backupPayload) {
+      return sendCompressedJson(req, res, backupPayload);
+    }
     res.status(500).json({ error: 'Failed to retrieve leads.' });
   }
 });

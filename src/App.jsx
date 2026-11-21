@@ -134,8 +134,9 @@ export default function App() {
     selectedLeadIdRef.current = selectedLeadId;
   }, [selectedLeadId]);
 
-  // Helper to format database lead into CRM UI lead
+  // Helper to format database lead into CRM UI lead (Wrapped in try/catch so a single malformed record can NEVER crash the list)
   const formatApiLead = (l) => {
+    try {
     const channelCode = l.channel?.countryCode?.toLowerCase() || 'pk';
     const { flag } = getChannelMeta(channelCode);
     // Use the real DB channel UUID as the channel key for filtering
@@ -229,6 +230,38 @@ export default function App() {
         status: (m.status || 'delivered').toLowerCase(),
       })) || [],
     };
+    } catch (fmtErr) {
+      console.warn('Safe fallback for lead format:', l?.id, fmtErr);
+      const nowIso = new Date().toISOString();
+      return {
+        id: l?.id || `fallback-${Date.now()}`,
+        name: l?.fullName || l?.phoneNumber || 'Customer',
+        phone: l?.phoneNumber || '',
+        channel: l?.channel?.id || l?.channelId || 'unknown',
+        channelId: l?.channelId || 'unknown',
+        channelName: l?.channel?.name || 'WhatsApp Channel',
+        flag: '🇵🇰',
+        currency: 'PKR',
+        dealValue: '0',
+        serviceInterest: l?.serviceInterest || '',
+        stage: STAGE_MAP[l?.stage] || l?.stage || 'New Lead',
+        statusUpdatedAt: null,
+        assignedToId: l?.assignedToId || null,
+        assignedTo: 'Unassigned',
+        assignedAvatar: '',
+        avatar: '',
+        unreadCount: l?.unreadCount || 0,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+        firstMessageAt: nowIso,
+        rawLastMessageAt: nowIso,
+        lastMessage: 'WhatsApp conversation',
+        lastTime: 'Just now',
+        tags: [],
+        notes: [],
+        messages: [],
+      };
+    }
   };
 
   // Reusable leads fetcher from PostgreSQL (Intelligent Merge — Shares in-flight promise so StrictMode never drops or races)

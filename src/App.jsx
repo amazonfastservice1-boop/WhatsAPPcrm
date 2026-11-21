@@ -99,16 +99,33 @@ export default function App() {
 
   // Context carried from Dashboard -> Chat when user opens a chat from a specific section/date
   const [chatFilterContext, setChatFilterContext] = useState(null);
+  const [chatFilterTab, setChatFilterTab] = useState('all');
   const dashboardDateTouchedRef = React.useRef(false);
+  const isFetchingLeadsRef = React.useRef(false);
 
   const handleDashboardTimeRangeChange = (nextRange) => {
     dashboardDateTouchedRef.current = true;
     setDashboardTimeRange(nextRange);
+    if (nextRange === 'today') {
+      setChatFilterTab('today');
+      setChatFilterContext(null);
+    } else if (nextRange === 'all') {
+      setChatFilterTab('all');
+      setChatFilterContext(null);
+    }
   };
 
   const handleDashboardCustomDateChange = (nextDate) => {
     dashboardDateTouchedRef.current = true;
     setDashboardCustomDate(nextDate);
+  };
+
+  const handleChatFilterTabChange = (nextFilterTab) => {
+    dashboardDateTouchedRef.current = false;
+    setChatFilterTab(nextFilterTab);
+    if (nextFilterTab === 'today') {
+      setDashboardTimeRange('today');
+    }
   };
 
   const selectedLeadIdRef = React.useRef(selectedLeadId);
@@ -133,7 +150,9 @@ export default function App() {
     const avatarBgColors = ['128C7E', '075E54', '25D366', '34B7F1', 'E542A3', '7C4DFF', 'FF5722', '00897B'];
     const charCode = (displayName || 'U').charCodeAt(0);
     const bg = avatarBgColors[charCode % avatarBgColors.length];
-    const generatedAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName || 'U')}&background=${bg}&color=fff&size=128&bold=true&rounded=true`;
+    const initialChar = String(displayName || 'U').trim().charAt(0).toUpperCase().replace(/[<>&"']/g, '') || 'U';
+    // Instant 0ms inline SVG avatar — eliminates 670+ external HTTP requests to ui-avatars.com!
+    const generatedAvatar = `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="48" fill="#${bg}"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="40" font-weight="bold">${initialChar}</text></svg>`)}`;
 
     const recentLocal = recentLocalUpdatesRef.current.get(l.id);
     const isRecentlyClickedHere = recentLocal && (Date.now() - recentLocal.timestamp < 20000);
@@ -150,12 +169,18 @@ export default function App() {
       ? recentLocal.stage
       : dbStage;
 
+    const cleanPhoneKey = String(l.phoneNumber || '').replace(/\D/g, '');
+    let savedStatusDate = null;
+    try {
+      savedStatusDate = localStorage.getItem(`crm_lead_status_date_${l.id}`) || (cleanPhoneKey ? localStorage.getItem(`crm_phone_status_date_${cleanPhoneKey}`) : null);
+    } catch (e) {}
+
     const hasActiveStatusOrTags = (resolvedStage && resolvedStage !== 'New Lead' && resolvedStage !== 'Contacted') || resolvedTags.length > 0 || Boolean(l.serviceInterest);
     const resolvedStatusDate = isRecentlyClickedHere && recentLocal.statusUpdatedAt
       ? recentLocal.statusUpdatedAt
-      : (hasActiveStatusOrTags
-          ? (l.createdAt ? new Date(l.createdAt).toISOString() : new Date().toISOString())
-          : null);
+      : (savedStatusDate || (hasActiveStatusOrTags
+          ? (l.firstMessageAt ? new Date(l.firstMessageAt).toISOString() : (l.createdAt ? new Date(l.createdAt).toISOString() : null))
+          : null));
 
     return {
       id: l.id,
@@ -208,6 +233,8 @@ export default function App() {
 
   // Reusable leads fetcher from PostgreSQL (Intelligent Merge — Never wipes open conversation or pending edits)
   const fetchRealLeads = React.useCallback(async (overrideReset = false) => {
+    if (!overrideReset && isFetchingLeadsRef.current) return;
+    isFetchingLeadsRef.current = true;
     try {
       const res = await api.getLeads();
       if (res?.leads) {
@@ -215,9 +242,11 @@ export default function App() {
         setLeads((prev) => {
           if (overrideReset || prev.length === 0) return realLeads;
 
-          // Merge preserving active conversation and recent local user edits
+          const prevMap = new Map(prev.map((p) => [p.id, p]));
+
+          // Merge preserving active conversation and recent local user edits (O(N) fast lookup)
           const merged = realLeads.map((newLead) => {
-            const existing = prev.find((p) => p.id === newLead.id);
+            const existing = prevMap.get(newLead.id);
             const localUpdate = recentLocalUpdatesRef.current.get(newLead.id);
 
             let stage = newLead.stage;
@@ -297,6 +326,8 @@ export default function App() {
       }
     } catch (err) {
       console.warn('Failed to load leads:', err);
+    } finally {
+      isFetchingLeadsRef.current = false;
     }
   }, []);
 
@@ -697,6 +728,15 @@ export default function App() {
     const cleanPhoneKey = String(currentLead?.phone || '').replace(/\D/g, '');
     const isStatusOrTagChange = updates.stage !== undefined || updates.tags !== undefined || updates.serviceInterest !== undefined || updates.dealValue !== undefined;
 
+    // If agent is explicitly viewing a past day (Kal or Custom Date on Dashboard or synced Chat),
+    // anchor statusUpdatedAt to the lead's arrival date so past-day edits stay in that past day and never bleed into Today!
+    const isEditingInPastDayFilter =
+      (activeTab === 'dashboard' && (dashboardTimeRange === 'yesterday' || dashboardTimeRange === 'custom')) ||
+      (activeTab === 'chat' && chatFilterTab === 'dashboard_context' && (chatFilterContext?.timeRange === 'yesterday' || chatFilterContext?.timeRange === 'custom'));
+    const statusDateToUse = isEditingInPastDayFilter
+      ? (currentLead?.firstMessageAt || currentLead?.createdAt || nowIso)
+      : nowIso;
+
     const resolvedStage = updates.stage !== undefined 
       ? updates.stage 
       : (existingLocal.stage !== undefined ? existingLocal.stage : currentLead?.stage);
@@ -710,7 +750,7 @@ export default function App() {
       ...updates, 
       stage: resolvedStage,
       tags: normalizeTagList(resolvedTags),
-      statusUpdatedAt: isStatusOrTagChange ? nowIso : (existingLocal.statusUpdatedAt || currentLead?.statusUpdatedAt),
+      statusUpdatedAt: isStatusOrTagChange ? statusDateToUse : (existingLocal.statusUpdatedAt || currentLead?.statusUpdatedAt),
       timestamp: Date.now() 
     };
     recentLocalUpdatesRef.current.set(leadId, mergedLocal);
@@ -735,7 +775,7 @@ export default function App() {
       }
       if (isStatusOrTagChange) {
         try {
-          localStorage.setItem(`crm_lead_status_date_${mId}`, nowIso);
+          localStorage.setItem(`crm_lead_status_date_${mId}`, statusDateToUse);
         } catch (e) {}
       }
     });
@@ -744,7 +784,7 @@ export default function App() {
       try {
         if (resolvedTags !== undefined) localStorage.setItem(`crm_phone_tags_${cleanPhoneKey}`, JSON.stringify(resolvedTags));
         if (resolvedStage !== undefined) localStorage.setItem(`crm_phone_stage_${cleanPhoneKey}`, resolvedStage);
-        if (isStatusOrTagChange) localStorage.setItem(`crm_phone_status_date_${cleanPhoneKey}`, nowIso);
+        if (isStatusOrTagChange) localStorage.setItem(`crm_phone_status_date_${cleanPhoneKey}`, statusDateToUse);
       } catch (e) {}
     }
 
@@ -764,7 +804,7 @@ export default function App() {
             messages: nextMessages,
             stage: resolvedStage || lead.stage,
             tags: resolvedTags !== undefined ? normalizeTagList(resolvedTags) : lead.tags,
-            statusUpdatedAt: isStatusOrTagChange ? nowIso : lead.statusUpdatedAt,
+            statusUpdatedAt: isStatusOrTagChange ? statusDateToUse : lead.statusUpdatedAt,
             updatedAt: nowIso 
           };
         }
@@ -775,7 +815,7 @@ export default function App() {
             tags: resolvedTags !== undefined ? normalizeTagList(resolvedTags) : lead.tags,
             serviceInterest: updates.serviceInterest !== undefined ? updates.serviceInterest : lead.serviceInterest,
             dealValue: updates.dealValue !== undefined ? updates.dealValue : lead.dealValue,
-            statusUpdatedAt: nowIso,
+            statusUpdatedAt: statusDateToUse,
             updatedAt: nowIso
           };
         }
@@ -1024,11 +1064,21 @@ export default function App() {
     };
   };
 
-  // Handle Sidebar tab navigation — sync Dashboard selected day to Chat when coming from Dashboard
+  // Handle Sidebar tab navigation — only sync Dashboard date if user explicitly changed Dashboard date filter
   const handleTabChange = (nextTab) => {
     if (activeTab === 'dashboard' && nextTab === 'chat') {
-      if (dashboardDateTouchedRef.current || dashboardTimeRange !== 'today' || dashboardServiceFilter !== 'all') {
-        setChatFilterContext(buildDashboardDateContext());
+      if (dashboardDateTouchedRef.current) {
+        dashboardDateTouchedRef.current = false;
+        if (dashboardTimeRange === 'today' && dashboardServiceFilter === 'all') {
+          setChatFilterTab('today');
+          setChatFilterContext(null);
+        } else if (dashboardTimeRange === 'all' && dashboardServiceFilter === 'all') {
+          setChatFilterTab('all');
+          setChatFilterContext(null);
+        } else {
+          setChatFilterContext(buildDashboardDateContext());
+          setChatFilterTab('dashboard_context');
+        }
       }
     }
     setActiveTab(nextTab);
@@ -1038,8 +1088,19 @@ export default function App() {
   const handleOpenChat = (leadId, context = null) => {
     if (leadId) setSelectedLeadId(leadId);
     if (context) {
+      dashboardDateTouchedRef.current = false;
       setChatFilterContext({ ...context, appliedAt: Date.now() });
-    } else if (dashboardDateTouchedRef.current || dashboardTimeRange !== 'today' || dashboardServiceFilter !== 'all') {
+      const { timeRange, section, serviceFilter } = context;
+      const isDateOnly = !section || section === 'main_leads' || section === 'all_leads';
+      if (section === 'today' || (isDateOnly && (!serviceFilter || serviceFilter === 'all') && timeRange === 'today')) {
+        setChatFilterTab('today');
+      } else if (isDateOnly && (!serviceFilter || serviceFilter === 'all') && timeRange === 'all') {
+        setChatFilterTab('all');
+      } else {
+        setChatFilterTab('dashboard_context');
+      }
+    } else if (dashboardDateTouchedRef.current) {
+      dashboardDateTouchedRef.current = false;
       setChatFilterContext(buildDashboardDateContext());
     }
     setActiveTab('chat');
@@ -1134,6 +1195,8 @@ export default function App() {
               currentUser={currentUser}
               chatFilterContext={chatFilterContext}
               setChatFilterContext={setChatFilterContext}
+              filterTab={chatFilterTab}
+              setFilterTab={handleChatFilterTabChange}
             />
           )}
 

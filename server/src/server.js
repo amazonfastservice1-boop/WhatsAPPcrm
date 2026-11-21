@@ -62,7 +62,8 @@ app.use('/media', express.static(MEDIA_DIR));
 // -----------------------------------------------------------------------------
 const generalLimiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1000', 10),
+  max: Math.max(parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '5000', 10) || 5000, 5000),
+  skip: (req) => req.path && req.path.startsWith('/webhook'),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please slow down.' },

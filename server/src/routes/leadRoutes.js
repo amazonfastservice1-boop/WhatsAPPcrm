@@ -455,7 +455,7 @@ router.patch('/:id', authenticateToken, async (req, res) => {
       ? updatedLead.tags.map(t => (typeof t === 'string' ? t : (t?.tag?.name || t?.name))).filter(Boolean)
       : [];
 
-    invalidateLeadsCache();
+    invalidateLeadsCache(updatedLead);
     req.io?.emit('lead:updated', updatedLead);
     req.io?.emit('lead:stage_updated', {
       leadId: updatedLead.id,
@@ -506,7 +506,7 @@ router.patch('/:id/stage', authenticateToken, async (req, res) => {
       },
     });
 
-    invalidateLeadsCache();
+    invalidateLeadsCache(updatedLead);
     // Broadcast stage change to real-time boards
     req.io?.emit('lead:stage_updated', {
       leadId: updatedLead.id,

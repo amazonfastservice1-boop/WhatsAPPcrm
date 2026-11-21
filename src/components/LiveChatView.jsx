@@ -1347,28 +1347,63 @@ export default function LiveChatView({
               </button>
             </div>
 
-            {/* Compact Filter Dropdown for Unread, Qualified, Won, Unqualified, Reminders */}
-            <select
-              value={['all', 'today', 'dashboard_context'].includes(filterTab) ? '' : filterTab}
-              onChange={(e) => {
-                setFilterTab(e.target.value || 'all');
-                if (setChatFilterContext) setChatFilterContext(null);
-              }}
-              className={`px-2 py-1 rounded-xl border text-[11px] font-bold focus:outline-none cursor-pointer transition-all max-w-[115px] ${
-                !['all', 'today', 'dashboard_context'].includes(filterTab)
-                  ? 'bg-orange-50 border-orange-300 text-orange-700'
-                  : 'bg-slate-50 border-slate-200 text-slate-700'
-              }`}
-              title="Status ya Unread ke mutabiq filter karein"
-            >
-              <option value="">Filter ({displayLeads.length})</option>
-              <option value="unread">🔔 Unread ({stageCounts.unread})</option>
-              <option value="qualified">🟣 Qualified ({stageCounts.qualified})</option>
-              <option value="won">🟢 Deal Won ({stageCounts.won})</option>
-              <option value="unqualified">🔴 Unqualified ({stageCounts.unqualified})</option>
-              <option value="reminders">⏰ Reminders ({stageCounts.reminders})</option>
-              <option value="proposal">🟠 Proposal ({stageCounts.proposal})</option>
-            </select>
+            {/* Compact Custom Filter Popover for Unread, Qualified, Won, Unqualified, Reminders (Never Blank on Windows) */}
+            <div ref={filterMenuRef} className="relative shrink-0">
+              {(() => {
+                const filterOptions = [
+                  { value: '', label: `Filter (${displayLeads.length})` },
+                  { value: 'unread', label: `🔔 Unread (${stageCounts.unread})` },
+                  { value: 'qualified', label: `🟣 Qualified (${stageCounts.qualified})` },
+                  { value: 'won', label: `🟢 Deal Won (${stageCounts.won})` },
+                  { value: 'unqualified', label: `🔴 Unqualified (${stageCounts.unqualified})` },
+                  { value: 'reminders', label: `⏰ Reminders (${stageCounts.reminders})` },
+                  { value: 'proposal', label: `🟠 Proposal (${stageCounts.proposal})` },
+                ];
+                const activeFilterVal = ['all', 'today', 'dashboard_context'].includes(filterTab) ? '' : filterTab;
+                const activeFilterLabel = filterOptions.find((o) => o.value === activeFilterVal)?.label || `Filter (${displayLeads.length})`;
+                return (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setIsFilterMenuOpen((prev) => !prev)}
+                      className={`px-2.5 py-1 rounded-xl border text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-all max-w-[125px] ${
+                        activeFilterVal
+                          ? 'bg-orange-50 border-orange-300 text-orange-700'
+                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                      title="Status ya Unread ke mutabiq filter karein"
+                    >
+                      <span className="truncate">{activeFilterLabel}</span>
+                      <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${isFilterMenuOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {isFilterMenuOpen && (
+                      <div className="absolute right-0 top-full mt-1.5 z-50 min-w-[185px] bg-white rounded-xl border border-slate-200 shadow-xl py-1">
+                        {filterOptions.map((opt) => {
+                          const isSelected = activeFilterVal === opt.value;
+                          return (
+                            <button
+                              key={opt.value || 'all_filter'}
+                              type="button"
+                              onClick={() => {
+                                setFilterTab(opt.value || 'all');
+                                if (setChatFilterContext) setChatFilterContext(null);
+                                setIsFilterMenuOpen(false);
+                              }}
+                              className={`w-full text-left px-3 py-1.5 text-[11px] font-bold flex items-center justify-between gap-2 hover:bg-orange-50 hover:text-orange-700 ${
+                                isSelected ? 'bg-orange-50 text-orange-700' : 'text-slate-800'
+                              }`}
+                            >
+                              <span>{opt.label}</span>
+                              {isSelected && <Check className="w-3.5 h-3.5 text-orange-600 shrink-0" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
           </div>
 
           {/* Active Dashboard Day / Section Banner (shows ONLY when synced from Dashboard e.g. Kal Ki Leads / Custom Date / Section) */}
@@ -1396,8 +1431,16 @@ export default function LiveChatView({
           )}
         </div>
 
-        {/* Conversation Items List */}
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
+        {/* Conversation Items List (Windowed for instant 0-lag rendering even with 800+ chats) */}
+        <div
+          className="flex-1 overflow-y-auto divide-y divide-slate-50"
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            if (el.scrollHeight - el.scrollTop - el.clientHeight < 250 && visibleChatLimit < displayLeads.length) {
+              setVisibleChatLimit((prev) => Math.min(displayLeads.length, prev + 80));
+            }
+          }}
+        >
           {displayLeads.length === 0 ? (
             <div className="p-6 text-center space-y-3">
               <p className="text-xs font-bold text-slate-700">Koi Chat Maujood Nahi</p>
@@ -1415,7 +1458,7 @@ export default function LiveChatView({
               )}
             </div>
           ) : (
-            displayLeads.map((lead) => {
+            displayLeads.slice(0, visibleChatLimit).map((lead) => {
               const isSelected = activeLead?.id === lead.id;
               const msgs = lead.messages || [];
               const lastMsg = msgs[msgs.length - 1];

@@ -2278,7 +2278,7 @@ export default function DashboardView({
       {/* 5. INTERACTIVE DRILLDOWN MODAL (When admin clicks ANY metric card) */}
       {drilldownCategory && drilldownData && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border border-slate-200 flex flex-col max-h-[88vh]">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full border border-slate-200 flex flex-col max-h-[88vh]">
             {/* Modal Header */}
             <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
               <div className="flex items-center gap-2.5">
@@ -2371,11 +2371,11 @@ export default function DashboardView({
                             }`}>
                               {lead.stage === 'Lost' ? '🔴 Unqualified' : lead.stage}
                             </span>
-                            {/* Tags — only latest follow-up tag shown */}
+                            {/* Tags — only latest follow-up tag shown, with 1-click ✕ remove button */}
                             {(() => {
-                              const allTags = (lead.tags || []).filter(
-                                (t) => t !== 'WhatsApp Inbound' && t.toLowerCase() !== lead.stage?.toLowerCase()
-                              );
+                              const allTags = (lead.tags || [])
+                                .map((t) => (typeof t === 'string' ? t.trim() : (t?.tag?.name || t?.name || '').trim()))
+                                .filter((t) => t && t !== 'WhatsApp Inbound' && t.toLowerCase() !== lead.stage?.toLowerCase());
                               const followUpTags = allTags.filter((t) => /^follow-?up/i.test(t));
                               const latestFollowUp = followUpTags.length > 0 ? followUpTags[followUpTags.length - 1] : null;
                               const displayTags = allTags.filter(
@@ -2384,7 +2384,7 @@ export default function DashboardView({
                               return displayTags.map((tag) => (
                                 <span
                                   key={tag}
-                                  className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded border shrink-0 ${
+                                  className={`inline-flex items-center gap-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded border shrink-0 ${
                                     tag === 'Showed Up' || tag === 'Show Up' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
                                     tag === 'No Show' ? 'bg-rose-100 text-rose-800 border-rose-300' :
                                     /response aaya/i.test(tag) ? 'bg-teal-100 text-teal-800 border-teal-300' :
@@ -2394,13 +2394,29 @@ export default function DashboardView({
                                     'bg-slate-100 text-slate-800 border-slate-200'
                                   }`}
                                 >
-                                  {(tag === 'Showed Up' || tag === 'Show Up') && '✅ '}
-                                  {tag === 'No Show' && '❌ '}
-                                  {/response aaya/i.test(tag) && '💬 '}
-                                  {/no response/i.test(tag) && '📵 '}
-                                  {/^follow-?up/i.test(tag) && '⏰ '}
-                                  {/meet|zoom/i.test(tag) && '🤝 '}
-                                  {tag}
+                                  <span>
+                                    {(tag === 'Showed Up' || tag === 'Show Up') && '✅ '}
+                                    {tag === 'No Show' && '❌ '}
+                                    {/response aaya/i.test(tag) && '💬 '}
+                                    {/no response/i.test(tag) && '📵 '}
+                                    {/^follow-?up/i.test(tag) && '⏰ '}
+                                    {/meet|zoom/i.test(tag) && '🤝 '}
+                                    {tag}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (onUpdateLead) {
+                                        const nextTags = allTags.filter((t) => t !== tag);
+                                        onUpdateLead(lead.id, { tags: nextTags });
+                                      }
+                                    }}
+                                    className="hover:text-rose-600 font-black ml-0.5 cursor-pointer"
+                                    title={`"${tag}" hatayein`}
+                                  >
+                                    ✕
+                                  </button>
                                 </span>
                               ));
                             })()}
@@ -2428,10 +2444,10 @@ export default function DashboardView({
                         </div>
                       </div>
 
-                      {/* RIGHT: Action buttons — Custom Popover Dropdowns for Status & Follow-up/Tags on ALL rows (Never Blank on Windows) */}
-                      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                        {/* 1. Meeting Attendance: Show Up / No Show Options */}
-                        {(drilldownCategory === 'meeting' || lead.tags?.some((t) => /meet/i.test(t))) && (
+                      {/* RIGHT: 3 Neatly Aligned Custom Popover Dropdowns (1. Status, 2. Tag, 3. Follow-up Step) + Chat Kholein */}
+                      <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                        {/* Meeting Quick Attendance Buttons (Only inside Meeting card) */}
+                        {drilldownCategory === 'meeting' && (
                           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
                             <button
                               type="button"
@@ -2439,12 +2455,11 @@ export default function DashboardView({
                                 e.stopPropagation();
                                 handleToggleMeetingStatus(lead, 'Showed Up');
                               }}
-                              className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 ${
+                              className={`px-2 py-1 rounded-lg text-[11px] font-black transition-all flex items-center gap-1 ${
                                 lead.tags?.includes('Showed Up') || lead.tags?.includes('Show Up')
                                   ? 'bg-emerald-600 text-white shadow-xs'
                                   : 'bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200'
                               }`}
-                              title="Customer meeting mein aya"
                             >
                               <span>✓ Show Up</span>
                             </button>
@@ -2454,19 +2469,18 @@ export default function DashboardView({
                                 e.stopPropagation();
                                 handleToggleMeetingStatus(lead, 'No Show');
                               }}
-                              className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 ${
+                              className={`px-2 py-1 rounded-lg text-[11px] font-black transition-all flex items-center gap-1 ${
                                 lead.tags?.includes('No Show')
                                   ? 'bg-rose-600 text-white shadow-xs'
                                   : 'bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 border border-slate-200'
                               }`}
-                              title="Customer meeting mein nahi aya"
                             >
                               <span>✕ No Show</span>
                             </button>
                           </div>
                         )}
 
-                        {/* 2. Lead Status Custom Popover Dropdown (Available on ALL drilldown lists including Naye Leads!) */}
+                        {/* DROPDOWN 1: Lead Status (Qualified, Unqualified, Deal Won, Proposal Sent) */}
                         {(() => {
                           const isStatusOpen = openModalDropdown?.leadId === lead.id && openModalDropdown?.type === 'status';
                           const currentStageVal =
@@ -2489,7 +2503,7 @@ export default function DashboardView({
                                   e.stopPropagation();
                                   setOpenModalDropdown(isStatusOpen ? null : { leadId: lead.id, type: 'status' });
                                 }}
-                                className={`px-2.5 py-1.5 rounded-xl border text-xs font-extrabold flex items-center gap-1 cursor-pointer shadow-2xs transition-colors ${
+                                className={`h-8 px-2.5 rounded-xl border text-[11px] font-extrabold flex items-center gap-1 cursor-pointer shadow-2xs transition-colors whitespace-nowrap ${
                                   currentStageVal === 'Qualified'
                                     ? 'bg-purple-50 border-purple-300 text-purple-900 hover:bg-purple-100'
                                     : currentStageVal === 'Lost'
@@ -2500,13 +2514,13 @@ export default function DashboardView({
                                     ? 'bg-orange-50 border-orange-300 text-orange-900 hover:bg-orange-100'
                                     : 'bg-slate-50 border-slate-300 text-slate-800 hover:bg-slate-100'
                                 }`}
-                                title="Lead ka Status update karein (Qualified, Unqualified, Deal Won)"
+                                title="1. Lead ka Status update ya clear karein"
                               >
                                 <span>{activeStageLabel}</span>
-                                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isStatusOpen ? 'rotate-180' : ''}`} />
+                                <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${isStatusOpen ? 'rotate-180' : ''}`} />
                               </button>
                               {isStatusOpen && (
-                                <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] bg-white rounded-xl border border-slate-200 shadow-2xl py-1">
+                                <div className="absolute right-0 top-full mt-1 z-50 min-w-[185px] bg-white rounded-xl border border-slate-200 shadow-2xl py-1">
                                   {stageOpts.map((opt) => {
                                     const isSelected = currentStageVal === opt.value;
                                     return (
@@ -2529,30 +2543,41 @@ export default function DashboardView({
                                       </button>
                                     );
                                   })}
+                                  {currentStageVal !== 'New Lead' && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onUpdateLead) {
+                                          onUpdateLead(lead.id, { stage: 'New Lead' });
+                                        }
+                                        setOpenModalDropdown(null);
+                                      }}
+                                      className="w-full text-left px-3 py-1.5 text-xs font-extrabold text-rose-600 hover:bg-rose-50 border-t border-slate-100 mt-1 flex items-center gap-1.5"
+                                    >
+                                      <span>🧹 Status Hatayein</span>
+                                    </button>
+                                  )}
                                 </div>
                               )}
                             </div>
                           );
                         })()}
 
-                        {/* 3. Full Tag & Follow-up Custom Popover Dropdown (Matches Chat Tag Menu + Follow-up 1/2/3!) */}
+                        {/* DROPDOWN 2: General Tags (Follow-up, Meeting, Show Up, No Show, No Response, Reminder, Custom Tag + Remove) */}
                         {(() => {
                           const isTagOpen = openModalDropdown?.leadId === lead.id && openModalDropdown?.type === 'tag';
-                          const tagStrings = (lead.tags || []).map((t) => (typeof t === 'string' ? t.trim() : (t?.tag?.name || t?.name || '').trim())).filter(Boolean);
-                          const followUpTags = tagStrings.filter((t) => /^follow-?up/i.test(t));
-                          const activeFollowup = followUpTags.length > 0 ? followUpTags[followUpTags.length - 1] : '';
-                          const tagOpts = [
-                            { value: 'Follow-up', label: '⏰ Follow-up', type: 'followup' },
+                          const tagStrings = (lead.tags || [])
+                            .map((t) => (typeof t === 'string' ? t.trim() : (t?.tag?.name || t?.name || '').trim()))
+                            .filter((t) => t && t !== 'WhatsApp Inbound');
+                          const nonSubFollowupTags = tagStrings.filter((t) => !/^follow-?up\s*(1|2|3|done)/i.test(t));
+                          const activeGeneralTag = nonSubFollowupTags.length > 0 ? nonSubFollowupTags[nonSubFollowupTags.length - 1] : '';
+                          const generalTagOpts = [
+                            { value: 'Follow-up', label: '⏰ Follow-up', type: 'followup_base' },
                             { value: 'Meeting', label: '🤝 Meeting', type: 'toggle' },
                             { value: 'Showed Up', label: '✅ Show Up', type: 'meeting_status' },
                             { value: 'No Show', label: '❌ No Show', type: 'meeting_status' },
                             { value: 'No Response', label: '📵 No Response', type: 'toggle' },
-                            { value: 'Follow-up 1', label: '⏰ Follow-up 1', type: 'followup' },
-                            { value: 'Follow-up 2', label: '⏰ Follow-up 2', type: 'followup' },
-                            { value: 'Follow-up 3', label: '⏰ Follow-up 3', type: 'followup' },
-                            { value: 'Follow-up Done (No Response)', label: '📵 Follow-up Done (No Response)', type: 'followup' },
-                            { value: 'Follow-up Done (Response Aaya)', label: '💬 Follow-up Done (Response Aaya)', type: 'followup' },
-                            { value: '', label: '🧹 Follow-up Hatayein', type: 'followup' },
                             { value: '__schedule__', label: '📅 Reminder Schedule Karein', type: 'action' },
                             { value: '__custom__', label: '➕ Naya Custom Tag...', type: 'action' },
                           ];
@@ -2564,24 +2589,25 @@ export default function DashboardView({
                                   e.stopPropagation();
                                   setOpenModalDropdown(isTagOpen ? null : { leadId: lead.id, type: 'tag' });
                                 }}
-                                className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100/80 border border-amber-300 rounded-xl text-xs font-extrabold text-amber-900 flex items-center gap-1 cursor-pointer shadow-2xs transition-colors"
-                                title="Follow-up, Meeting, Show Up, No Response ya Custom Tag lagayein"
+                                className={`h-8 px-2.5 rounded-xl border text-[11px] font-extrabold flex items-center gap-1 cursor-pointer shadow-2xs transition-colors whitespace-nowrap ${
+                                  activeGeneralTag
+                                    ? 'bg-sky-50 border-sky-300 text-sky-900 hover:bg-sky-100'
+                                    : 'bg-slate-50 border-slate-300 text-slate-800 hover:bg-slate-100'
+                                }`}
+                                title="2. Tag lagayein ya hatayein (Follow-up, Meeting, Show Up, No Response, Custom)"
                               >
-                                <span className="max-w-[140px] truncate">{activeFollowup ? `⏰ ${activeFollowup}` : '🏷️ Tag Select Karein'}</span>
-                                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isTagOpen ? 'rotate-180' : ''}`} />
+                                <span className="max-w-[115px] truncate">{activeGeneralTag ? `🏷️ ${activeGeneralTag}` : '🏷️ Tag Select'}</span>
+                                <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${isTagOpen ? 'rotate-180' : ''}`} />
                               </button>
                               {isTagOpen && (
-                                <div className="absolute right-0 top-full mt-1 z-50 min-w-[235px] max-h-72 overflow-y-auto bg-white rounded-xl border border-slate-200 shadow-2xl py-1">
-                                  {tagOpts.map((opt) => {
+                                <div className="absolute right-0 top-full mt-1 z-50 min-w-[220px] max-h-72 overflow-y-auto bg-white rounded-xl border border-slate-200 shadow-2xl py-1">
+                                  {generalTagOpts.map((opt) => {
                                     const isSelected =
-                                      opt.type === 'followup'
-                                        ? activeFollowup === opt.value
-                                        : opt.type === 'meeting_status' || opt.type === 'toggle'
-                                        ? tagStrings.some((t) => t.toLowerCase() === opt.value.toLowerCase())
-                                        : false;
+                                      opt.type !== 'action' &&
+                                      tagStrings.some((t) => t.toLowerCase() === opt.value.toLowerCase());
                                     return (
                                       <button
-                                        key={opt.value || 'clear_fu'}
+                                        key={opt.value}
                                         type="button"
                                         onClick={(e) => {
                                           e.stopPropagation();
@@ -2596,28 +2622,128 @@ export default function DashboardView({
                                             setModalReminderTitle(`Follow-up: ${lead.name}`);
                                             return;
                                           }
-                                          if (opt.type === 'followup') {
-                                            handleSetFollowupTag(lead, opt.value);
+                                          if (opt.type === 'followup_base') {
+                                            const hasBase = tagStrings.some((t) => t.toLowerCase() === 'follow-up');
+                                            handleSetFollowupTag(lead, hasBase ? '' : 'Follow-up');
                                           } else if (opt.type === 'meeting_status') {
                                             handleToggleMeetingStatus(lead, opt.value);
                                           } else if (onUpdateLead) {
-                                            const currentClean = tagStrings.filter((t) => t !== 'WhatsApp Inbound');
-                                            const hasIt = currentClean.some((t) => t.toLowerCase() === opt.value.toLowerCase());
+                                            const hasIt = tagStrings.some((t) => t.toLowerCase() === opt.value.toLowerCase());
                                             const nextTags = hasIt
-                                              ? currentClean.filter((t) => t.toLowerCase() !== opt.value.toLowerCase())
-                                              : [...currentClean, opt.value];
+                                              ? tagStrings.filter((t) => t.toLowerCase() !== opt.value.toLowerCase())
+                                              : [...tagStrings, opt.value];
                                             onUpdateLead(lead.id, { tags: nextTags });
                                           }
                                         }}
-                                        className={`w-full text-left px-3 py-1.5 text-xs font-bold flex items-center justify-between gap-2 hover:bg-amber-50 hover:text-amber-900 ${
-                                          isSelected && opt.value ? 'bg-amber-50 text-amber-900' : 'text-slate-800'
+                                        className={`w-full text-left px-3 py-1.5 text-xs font-bold flex items-center justify-between gap-2 hover:bg-sky-50 hover:text-sky-900 ${
+                                          isSelected ? 'bg-sky-50 text-sky-900' : 'text-slate-800'
                                         }`}
                                       >
                                         <span>{opt.label}</span>
-                                        {isSelected && opt.value && <span className="text-amber-600 font-black">✓</span>}
+                                        {isSelected && <span className="text-sky-600 font-black">✓</span>}
                                       </button>
                                     );
                                   })}
+
+                                  {/* Explicit Remove Section for any applied tags */}
+                                  {nonSubFollowupTags.length > 0 && (
+                                    <div className="border-t border-slate-100 mt-1 pt-1">
+                                      {nonSubFollowupTags.map((appliedTag) => (
+                                        <button
+                                          key={`rm_${appliedTag}`}
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (onUpdateLead) {
+                                              const nextTags = tagStrings.filter((t) => t !== appliedTag);
+                                              onUpdateLead(lead.id, { tags: nextTags });
+                                            }
+                                            setOpenModalDropdown(null);
+                                          }}
+                                          className="w-full text-left px-3 py-1.5 text-xs font-extrabold text-rose-600 hover:bg-rose-50 flex items-center justify-between gap-2"
+                                        >
+                                          <span className="truncate">🧹 "{appliedTag}" Hatayein</span>
+                                          <span>✕</span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        {/* DROPDOWN 3: Follow-up Step (Follow-up 1, 2, 3, Done No Response, Done Response Aaya + Hatayein) */}
+                        {(() => {
+                          const isFollowupOpen = openModalDropdown?.leadId === lead.id && openModalDropdown?.type === 'followup_step';
+                          const tagStrings = (lead.tags || [])
+                            .map((t) => (typeof t === 'string' ? t.trim() : (t?.tag?.name || t?.name || '').trim()))
+                            .filter(Boolean);
+                          const followUpStepTags = tagStrings.filter((t) => /^follow-?up\s*(1|2|3|done)/i.test(t));
+                          const activeFollowupStep = followUpStepTags.length > 0 ? followUpStepTags[followUpStepTags.length - 1] : '';
+                          const followupStepOpts = [
+                            { value: 'Follow-up 1', label: '⏰ Follow-up 1' },
+                            { value: 'Follow-up 2', label: '⏰ Follow-up 2' },
+                            { value: 'Follow-up 3', label: '⏰ Follow-up 3' },
+                            { value: 'Follow-up Done (No Response)', label: '📵 Follow-up Done (No Response)' },
+                            { value: 'Follow-up Done (Response Aaya)', label: '💬 Follow-up Done (Response Aaya)' },
+                          ];
+                          return (
+                            <div data-modal-dropdown className="relative">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenModalDropdown(isFollowupOpen ? null : { leadId: lead.id, type: 'followup_step' });
+                                }}
+                                className={`h-8 px-2.5 rounded-xl border text-[11px] font-extrabold flex items-center gap-1 cursor-pointer shadow-2xs transition-colors whitespace-nowrap ${
+                                  activeFollowupStep
+                                    ? 'bg-amber-100 border-amber-400 text-amber-950 hover:bg-amber-200/70'
+                                    : 'bg-amber-50/80 border-amber-300 text-amber-900 hover:bg-amber-100'
+                                }`}
+                                title="3. Follow-up Step select ya clear karein (Follow-up 1, 2, 3, Done)"
+                              >
+                                <span className="max-w-[125px] truncate">{activeFollowupStep ? `⏰ ${activeFollowupStep}` : '⏰ Follow-up Tag...'}</span>
+                                <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${isFollowupOpen ? 'rotate-180' : ''}`} />
+                              </button>
+                              {isFollowupOpen && (
+                                <div className="absolute right-0 top-full mt-1 z-50 min-w-[235px] bg-white rounded-xl border border-slate-200 shadow-2xl py-1">
+                                  {followupStepOpts.map((opt) => {
+                                    const isSelected = activeFollowupStep === opt.value;
+                                    return (
+                                      <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          // Toggle off if already selected, otherwise set
+                                          handleSetFollowupTag(lead, isSelected ? '' : opt.value);
+                                          setOpenModalDropdown(null);
+                                        }}
+                                        className={`w-full text-left px-3 py-1.5 text-xs font-bold flex items-center justify-between gap-2 hover:bg-amber-50 hover:text-amber-900 ${
+                                          isSelected ? 'bg-amber-50 text-amber-900' : 'text-slate-800'
+                                        }`}
+                                      >
+                                        <span>{opt.label}</span>
+                                        {isSelected && <span className="text-amber-600 font-black">✓</span>}
+                                      </button>
+                                    );
+                                  })}
+                                  {(activeFollowupStep || tagStrings.some((t) => /^follow-?up/i.test(t))) && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSetFollowupTag(lead, '');
+                                        setOpenModalDropdown(null);
+                                      }}
+                                      className="w-full text-left px-3 py-1.5 text-xs font-extrabold text-rose-600 hover:bg-rose-50 border-t border-slate-100 mt-1 flex items-center justify-between gap-2"
+                                    >
+                                      <span>🧹 Follow-up Tag Hatayein</span>
+                                      <span>✕</span>
+                                    </button>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -2717,9 +2843,9 @@ export default function DashboardView({
                             setDrilldownCategory(null);
                             if (onOpenChat) onOpenChat(lead.id, ctx);
                           }}
-                          className="px-3.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-2xs transition-all flex items-center gap-1.5"
+                          className="h-8 px-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-[11px] font-bold shadow-2xs transition-all flex items-center gap-1.5 whitespace-nowrap"
                         >
-                          <MessageSquare className="w-3.5 h-3.5" />
+                          <MessageSquare className="w-3.5 h-3.5 shrink-0" />
                           <span>Chat Kholein</span>
                         </button>
                       </div>

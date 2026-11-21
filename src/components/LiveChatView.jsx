@@ -278,9 +278,27 @@ export default function LiveChatView({
   onRefreshLeads,
   onOpenNewLead,
   chatFilterContext = null,
-  setChatFilterContext
+  setChatFilterContext,
+  filterTab: controlledFilterTab,
+  setFilterTab: setControlledFilterTab
 }) {
-  const [filterTab, setFilterTab] = useState('all'); // all, today, yesterday, dashboard_context, unread, etc.
+  const [localFilterTab, setLocalFilterTab] = useState('all'); // all, today, yesterday, dashboard_context, unread, etc.
+  const filterTab = controlledFilterTab !== undefined ? controlledFilterTab : localFilterTab;
+  const setFilterTab = setControlledFilterTab || setLocalFilterTab;
+  const [visibleChatLimit, setVisibleChatLimit] = useState(100);
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+  const filterMenuRef = useRef(null);
+
+  React.useEffect(() => {
+    if (!isFilterMenuOpen) return;
+    const handleOutside = (e) => {
+      if (filterMenuRef.current && !filterMenuRef.current.contains(e.target)) {
+        setIsFilterMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [isFilterMenuOpen]);
 
   // Sync Dashboard section/date context automatically when user comes from Dashboard
   React.useEffect(() => {
@@ -814,13 +832,13 @@ export default function LiveChatView({
             return 'New Lead';
           };
 
-          const isStatusInPeriod = arrivedInPeriod;
+          const isStatusInPeriod = arrivedInPeriod || isLeadStatusActiveInPeriod(lead, ctxRange, ctxCustom);
 
           if (ctxSec === 'today') {
             if (!isLeadToday(lead)) return false;
           } else if (ctxSec === 'top' && Array.isArray(ctxIds)) {
             if (!ctxIds.includes(lead.id)) return false;
-          } else if (!ctxSec || ctxSec === 'main_leads' || ctxSec === 'all_leads') {
+          } else if (!ctxSec || ctxSec === 'main_leads' || ctxSec === 'all_leads' || ctxSec === 'stage_New Lead') {
             if (!arrivedInPeriod) return false;
           } else if (ctxSec === 'replied') {
             if (!arrivedInPeriod) return false;
@@ -835,8 +853,6 @@ export default function LiveChatView({
             const isUnread = lead.unreadCount > 0;
             const isFreshNew = lead.stage === 'New Lead' && !msgs.some((m) => m.sender === 'agent');
             if (!(waitingCustomer || isUnread || isFreshNew)) return false;
-          } else if (ctxSec === 'stage_New Lead') {
-            if (!arrivedInPeriod || getCat(lead.stage) !== 'New Lead') return false;
           } else if (ctxSec === 'stage_Contacted') {
             if (!arrivedInPeriod || getCat(lead.stage) !== 'Contacted') return false;
           } else if (ctxSec === 'won' || ctxSec === 'stage_Deal Won') {

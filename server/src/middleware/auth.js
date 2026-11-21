@@ -4,6 +4,10 @@ import { prisma } from '../config/db.js';
 /**
  * Authentication Middleware: Validates JWT token from Authorization header
  */
+// Fast 30-second in-memory user auth cache to avoid redundant Supabase queries on every parallel API request
+const userAuthCache = new Map();
+const USER_CACHE_TTL_MS = 30000;
+
 export async function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // "Bearer TOKEN"
@@ -20,6 +24,12 @@ export async function authenticateToken(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, jwtSecret);
+    const cached = userAuthCache.get(decoded.userId);
+    if (cached && Date.now() - cached.timestamp < USER_CACHE_TTL_MS) {
+      req.user = cached.user;
+      return next();
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       include: {
@@ -34,13 +44,15 @@ export async function authenticateToken(req, res, next) {
     }
 
     // Attach user and permitted channel IDs to request
-    req.user = {
+    const userPayload = {
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
       allowedChannelIds: user.allowedChannels.map((ac) => ac.channelId),
     };
+    userAuthCache.set(decoded.userId, { user: userPayload, timestamp: Date.now() });
+    req.user = userPayload;
 
     next();
   } catch (err) {

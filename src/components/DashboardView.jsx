@@ -110,17 +110,36 @@ export default function DashboardView({
   const [hoveredStageKey, setHoveredStageKey] = useState(null);
   const [drilldownCategory, setDrilldownCategory] = useState(null); // 'main_leads', 'all_leads', 'today', 'replied', 'pending', 'top', 'won'
   const [drilldownSearch, setDrilldownSearch] = useState('');
+  const [openModalDropdown, setOpenModalDropdown] = useState(null); // { leadId, type: 'status' | 'tag' } | null
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshToast, setRefreshToast] = useState(null);
   const [currentTime, setCurrentTime] = useState(() => new Date());
 
-  // 1-second live ticker for 24-Hour Business Day Cycle (12:00 AM to 12:00 AM)
+  // 30-second calm ticker for 24-Hour Business Day Cycle (eliminates 1-second full-dashboard re-render lag & dropdown closing)
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 1000);
+    }, 30000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!openModalDropdown) return;
+    const handleOutside = (e) => {
+      if (!e.target.closest('[data-modal-dropdown]')) {
+        setOpenModalDropdown(null);
+      }
+    };
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') setOpenModalDropdown(null);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, [openModalDropdown]);
 
   // Handle Meeting Show Up / No Show status toggles
   const handleToggleMeetingStatus = (lead, targetStatus) => {

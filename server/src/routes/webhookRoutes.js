@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../config/db.js';
 import { verifyMetaWebhookSignature } from '../middleware/verifyWebhookSignature.js';
+import { invalidateLeadsCache } from './leadRoutes.js';
 
 const router = express.Router();
 
@@ -318,7 +319,9 @@ router.post('/', verifyMetaWebhookSignature, async (req, res) => {
                 createdAt: safeDate,
               },
             }),
-          ]).catch((dbErr) => console.error('Background DB persist error:', dbErr.message));
+          ])
+            .then(() => invalidateLeadsCache())
+            .catch((dbErr) => console.error('Background DB persist error:', dbErr.message));
         }
       }
     }

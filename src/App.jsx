@@ -422,6 +422,7 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    try { sessionStorage.removeItem('crm_fast_leads_cache'); } catch (e) {}
     setIsAuthenticated(false);
     setCurrentUser(null);
     setLeads([]);

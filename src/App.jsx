@@ -231,136 +231,119 @@ export default function App() {
     };
   };
 
-  // Reusable leads fetcher from PostgreSQL (Intelligent Merge — Never wipes open conversation or pending edits)
+  // Reusable leads fetcher from PostgreSQL (Intelligent Merge — Shares in-flight promise so StrictMode never drops or races)
   const fetchRealLeads = React.useCallback(async (overrideReset = false) => {
-    if (isFetchingLeadsRef.current) return;
-    isFetchingLeadsRef.current = true;
-    try {
-      const res = await api.getLeads();
-      if (res?.leads) {
-        const realLeads = res.leads.map(formatApiLead);
-        setLeads((prev) => {
-          if (overrideReset || prev.length === 0) return realLeads;
+    if (inflightFetchPromiseRef.current) {
+      return inflightFetchPromiseRef.current;
+    }
+    const runPromise = (async () => {
+      try {
+        const res = await api.getLeads();
+        if (res?.leads) {
+          const realLeads = res.leads.map(formatApiLead);
+          setLeads((prev) => {
+            if (overrideReset || prev.length === 0) return realLeads;
 
-          const prevMap = new Map(prev.map((p) => [p.id, p]));
+            const prevMap = new Map(prev.map((p) => [p.id, p]));
 
-          // Merge preserving active conversation and recent local user edits (O(N) fast lookup)
-          const merged = realLeads.map((newLead) => {
-            const existing = prevMap.get(newLead.id);
-            const localUpdate = recentLocalUpdatesRef.current.get(newLead.id);
+            // Merge preserving active conversation and recent local user edits (O(N) fast lookup)
+            const merged = realLeads.map((newLead) => {
+              const existing = prevMap.get(newLead.id);
+              const localUpdate = recentLocalUpdatesRef.current.get(newLead.id);
 
-            let stage = newLead.stage;
-            let serviceInterest = newLead.serviceInterest;
-            let tags = newLead.tags;
+              let stage = newLead.stage;
+              let serviceInterest = newLead.serviceInterest;
+              let tags = newLead.tags;
 
-            // If locally edited within last 15 seconds, lock local user choice against slow DB replication
-            if (localUpdate && Date.now() - localUpdate.timestamp < 15000) {
-              if (localUpdate.stage !== undefined) stage = localUpdate.stage;
-              if (localUpdate.serviceInterest !== undefined) serviceInterest = localUpdate.serviceInterest;
-              if (localUpdate.tags !== undefined) tags = localUpdate.tags;
-            } else if (existing) {
-              // Preserve existing stage if local stage is Qualified or Deal Won or Lost
-              if (existing.stage && existing.stage !== 'New Lead' && newLead.stage === 'New Lead') {
-                stage = existing.stage;
+              // If locally edited within last 15 seconds, lock local user choice against slow DB replication
+              if (localUpdate && Date.now() - localUpdate.timestamp < 15000) {
+                if (localUpdate.stage !== undefined) stage = localUpdate.stage;
+                if (localUpdate.serviceInterest !== undefined) serviceInterest = localUpdate.serviceInterest;
+                if (localUpdate.tags !== undefined) tags = localUpdate.tags;
+              } else if (existing) {
+                // Preserve existing stage if local stage is Qualified or Deal Won or Lost
+                if (existing.stage && existing.stage !== 'New Lead' && newLead.stage === 'New Lead') {
+                  stage = existing.stage;
+                }
+                // Preserve existing tags if server returned empty
+                if (Array.isArray(existing.tags) && existing.tags.length > 0 && (!tags || tags.length === 0)) {
+                  tags = existing.tags;
+                }
               }
-              // Preserve existing tags if server returned empty
-              if (Array.isArray(existing.tags) && existing.tags.length > 0 && (!tags || tags.length === 0)) {
-                tags = existing.tags;
+
+              const mergedTags = normalizeTagList(tags !== undefined ? tags : existing?.tags);
+
+              if (existing && existing.messages && existing.messages.length > 0) {
+                return {
+                  ...newLead,
+                  stage,
+                  serviceInterest,
+                  tags: mergedTags,
+                  messages: existing.messages,
+                  lastMessage: existing.lastMessage || newLead.lastMessage,
+                  unreadCount: existing.id === selectedLeadIdRef.current ? 0 : (existing.unreadCount || newLead.unreadCount),
+                };
               }
-            }
-
-            const mergedTags = normalizeTagList(tags !== undefined ? tags : existing?.tags);
-
-            if (existing && existing.messages && existing.messages.length > 0) {
               return {
                 ...newLead,
                 stage,
                 serviceInterest,
                 tags: mergedTags,
-                messages: existing.messages,
-                lastMessage: existing.lastMessage || newLead.lastMessage,
-                unreadCount: existing.id === selectedLeadIdRef.current ? 0 : (existing.unreadCount || newLead.unreadCount),
               };
+            });
+
+            // Map-based equality check: if no lead changed content or timestamp, DO NOT update state (stops list fluctuating & flickering!)
+            if (prev.length === merged.length) {
+              let hasChanged = false;
+              for (let i = 0; i < merged.length; i++) {
+                const m = merged[i];
+                const p = prevMap.get(m.id);
+                if (
+                  !p || 
+                  p.stage !== m.stage || 
+                  p.serviceInterest !== m.serviceInterest || 
+                  p.unreadCount !== m.unreadCount || 
+                  p.lastMessage !== m.lastMessage ||
+                  !areTagListsEqual(p.tags, m.tags)
+                ) {
+                  hasChanged = true;
+                  break;
+                }
+                const pTime = new Date(p.rawLastMessageAt || 0).getTime();
+                const mTime = new Date(m.rawLastMessageAt || 0).getTime();
+                if (Math.abs(pTime - mTime) > 3000) {
+                  hasChanged = true;
+                  break;
+                }
+              }
+              if (!hasChanged) return prev; // Preserve identity -> React skips re-render!
             }
-            return {
-              ...newLead,
-              stage,
-              serviceInterest,
-              tags: mergedTags,
-            };
+
+            return merged;
           });
-
-          // Map-based equality check: if no lead changed content or timestamp, DO NOT update state (stops list fluctuating & flickering!)
-          if (prev.length === merged.length) {
-            let hasChanged = false;
-            const prevMap = new Map(prev.map((p) => [p.id, p]));
-            for (let i = 0; i < merged.length; i++) {
-              const m = merged[i];
-              const p = prevMap.get(m.id);
-              if (
-                !p || 
-                p.stage !== m.stage || 
-                p.serviceInterest !== m.serviceInterest || 
-                p.unreadCount !== m.unreadCount || 
-                p.lastMessage !== m.lastMessage ||
-                !areTagListsEqual(p.tags, m.tags)
-              ) {
-                hasChanged = true;
-                break;
-              }
-              const pTime = new Date(p.rawLastMessageAt || 0).getTime();
-              const mTime = new Date(m.rawLastMessageAt || 0).getTime();
-              if (Math.abs(pTime - mTime) > 3000) {
-                hasChanged = true;
-                break;
-              }
-            }
-            if (!hasChanged) return prev; // Preserve identity -> React skips re-render!
+          if (realLeads.length > 0 && (!selectedLeadIdRef.current || overrideReset)) {
+            setSelectedLeadId(realLeads[0].id);
           }
-
-          return merged;
-        });
-        try {
-          // Cache lightweight snapshot in sessionStorage for instant 0ms reload hydration
-          sessionStorage.setItem('crm_fast_leads_cache', JSON.stringify(realLeads.slice(0, 800)));
-        } catch (e) {}
-        if (realLeads.length > 0 && (!selectedLeadIdRef.current || overrideReset)) {
-          setSelectedLeadId(realLeads[0].id);
         }
+      } catch (err) {
+        console.warn('Failed to load leads:', err);
+      } finally {
+        inflightFetchPromiseRef.current = null;
       }
-    } catch (err) {
-      console.warn('Failed to load leads:', err);
-    } finally {
-      isFetchingLeadsRef.current = false;
-    }
+    })();
+
+    inflightFetchPromiseRef.current = runPromise;
+    return runPromise;
   }, []);
 
-  // Strict User Profile & Channel Data Initializer (Instant Cache Hydration + Parallel Fetch)
+  // Strict User Profile & Channel Data Initializer (Parallel Fetch — Awaits shared lead promise so data is 100% present when loader closes)
   const initUserData = React.useCallback(async (userObj) => {
     if (!userObj) return;
-
-    // Hydrate from sessionStorage immediately if available so user NEVER sees blank/stuck loader on refresh
-    let hasCachedLeads = false;
-    try {
-      const cachedRaw = sessionStorage.getItem('crm_fast_leads_cache');
-      if (cachedRaw) {
-        const parsed = JSON.parse(cachedRaw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setLeads(parsed);
-          setSelectedLeadId(parsed[0].id);
-          hasCachedLeads = true;
-        }
-      }
-    } catch (e) {}
-
-    if (!hasCachedLeads) {
-      setIsAppLoading(true);
-      setLeads([]);
-      setSelectedLeadId(null);
-    }
+    try { sessionStorage.removeItem('crm_fast_leads_cache'); } catch (e) {}
+    setIsAppLoading(true);
 
     try {
-      // 1. Fetch channels, leads & WhatsApp status ALL IN PARALLEL (cuts reload time in half!)
+      // Fetch channels, leads & WhatsApp status ALL IN PARALLEL
       const [chRes, statusRes] = await Promise.all([
         api.getChannels().catch((e) => { console.warn('Channels load err:', e); return { channels: [] }; }),
         api.getWhatsAppStatus().catch(() => null),
@@ -410,14 +393,14 @@ export default function App() {
     }
   }, [fetchRealLeads]);
 
-  // Fast recovery retry: if leads is empty after initial load (e.g. cold DB wake-up), retry every 10s when not already fetching
+  // Fast recovery retry: if leads is empty after initial load (e.g. cold DB wake-up), retry every 5s when not already fetching
   useEffect(() => {
     if (!isAuthenticated || leads.length > 0) return;
     const retryTimer = setInterval(() => {
-      if (!isFetchingLeadsRef.current) {
+      if (!inflightFetchPromiseRef.current) {
         fetchRealLeads(true);
       }
-    }, 10000);
+    }, 5000);
     return () => clearInterval(retryTimer);
   }, [isAuthenticated, leads.length, fetchRealLeads]);
 

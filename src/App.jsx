@@ -233,7 +233,7 @@ export default function App() {
 
   // Reusable leads fetcher from PostgreSQL (Intelligent Merge — Never wipes open conversation or pending edits)
   const fetchRealLeads = React.useCallback(async (overrideReset = false) => {
-    if (!overrideReset && isFetchingLeadsRef.current) return;
+    if (isFetchingLeadsRef.current) return;
     isFetchingLeadsRef.current = true;
     try {
       const res = await api.getLeads();
@@ -410,12 +410,14 @@ export default function App() {
     }
   }, [fetchRealLeads]);
 
-  // Fast recovery retry: if leads is empty after initial load (e.g. cold DB wake-up), retry every 2.5s until loaded
+  // Fast recovery retry: if leads is empty after initial load (e.g. cold DB wake-up), retry every 10s when not already fetching
   useEffect(() => {
     if (!isAuthenticated || leads.length > 0) return;
     const retryTimer = setInterval(() => {
-      fetchRealLeads(true);
-    }, 2500);
+      if (!isFetchingLeadsRef.current) {
+        fetchRealLeads(true);
+      }
+    }, 10000);
     return () => clearInterval(retryTimer);
   }, [isAuthenticated, leads.length, fetchRealLeads]);
 

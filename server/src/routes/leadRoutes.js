@@ -144,13 +144,6 @@ router.get('/', authenticateToken, async (req, res) => {
     const user = req.user;
     const { channelId, stage, search } = req.query;
 
-    // Fast Cache Check: If requested within CACHE_TTL_MS, serve instantly (0-1ms)
-    const cacheKey = `${user.id}_${user.role}_${channelId || 'all'}_${stage || 'all'}_${search || ''}`;
-    const cachedEntry = leadsResponseCache.get(cacheKey);
-    if (cachedEntry && (Date.now() - cachedEntry.timestamp < CACHE_TTL_MS)) {
-      return res.json(cachedEntry.data);
-    }
-
     const where = {};
 
     // 1. Strict Role-Based Lead Isolation

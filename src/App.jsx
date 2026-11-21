@@ -101,7 +101,7 @@ export default function App() {
   const [chatFilterContext, setChatFilterContext] = useState(null);
   const [chatFilterTab, setChatFilterTab] = useState('all');
   const dashboardDateTouchedRef = React.useRef(false);
-  const isFetchingLeadsRef = React.useRef(false);
+  const inflightFetchPromiseRef = React.useRef(null);
 
   const handleDashboardTimeRangeChange = (nextRange) => {
     dashboardDateTouchedRef.current = true;

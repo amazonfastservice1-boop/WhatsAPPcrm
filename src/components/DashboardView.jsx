@@ -358,8 +358,10 @@ export default function DashboardView({
       else if (timeRange === '6months') arrivedInPeriod = isLeadWithinDays(l, 180);
       else if (timeRange === 'year') arrivedInPeriod = isLeadWithinDays(l, 365);
 
-      // Strict day boundary: leads belong to their arrival date; updating an older lead's tags/status does NOT move it into Today
-      return arrivedInPeriod;
+      if (arrivedInPeriod) return true;
+
+      // Also include leads whose status/tags were explicitly updated during this time period (while past-day edits stay anchored to their past day)
+      return isLeadStatusActiveInPeriod(l, timeRange, customSelectedDate);
     });
 
     return rawList;
@@ -2420,8 +2422,8 @@ export default function DashboardView({
                         </div>
                       </div>
 
-                      {/* RIGHT: Action buttons — shrink-0 so they never wrap into left column */}
-                      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end max-w-[260px]">
+                      {/* RIGHT: Action buttons — Custom Popover Dropdowns for Status & Follow-up/Tags on ALL rows (Never Blank on Windows) */}
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                         {/* 1. Meeting Attendance: Show Up / No Show Options */}
                         {(drilldownCategory === 'meeting' || lead.tags?.some((t) => /meet/i.test(t))) && (
                           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
@@ -2458,34 +2460,142 @@ export default function DashboardView({
                           </div>
                         )}
 
-                        {/* 2. Follow-up / Pending / No Response / Qualified Status Dropdown */}
-                        {(drilldownCategory === 'followup' || 
-                          drilldownCategory === 'pending' || 
-                          drilldownCategory === 'no_response' || 
-                          drilldownCategory === 'stage_Qualified' || 
-                          drilldownCategory === 'qualified' || 
-                          lead.stage === 'Qualified' || 
-                          lead.tags?.some((t) => /follow|no respon|pending|qualif/i.test(typeof t === 'string' ? t : t?.tag?.name || ''))) && (() => {
+                        {/* 2. Lead Status Custom Popover Dropdown (Available on ALL drilldown lists including Naye Leads!) */}
+                        {(() => {
+                          const isStatusOpen = openModalDropdown?.leadId === lead.id && openModalDropdown?.type === 'status';
+                          const currentStageVal =
+                            lead.stage === 'Qualified' || lead.stage === 'Lost' || lead.stage === 'Deal Won' || lead.stage === 'Proposal Sent'
+                              ? lead.stage
+                              : 'New Lead';
+                          const stageOpts = [
+                            { value: 'New Lead', label: '🟡 New Lead' },
+                            { value: 'Qualified', label: '🟣 Qualified' },
+                            { value: 'Lost', label: '🔴 Unqualified' },
+                            { value: 'Deal Won', label: '🟢 Deal Won' },
+                            { value: 'Proposal Sent', label: '🟠 Proposal Sent' },
+                          ];
+                          const activeStageLabel = stageOpts.find((o) => o.value === currentStageVal)?.label || '🟡 New Lead';
+                          return (
+                            <div data-modal-dropdown className="relative">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenModalDropdown(isStatusOpen ? null : { leadId: lead.id, type: 'status' });
+                                }}
+                                className={`px-2.5 py-1.5 rounded-xl border text-xs font-extrabold flex items-center gap-1 cursor-pointer shadow-2xs transition-colors ${
+                                  currentStageVal === 'Qualified'
+                                    ? 'bg-purple-50 border-purple-300 text-purple-900 hover:bg-purple-100'
+                                    : currentStageVal === 'Lost'
+                                    ? 'bg-rose-50 border-rose-300 text-rose-900 hover:bg-rose-100'
+                                    : currentStageVal === 'Deal Won'
+                                    ? 'bg-emerald-50 border-emerald-300 text-emerald-900 hover:bg-emerald-100'
+                                    : currentStageVal === 'Proposal Sent'
+                                    ? 'bg-orange-50 border-orange-300 text-orange-900 hover:bg-orange-100'
+                                    : 'bg-slate-50 border-slate-300 text-slate-800 hover:bg-slate-100'
+                                }`}
+                                title="Lead ka Status update karein (Qualified, Unqualified, Deal Won)"
+                              >
+                                <span>{activeStageLabel}</span>
+                                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isStatusOpen ? 'rotate-180' : ''}`} />
+                              </button>
+                              {isStatusOpen && (
+                                <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] bg-white rounded-xl border border-slate-200 shadow-2xl py-1">
+                                  {stageOpts.map((opt) => {
+                                    const isSelected = currentStageVal === opt.value;
+                                    return (
+                                      <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (onUpdateLead) {
+                                            onUpdateLead(lead.id, { stage: opt.value });
+                                          }
+                                          setOpenModalDropdown(null);
+                                        }}
+                                        className={`w-full text-left px-3 py-1.5 text-xs font-bold flex items-center justify-between gap-2 hover:bg-orange-50 hover:text-orange-700 ${
+                                          isSelected ? 'bg-orange-50 text-orange-700' : 'text-slate-800'
+                                        }`}
+                                      >
+                                        <span>{opt.label}</span>
+                                        {isSelected && <span className="text-orange-600 font-black">✓</span>}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        {/* 3. Follow-up & Tag Custom Popover Dropdown (Available on ALL drilldown lists!) */}
+                        {(() => {
+                          const isTagOpen = openModalDropdown?.leadId === lead.id && openModalDropdown?.type === 'tag';
                           const tagStrings = (lead.tags || []).map((t) => (typeof t === 'string' ? t.trim() : (t?.tag?.name || t?.name || '').trim())).filter(Boolean);
                           const followUpTags = tagStrings.filter((t) => /^follow-?up/i.test(t));
                           const activeFollowup = followUpTags.length > 0 ? followUpTags[followUpTags.length - 1] : '';
+                          const tagOpts = [
+                            { value: '', label: '🧹 Follow-up Hatayein', type: 'followup' },
+                            { value: 'Follow-up', label: '⏰ Follow-up Required', type: 'followup' },
+                            { value: 'Follow-up 1', label: '⏰ Follow-up 1', type: 'followup' },
+                            { value: 'Follow-up 2', label: '⏰ Follow-up 2', type: 'followup' },
+                            { value: 'Follow-up 3', label: '⏰ Follow-up 3', type: 'followup' },
+                            { value: 'Follow-up Done (No Response)', label: '📵 Follow-up Done (No Response)', type: 'followup' },
+                            { value: 'Follow-up Done (Response Aaya)', label: '💬 Follow-up Done (Response Aaya)', type: 'followup' },
+                            { value: 'Meeting', label: '🤝 Meeting Tag', type: 'toggle' },
+                            { value: 'No Response', label: '📵 No Response Tag', type: 'toggle' },
+                          ];
                           return (
-                            <select
-                              value={activeFollowup}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                handleSetFollowupTag(lead, e.target.value);
-                              }}
-                              className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100/80 border border-amber-300 rounded-xl text-xs font-extrabold text-amber-900 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer shadow-2xs"
-                              title="Follow-up status mark karein"
-                            >
-                              <option value="">⏰ Follow-up Tag...</option>
-                              <option value="Follow-up 1">⏰ Follow-up 1</option>
-                              <option value="Follow-up 2">⏰ Follow-up 2</option>
-                              <option value="Follow-up 3">⏰ Follow-up 3</option>
-                              <option value="Follow-up Done (No Response)">📵 Follow-up Done (No Response)</option>
-                              <option value="Follow-up Done (Response Aaya)">💬 Follow-up Done (Response Aaya)</option>
-                            </select>
+                            <div data-modal-dropdown className="relative">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenModalDropdown(isTagOpen ? null : { leadId: lead.id, type: 'tag' });
+                                }}
+                                className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100/80 border border-amber-300 rounded-xl text-xs font-extrabold text-amber-900 flex items-center gap-1 cursor-pointer shadow-2xs transition-colors"
+                                title="Follow-up ya Tag mark karein"
+                              >
+                                <span className="max-w-[140px] truncate">{activeFollowup ? `⏰ ${activeFollowup}` : '⏰ Follow-up / Tag'}</span>
+                                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isTagOpen ? 'rotate-180' : ''}`} />
+                              </button>
+                              {isTagOpen && (
+                                <div className="absolute right-0 top-full mt-1 z-50 min-w-[235px] bg-white rounded-xl border border-slate-200 shadow-2xl py-1">
+                                  {tagOpts.map((opt) => {
+                                    const isSelected = opt.type === 'followup'
+                                      ? activeFollowup === opt.value
+                                      : tagStrings.some((t) => t.toLowerCase() === opt.value.toLowerCase());
+                                    return (
+                                      <button
+                                        key={opt.value || 'clear_fu'}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (opt.type === 'followup') {
+                                            handleSetFollowupTag(lead, opt.value);
+                                          } else if (onUpdateLead) {
+                                            const currentClean = tagStrings.filter((t) => t !== 'WhatsApp Inbound');
+                                            const hasIt = currentClean.some((t) => t.toLowerCase() === opt.value.toLowerCase());
+                                            const nextTags = hasIt
+                                              ? currentClean.filter((t) => t.toLowerCase() !== opt.value.toLowerCase())
+                                              : [...currentClean, opt.value];
+                                            onUpdateLead(lead.id, { tags: nextTags });
+                                          }
+                                          setOpenModalDropdown(null);
+                                        }}
+                                        className={`w-full text-left px-3 py-1.5 text-xs font-bold flex items-center justify-between gap-2 hover:bg-amber-50 hover:text-amber-900 ${
+                                          isSelected && opt.value ? 'bg-amber-50 text-amber-900' : 'text-slate-800'
+                                        }`}
+                                      >
+                                        <span>{opt.label}</span>
+                                        {isSelected && opt.value && <span className="text-amber-600 font-black">✓</span>}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
                           );
                         })()}
 
